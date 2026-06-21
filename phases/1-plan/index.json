@@ -2,9 +2,28 @@
   "project": "Dear My Routines",
   "phase": "1-plan",
   "steps": [
-    { "step": 0, "name": "core-tree", "status": "pending" },
-    { "step": 1, "name": "nodes-api", "status": "pending" },
-    { "step": 2, "name": "query-hooks", "status": "pending" },
-    { "step": 3, "name": "plan-panel", "status": "pending" }
-  ]
+    {
+      "step": 0,
+      "name": "core-tree",
+      "status": "completed",
+      "started_at": "2026-06-22T00:45:18+0900",
+      "summary": "Pure tree logic in src/core/tree (types.ts: FlatNode/TreeNode reusing db schema; tree.ts: buildTree/flattenTree/addNode/removeNode/moveNode/reorderSiblings, all pure, no React/DB runtime deps). 22 Vitest tests cover round-trip, descendant removal, cycle rejection, sortOrder."
+    },
+    {
+      "step": 1,
+      "name": "nodes-api",
+      "status": "pending"
+    },
+    {
+      "step": 2,
+      "name": "query-hooks",
+      "status": "pending"
+    },
+    {
+      "step": 3,
+      "name": "plan-panel",
+      "status": "pending"
+    }
+  ],
+  "created_at": "2026-06-22T00:45:18+0900"
 }
