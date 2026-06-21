@@ -1,0 +1,168 @@
+import { sql, type InferInsertModel, type InferSelectModel } from "drizzle-orm";
+import {
+  type AnyPgColumn,
+  boolean,
+  date,
+  integer,
+  jsonb,
+  pgEnum,
+  pgPolicy,
+  pgTable,
+  real,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
+import { authenticatedRole } from "drizzle-orm/supabase";
+
+/**
+ * Owner-only RLS policies for a table.
+ *
+ * Every table carries a `user_id` and may only be touched by the row's owner
+ * (CLAUDE.md CRITICAL, ADR-003). The check `(select auth.uid()) = user_id`
+ * means even a direct client query can never reach another user's rows.
+ * Attaching any policy auto-enables RLS on the table.
+ */
+function ownerPolicies(name: string, userId: AnyPgColumn) {
+  const isOwner = sql`(select auth.uid()) = ${userId}`;
+  return [
+    pgPolicy(`${name}_select`, {
+      for: "select",
+      to: authenticatedRole,
+      using: isOwner,
+    }),
+    pgPolicy(`${name}_insert`, {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: isOwner,
+    }),
+    pgPolicy(`${name}_update`, {
+      for: "update",
+      to: authenticatedRole,
+      using: isOwner,
+      withCheck: isOwner,
+    }),
+    pgPolicy(`${name}_delete`, {
+      for: "delete",
+      to: authenticatedRole,
+      using: isOwner,
+    }),
+  ];
+}
+
+// --- Enums ----------------------------------------------------------------
+
+export const nodeType = pgEnum("node_type", [
+  "area",
+  "project",
+  "task",
+  "subtask",
+]);
+
+export const nodeStatus = pgEnum("node_status", [
+  "pending",
+  "in_progress",
+  "done",
+  "carried",
+  "dropped",
+]);
+
+// --- nodes: flexible Area > Project > Task > Subtask tree (ADR-009) --------
+
+export const nodes = pgTable(
+  "nodes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    // Self-reference: null = top-level (Area). Deleting a parent cascades.
+    parentId: uuid("parent_id").references((): AnyPgColumn => nodes.id, {
+      onDelete: "cascade",
+    }),
+    type: nodeType("type").notNull(),
+    title: text("title").notNull(),
+    notes: text("notes"),
+    links: text("links").array(),
+    estimateMinutes: integer("estimate_minutes"),
+    actualMinutes: integer("actual_minutes"),
+    status: nodeStatus("status").notNull().default("pending"),
+    category: text("category"),
+    isBig3: boolean("is_big3").notNull().default(false),
+    plannedDate: date("planned_date"),
+    carryCount: integer("carry_count").notNull().default(0),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ownerPolicies("nodes", t.userId),
+);
+
+// --- time_logs: actual measured spans, optionally per node ----------------
+
+export const timeLogs = pgTable(
+  "time_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    nodeId: uuid("node_id")
+      .notNull()
+      .references(() => nodes.id, { onDelete: "cascade" }),
+    startAt: timestamp("start_at", { withTimezone: true }).notNull(),
+    endAt: timestamp("end_at", { withTimezone: true }),
+  },
+  (t) => ownerPolicies("time_logs", t.userId),
+);
+
+// --- daily_reviews: daily journal + AI analysis ---------------------------
+
+export const dailyReviews = pgTable(
+  "daily_reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    date: date("date").notNull(),
+    journalText: text("journal_text").notNull(),
+    aiAnalysis: jsonb("ai_analysis"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ownerPolicies("daily_reviews", t.userId),
+);
+
+// --- category_stats: layer-2 aggregate memory (ADR-006) -------------------
+
+export const categoryStats = pgTable(
+  "category_stats",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    category: text("category").notNull(),
+    avgEstimate: real("avg_estimate"),
+    avgActual: real("avg_actual"),
+    ratio: real("ratio"),
+    sampleCount: integer("sample_count").notNull().default(0),
+    trend: jsonb("trend"),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ownerPolicies("category_stats", t.userId),
+);
+
+// --- Inferred types -------------------------------------------------------
+
+export type Node = InferSelectModel<typeof nodes>;
+export type NewNode = InferInsertModel<typeof nodes>;
+
+export type TimeLog = InferSelectModel<typeof timeLogs>;
+export type NewTimeLog = InferInsertModel<typeof timeLogs>;
+
+export type DailyReview = InferSelectModel<typeof dailyReviews>;
+export type NewDailyReview = InferInsertModel<typeof dailyReviews>;
+
+export type CategoryStat = InferSelectModel<typeof categoryStats>;
+export type NewCategoryStat = InferInsertModel<typeof categoryStats>;
