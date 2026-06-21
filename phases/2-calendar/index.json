@@ -32,7 +32,7 @@
       "status": "completed",
       "started_at": "2026-06-22T01:54:33+0900",
       "summary": "CalendarGrid is now two columns — Plan (plannedStart/End) | shared time axis | Action (actualStart/End) — aligned on one bodyHeight so the same wall-clock time sits at the same height; a plan block derives an actual block onto the same node (▶ track), lining the task up across both columns where the action block shows the estimate-vs-actual delta (formatHours: 1.5h → 2.1h, ⚠ on overrun). Action blocks create on empty-slot click and reuse step-2 drag/resize via column-namespaced dnd-kit ids, committing to the right field pair through optimistic useUpdateNode (movePatch/resizePatch); POST/PATCH routes + AddNodeInput/optimisticNode now accept actualStart/End. Project colour tag via pure ancestorOfType (core/tree, +tests) → projectColor (lib); formatHours added to core/time (+tests). Act/Review panels retoned to theme tokens.",
-      "completed_at": "2026-06-22T13:01:30+0900"
+      "completed_at": "2026-06-22T02:02:09+0900"
     }
   ],
   "created_at": "2026-06-22T01:41:07+0900"
