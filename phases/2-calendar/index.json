@@ -7,7 +7,8 @@
       "name": "time-schema",
       "status": "completed",
       "started_at": "2026-06-22T01:41:07+0900",
-      "summary": "Added nullable timestamptz time-block fields (planned_start/end, actual_start/end) to nodes; migration 0001 generated and applied to Supabase, RLS unchanged; optimisticNode in hooks/nodes.ts updated to match FlatNode."
+      "summary": "Added nullable timestamptz time-block fields (planned_start/end, actual_start/end) to nodes; migration 0001 generated and applied to Supabase, RLS unchanged; optimisticNode in hooks/nodes.ts updated to match FlatNode.",
+      "completed_at": "2026-06-22T01:43:16+0900"
     },
     {
       "step": 1,
