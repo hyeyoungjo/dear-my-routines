@@ -1,0 +1,10 @@
+{
+  "project": "Dear My Routines",
+  "phase": "1-plan",
+  "steps": [
+    { "step": 0, "name": "core-tree", "status": "pending" },
+    { "step": 1, "name": "nodes-api", "status": "pending" },
+    { "step": 2, "name": "query-hooks", "status": "pending" },
+    { "step": 3, "name": "plan-panel", "status": "pending" }
+  ]
+}

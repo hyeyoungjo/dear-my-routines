@@ -4,6 +4,7 @@
       "dir": "0-foundation",
       "status": "completed",
       "completed_at": "2026-06-21T14:29:21+0900"
-    }
+    },
+    { "dir": "1-plan", "status": "pending" }
   ]
 }
