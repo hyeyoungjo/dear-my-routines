@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { createClient } from "@/services/supabase/client";
 
+// Magic-link login stays in the code (ADR-011) but is hidden in the UI for now —
+// single-user only. Flip SHOW_MAGIC_LINK to true to re-enable the email form.
+const SHOW_MAGIC_LINK = false;
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
@@ -58,7 +62,7 @@ export default function LoginPage() {
           Dear My Routines
         </h1>
         <p className="mt-2 text-sm text-neutral-500">
-          매직링크로 로그인하세요.
+          Google 계정으로 로그인하세요.
         </p>
 
         {status === "sent" ? (
@@ -76,33 +80,41 @@ export default function LoginPage() {
               Google로 로그인
             </button>
 
-            <div className="my-4 flex items-center gap-3 text-xs text-neutral-400">
-              <span className="h-px flex-1 bg-neutral-200" />
-              또는
-              <span className="h-px flex-1 bg-neutral-200" />
-            </div>
+            {status === "error" && (
+              <p className="mt-3 text-sm text-red-600">{errorMessage}</p>
+            )}
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@example.com"
-              autoComplete="email"
-              className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900"
-            />
-            <button
-              type="submit"
-              disabled={status === "sending"}
-              className="rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-            >
-              {status === "sending" ? "보내는 중…" : "매직링크 보내기"}
-            </button>
-              {status === "error" && (
-                <p className="text-sm text-red-600">{errorMessage}</p>
-              )}
-            </form>
+            {SHOW_MAGIC_LINK && (
+              <>
+                <div className="my-4 flex items-center gap-3 text-xs text-neutral-400">
+                  <span className="h-px flex-1 bg-neutral-200" />
+                  또는
+                  <span className="h-px flex-1 bg-neutral-200" />
+                </div>
+
+                <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900"
+                  />
+                  <button
+                    type="submit"
+                    disabled={status === "sending"}
+                    className="rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                  >
+                    {status === "sending" ? "보내는 중…" : "매직링크 보내기"}
+                  </button>
+                  {status === "error" && (
+                    <p className="text-sm text-red-600">{errorMessage}</p>
+                  )}
+                </form>
+              </>
+            )}
           </>
         )}
       </div>
