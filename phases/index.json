@@ -14,6 +14,7 @@
       "dir": "2-calendar",
       "status": "completed",
       "completed_at": "2026-06-22T02:02:09+0900"
-    }
+    },
+    { "dir": "3-nested", "status": "pending" }
   ]
 }

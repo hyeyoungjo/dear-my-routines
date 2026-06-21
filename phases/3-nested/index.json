@@ -1,0 +1,8 @@
+{
+  "project": "Dear My Routines",
+  "phase": "3-nested",
+  "steps": [
+    { "step": 0, "name": "nested-render", "status": "pending" },
+    { "step": 1, "name": "nested-drag", "status": "pending" }
+  ]
+}
