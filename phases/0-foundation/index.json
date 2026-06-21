@@ -15,7 +15,7 @@
       "name": "supabase-auth",
       "status": "completed",
       "started_at": "2026-06-21T13:38:36+0900",
-      "completed_at": "2026-06-21T14:05:00+0900",
+      "completed_at": "2026-06-21T13:41:46+0900",
       "summary": "Supabase magic-link auth via @supabase/ssr: services/supabase/{client,server,middleware}.ts (publishable key only, no service_role); root src/middleware.ts refreshes session + redirects unauthenticated users to /login (except /login, /auth/*); /login page (signInWithOtp), /auth/callback route (exchangeCodeForSession), temp signOut server action on home. lint/build/test pass."
     }
   ],
