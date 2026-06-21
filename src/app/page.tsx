@@ -1,0 +1,10 @@
+export default function Home() {
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
+      <h1 className="text-3xl font-semibold tracking-tight">Dear My Routines</h1>
+      <p className="max-w-md text-sm text-neutral-500">
+        매일 예상과 실제를 측정해 시간 감각을 키우는 개인용 시간관리 앱. 곧 만들어집니다.
+      </p>
+    </main>
+  );
+}
