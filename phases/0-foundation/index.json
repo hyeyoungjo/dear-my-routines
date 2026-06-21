@@ -31,7 +31,7 @@
       "name": "db-schema",
       "status": "completed",
       "started_at": "2026-06-21T14:24:02+0900",
-      "completed_at": "2026-06-21T14:32:00+0900",
+      "completed_at": "2026-06-21T14:27:55+0900",
       "summary": "Drizzle ORM schema (src/db/schema.ts) for the ADR-009 data model: nodes (self-referencing Area>Project>Task>Subtask tree, node_type/node_status pgEnums), time_logs, daily_reviews, category_stats (ADR-006 layer-2). Every table has user_id + RLS enabled with owner-only policies ((select auth.uid()) = user_id) for all of select/insert/update/delete via a DRY ownerPolicies() helper; InferSelect/Insert types exported. drizzle.config.ts + generated drizzle/0000_icy_prima.sql (publishable key only, no service_role; DATABASE_URL absent so push skipped). .env.example documents DATABASE_URL. lint/build/test/generate pass."
     },
     {
