@@ -5,6 +5,10 @@
       "status": "completed",
       "completed_at": "2026-06-21T14:29:21+0900"
     },
-    { "dir": "1-plan", "status": "pending" }
+    {
+      "dir": "1-plan",
+      "status": "completed",
+      "completed_at": "2026-06-22T00:59:00+0900"
+    }
   ]
 }
