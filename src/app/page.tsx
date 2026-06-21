@@ -1,8 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/services/supabase/server";
-import { PlanPanel } from "@/components/panels/PlanPanel";
-import { ActPanel } from "@/components/panels/ActPanel";
-import { ReviewPanel } from "@/components/panels/ReviewPanel";
+import { CalendarGrid } from "@/components/calendar/CalendarGrid";
 import { ThemeMenu } from "@/components/ThemeMenu";
 
 async function signOut() {
@@ -31,10 +29,8 @@ export default function Home() {
           </form>
         </div>
       </header>
-      <main className="grid flex-1 grid-cols-1 gap-4 p-4 md:grid-cols-3">
-        <PlanPanel />
-        <ActPanel />
-        <ReviewPanel />
+      <main className="mx-auto w-full max-w-2xl flex-1 p-4">
+        <CalendarGrid />
       </main>
     </div>
   );

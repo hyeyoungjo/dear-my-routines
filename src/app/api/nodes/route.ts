@@ -54,6 +54,13 @@ function parseCreateInput(
   if (typeof body.category === "string") values.category = body.category;
   if (typeof body.isBig3 === "boolean") values.isBig3 = body.isBig3;
   if (typeof body.plannedDate === "string") values.plannedDate = body.plannedDate;
+  // Calendar time blocks arrive as ISO strings; Drizzle timestamps want Dates.
+  if (typeof body.plannedStart === "string") {
+    values.plannedStart = new Date(body.plannedStart);
+  }
+  if (typeof body.plannedEnd === "string") {
+    values.plannedEnd = new Date(body.plannedEnd);
+  }
   if (typeof body.sortOrder === "number") values.sortOrder = body.sortOrder;
 
   return values;
