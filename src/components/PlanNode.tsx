@@ -74,7 +74,7 @@ export function PlanNode({ node, depth }: { node: TreeNode; depth: number }) {
   return (
     <li>
       <div
-        className="group flex items-center gap-2 rounded-md py-1 pr-1 hover:bg-neutral-50"
+        className="group flex items-center gap-2 rounded-md py-1 pr-1 transition-colors hover:bg-accent-soft"
         style={{ paddingLeft: depth * INDENT + 4 }}
       >
         <button
@@ -85,7 +85,7 @@ export function PlanNode({ node, depth }: { node: TreeNode; depth: number }) {
           className={
             node.isBig3
               ? "text-amber-500"
-              : "text-neutral-300 hover:text-neutral-400"
+              : "text-muted hover:text-foreground"
           }
         >
           {node.isBig3 ? "★" : "☆"}
@@ -99,7 +99,7 @@ export function PlanNode({ node, depth }: { node: TreeNode; depth: number }) {
             if (e.key === "Enter") e.currentTarget.blur();
           }}
           aria-label="Title"
-          className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 py-0.5 text-sm hover:border-neutral-200 focus:border-neutral-300 focus:outline-none"
+          className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 py-0.5 text-sm text-foreground hover:border-border focus:border-accent focus:outline-none"
         />
 
         <input
@@ -112,7 +112,7 @@ export function PlanNode({ node, depth }: { node: TreeNode; depth: number }) {
           }}
           placeholder="min"
           aria-label="Estimate in minutes"
-          className="w-16 rounded border border-transparent bg-transparent px-1 py-0.5 text-right text-xs text-neutral-600 hover:border-neutral-200 focus:border-neutral-300 focus:outline-none"
+          className="w-16 rounded border border-transparent bg-transparent px-1 py-0.5 text-right text-xs text-muted hover:border-border focus:border-accent focus:outline-none"
         />
 
         <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
@@ -121,7 +121,7 @@ export function PlanNode({ node, depth }: { node: TreeNode; depth: number }) {
             onClick={addChild}
             title={`Add ${childType}`}
             aria-label={`Add ${childType}`}
-            className="rounded px-1.5 py-0.5 text-xs text-neutral-500 hover:bg-neutral-200"
+            className="rounded px-1.5 py-0.5 text-xs text-muted hover:bg-accent-soft hover:text-foreground"
           >
             +
           </button>
@@ -130,7 +130,7 @@ export function PlanNode({ node, depth }: { node: TreeNode; depth: number }) {
             onClick={remove}
             title="Delete"
             aria-label="Delete"
-            className="rounded px-1.5 py-0.5 text-xs text-neutral-400 hover:bg-red-100 hover:text-red-600"
+            className="rounded px-1.5 py-0.5 text-xs text-muted hover:bg-red-100 hover:text-red-600"
           >
             {"✕"}
           </button>

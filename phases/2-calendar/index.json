@@ -1,0 +1,10 @@
+{
+  "project": "Dear My Routines",
+  "phase": "2-calendar",
+  "steps": [
+    { "step": 0, "name": "time-schema", "status": "pending" },
+    { "step": 1, "name": "calendar-grid", "status": "pending" },
+    { "step": 2, "name": "drag-resize", "status": "pending" },
+    { "step": 3, "name": "plan-vs-actual", "status": "pending" }
+  ]
+}

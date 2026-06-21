@@ -1,20 +1,49 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * Explicit themes only — no auto `prefers-color-scheme` dark (it clashed with
+ * light panels and washed text out). Default is "lavender": a soft lavender +
+ * gray, creative feel. Switch via the gear menu (sets data-theme on <html>).
+ */
+:root,
+[data-theme="lavender"] {
+  --background: #f4f2fa; /* soft lavender-gray */
+  --foreground: #2e2a3f; /* deep violet-gray — high contrast, readable */
+  --muted: #6b6580; /* muted text, still legible */
+  --panel: #fbfaff; /* near-white with a lavender tint */
+  --border: #e3def0; /* lavender-gray border */
+  --accent: #7c5cff; /* violet accent */
+  --accent-soft: #ece7ff; /* soft violet surface */
+}
+
+[data-theme="slate"] {
+  --background: #f4f5f7;
+  --foreground: #1f2430;
+  --muted: #6b7280;
+  --panel: #ffffff;
+  --border: #e5e7eb;
+  --accent: #4b5563;
+  --accent-soft: #eef0f3;
+}
+
+[data-theme="dark"] {
+  --background: #17141f;
+  --foreground: #ece9f5;
+  --muted: #a39db8;
+  --panel: #211d2e;
+  --border: #352f47;
+  --accent: #a78bff;
+  --accent-soft: #2a2440;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-muted: var(--muted);
+  --color-panel: var(--panel);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
 }
 
 body {

@@ -28,37 +28,34 @@ export function PlanPanel() {
   };
 
   return (
-    <section className="flex min-h-64 flex-col rounded-lg border border-neutral-200 bg-white p-4">
-      <h2 className="text-lg font-semibold tracking-tight">Plan</h2>
-      <p className="mt-1 text-xs text-neutral-400">
+    <section className="flex min-h-64 flex-col rounded-lg border border-border bg-panel p-4">
+      <h2 className="text-lg font-semibold tracking-tight text-foreground">Plan</h2>
+      <p className="mt-1 text-xs text-muted">
         Morning — brain-dump, Big 3, estimate time
       </p>
 
       <div className="mt-4 flex-1">
         {isLoading ? (
-          <p className="text-sm text-neutral-400">Loading…</p>
+          <p className="text-sm text-muted">Loading…</p>
         ) : isError ? (
           <p className="text-sm text-red-500">Failed to load.</p>
-        ) : tree.length === 0 ? (
-          <p className="text-sm text-neutral-400">
-            No items yet. Add your first area.
-          </p>
         ) : (
           <ul className="space-y-1">
             {tree.map((node) => (
               <PlanNode key={node.id} node={node} depth={0} />
             ))}
+            <li>
+              <button
+                type="button"
+                onClick={addArea}
+                className="w-full rounded-md border border-dashed border-border px-3 py-2 text-left text-sm text-muted transition-colors hover:border-accent hover:bg-accent-soft hover:text-foreground"
+              >
+                + Add area
+              </button>
+            </li>
           </ul>
         )}
       </div>
-
-      <button
-        type="button"
-        onClick={addArea}
-        className="mt-4 self-start rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 transition-colors hover:bg-neutral-100"
-      >
-        + Add area
-      </button>
     </section>
   );
 }
