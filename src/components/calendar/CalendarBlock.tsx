@@ -29,11 +29,11 @@ export type CalBlock = {
  * One scheduled task drawn on a calendar column as an absolutely-positioned
  * block, rendering its subtasks **recursively inside itself** as inset, time-
  * positioned child blocks (frame-in-frame, arbitrary depth — ADR-009). A
- * top-level block (`depth === 0`) is positioned by the grid in pixels and is
- * draggable; nested children are positioned in percentages of their parent's
- * effective span and are static (nested drag/resize is phase-3 step 1, out of
- * scope here). Deeper levels are indented and lightly shaded so the nesting
- * reads at a glance.
+ * top-level block (`depth === 0`) is positioned by the grid in pixels; nested
+ * children are positioned in percentages of their parent's effective span. Both
+ * drag to move and edge-drag to resize at any depth — the per-minute pixel scale
+ * is constant through the nesting, so the grid's minute math is depth-agnostic.
+ * Deeper levels are indented and lightly shaded so the nesting reads at a glance.
  *
  * Title editing, the Big 3 star, deriving an actual block from a plan, and
  * adding a subtask all flow through optimistic hooks (CLAUDE.md CRITICAL —
@@ -50,7 +50,6 @@ export function CalendarBlock({
   column,
   depth,
   style,
-  isDragging,
   onAddSubtask,
 }: {
   block: CalBlock;
@@ -58,25 +57,25 @@ export function CalendarBlock({
   depth: number;
   /** Position/size — pixels for a top-level block, percentages for a nested one. */
   style: React.CSSProperties;
-  isDragging: boolean;
   /** Create a child node under `parent` in this column (optimistic, owned by grid). */
   onAddSubtask: (parent: FlatNode) => void;
 }) {
   const { node, span, color, comparison, children } = block;
   const updateNode = useUpdateNode();
 
-  // Only top-level blocks drag/resize in this step (nested drag is step 1).
-  const draggable = depth === 0;
+  // Every block drags to move and edge-drags to resize, at any nesting depth
+  // (ADR-009 frame-in-frame). dnd-kit ids are namespaced by column + node id so
+  // depths and columns never collide. The grid previews movement by re-rendering
+  // the block at its snapped span, so no CSS transform is applied here.
   const move = useDraggable({
     id: `move:${column}:${node.id}`,
     data: { mode: "move", nodeId: node.id, column },
-    disabled: !draggable,
   });
   const resize = useDraggable({
     id: `resize:${column}:${node.id}`,
     data: { mode: "resize", nodeId: node.id, column },
-    disabled: !draggable,
   });
+  const isDragging = move.isDragging || resize.isDragging;
 
   const commitTitle = (value: string) => {
     const title = value.trim();
@@ -114,7 +113,7 @@ export function CalendarBlock({
 
   return (
     <div
-      ref={draggable ? move.setNodeRef : undefined}
+      ref={move.setNodeRef}
       // Stop the click from reaching the grid, which would create a new block.
       onClick={(e) => e.stopPropagation()}
       style={style}
@@ -126,10 +125,9 @@ export function CalendarBlock({
     >
       {/* Body — on a top-level block, drag anywhere here to move it in time. */}
       <div
-        {...(draggable ? { ...move.listeners, ...move.attributes } : {})}
-        className={`flex shrink-0 items-start gap-1 px-2 py-1 ${
-          draggable ? "cursor-grab active:cursor-grabbing" : ""
-        }`}
+        {...move.listeners}
+        {...move.attributes}
+        className="flex shrink-0 cursor-grab items-start gap-1 px-2 py-1 active:cursor-grabbing"
       >
         {color && (
           <span
@@ -217,22 +215,19 @@ export function CalendarBlock({
             column={column}
             depth={depth + 1}
             style={{ top: `${top}%`, height: `${height}%` }}
-            isDragging={false}
             onAddSubtask={onAddSubtask}
           />
         );
       })}
 
-      {/* Bottom edge — top-level only: drag to resize the block's duration. */}
-      {draggable && (
-        <div
-          ref={resize.setNodeRef}
-          {...resize.listeners}
-          {...resize.attributes}
-          aria-label="Resize block"
-          className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize"
-        />
-      )}
+      {/* Bottom edge — drag to resize the block's duration (any depth). */}
+      <div
+        ref={resize.setNodeRef}
+        {...resize.listeners}
+        {...resize.attributes}
+        aria-label="Resize block"
+        className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize"
+      />
     </div>
   );
 }

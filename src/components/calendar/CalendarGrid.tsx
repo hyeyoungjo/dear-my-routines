@@ -33,7 +33,12 @@ import {
   type CalBlock,
   type ColumnKind,
 } from "@/components/calendar/CalendarBlock";
-import { useAddNode, useNodes, useUpdateNode } from "@/hooks/nodes";
+import {
+  useAddNode,
+  useNodes,
+  useUpdateNode,
+  type UpdateNodeInput,
+} from "@/hooks/nodes";
 
 /** Pixel height of one hour row; the whole grid scales off this. */
 const SLOT_HEIGHT = 48;
@@ -171,6 +176,19 @@ export function CalendarGrid() {
     });
   };
 
+  /**
+   * The block a node renders nested inside for this column: its direct parent,
+   * but only when that parent also has a span here (matches buildColumnTree's
+   * rule — a node whose parent is invisible in this column is drawn as a root).
+   * Returns null for a top-level block.
+   */
+  const visibleParent = (node: FlatNode, kind: ColumnKind): FlatNode | null => {
+    if (node.parentId == null) return null;
+    const parent = all.find((n) => n.id === node.parentId);
+    if (!parent) return null;
+    return readSpan(parent, kind) != null ? parent : null;
+  };
+
   const handleDragEnd = (e: DragEndEvent) => {
     setDrag(null);
     const data = e.active.data.current as DragData | undefined;
@@ -182,15 +200,65 @@ export function CalendarGrid() {
     const deltaMinutes = snapMinutes(e.delta.y / PX_PER_MINUTE);
     if (deltaMinutes === 0) return;
 
-    const span =
+    // The dragged block's own new span (move shifts both edges, resize the end).
+    const ownSpan =
       data.mode === "move"
         ? moveBlock(base.start, base.end, deltaMinutes)
         : resizeBlockEnd(base.start, base.end, deltaMinutes);
-    const patch =
-      data.mode === "move"
-        ? movePatch(data.column, span)
-        : resizePatch(data.column, span);
-    updateNode.mutate({ id: node.id, patch });
+
+    // Commit the dragged block, then walk up its visible-parent chain growing
+    // each ancestor to wrap the level below when it overflows (ADR-009 frame-in-
+    // frame): the child is clamped inside its parent (clampChildToParent) and the
+    // parent's stored span is stretched (fitParentToChildren) to contain it,
+    // cascading up to arbitrary depth. A top-level block has no parent and simply
+    // commits its own span — identical to the flat (step 2) behaviour. Each patch
+    // goes through the optimistic useUpdateNode, so the screen never waits.
+    const patches: UpdateNodeInput[] = [];
+    let current: FlatNode = node;
+    let currentSpan = ownSpan;
+    let isDraggedNode = true;
+
+    for (;;) {
+      const parent = visibleParent(current, data.column);
+
+      // resize only ever moves the dragged block's own end; every other write —
+      // a clamped move, or a grown ancestor whose start and/or end shifted — is a
+      // whole-span move.
+      const writeWholeSpan = !(isDraggedNode && data.mode === "resize");
+
+      if (!parent) {
+        patches.push({
+          id: current.id,
+          patch: writeWholeSpan
+            ? movePatch(data.column, currentSpan)
+            : resizePatch(data.column, currentSpan),
+        });
+        break;
+      }
+
+      const parentBase = readSpan(parent, data.column)!;
+      const grown = fitParentToChildren(parentBase, [currentSpan]);
+      // Keep this level inside its parent. Once the parent has grown to wrap an
+      // overflowing child this is a no-op; it guards the child ⊆ parent invariant.
+      const clamped = clampChildToParent(currentSpan, grown);
+      patches.push({
+        id: current.id,
+        patch: writeWholeSpan
+          ? movePatch(data.column, clamped)
+          : resizePatch(data.column, clamped),
+      });
+
+      const parentGrew =
+        grown.start.getTime() !== parentBase.start.getTime() ||
+        grown.end.getTime() !== parentBase.end.getTime();
+      if (!parentGrew) break; // parent already contains the child — nothing above changes.
+
+      current = parent;
+      currentSpan = grown;
+      isDraggedNode = false;
+    }
+
+    for (const patch of patches) updateNode.mutate(patch);
   };
 
   /**
@@ -280,7 +348,6 @@ export function CalendarGrid() {
               top: blockTopMinutes(block.span.start) * PX_PER_MINUTE,
               height: Math.max(mins, 30) * PX_PER_MINUTE,
             }}
-            isDragging={drag?.column === kind && drag.nodeId === block.node.id}
             onAddSubtask={(parent) => addSubtask(parent, kind)}
           />
         );
