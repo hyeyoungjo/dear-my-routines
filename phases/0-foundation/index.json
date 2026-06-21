@@ -7,7 +7,7 @@
       "name": "project-setup",
       "status": "completed",
       "started_at": "2026-06-21T13:26:12+0900",
-      "completed_at": "2026-06-21T13:35:00+0900",
+      "completed_at": "2026-06-21T13:30:27+0900",
       "summary": "Next.js 15.5 (App Router) + TS strict + Tailwind v4 scaffolded; src/{components,core/{time,tree,stats},services/{supabase,ai},db,types,lib} with .gitkeep; Vitest + vitest.config.ts (@/* alias); .claude/settings.json safety hooks; placeholder page/layout. lint/build/test all pass."
     }
   ],
