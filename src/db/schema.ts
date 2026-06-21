@@ -92,6 +92,10 @@ export const nodes = pgTable(
     actualEnd: timestamp("actual_end", { withTimezone: true }),
     status: nodeStatus("status").notNull().default("pending"),
     category: text("category"),
+    // Optional explicit colour (hex) — used for a project's legend chip and the
+    // colour its tasks inherit. Falls back to a deterministic id-based colour
+    // when unset (see lib/projectColor).
+    color: text("color"),
     isBig3: boolean("is_big3").notNull().default(false),
     plannedDate: date("planned_date"),
     carryCount: integer("carry_count").notNull().default(0),

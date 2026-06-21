@@ -8,7 +8,7 @@ import {
   type Span,
 } from "@/core/time/calendar";
 import type { FlatNode } from "@/core/tree/types";
-import { useRemoveNode, useUpdateNode } from "@/hooks/nodes";
+import { useNodes, useRemoveNode, useUpdateNode } from "@/hooks/nodes";
 
 /** Which time-block pair a column reads/writes (ADR-004 Plan vs. Act). */
 export type ColumnKind = "plan" | "action";
@@ -78,6 +78,16 @@ export function CalendarBlock({
   const updateNode = useUpdateNode();
   const removeNode = useRemoveNode();
 
+  // Projects for the assign menu (Project is a non-timed grouping in the legend;
+  // assigning sets this task's parentId so it inherits the project's colour).
+  const { data: allNodes } = useNodes();
+  const projects = (allNodes ?? [])
+    .filter((n) => n.type === "project")
+    .sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+
   // Every block drags to move and edge-drags to resize, at any nesting depth
   // (ADR-009 frame-in-frame). dnd-kit ids are namespaced by column + node id so
   // depths and columns never collide. The grid previews movement by re-rendering
@@ -107,21 +117,35 @@ export function CalendarBlock({
     comparison != null && comparison.actualMinutes > comparison.plannedMinutes;
 
   // Top-level blocks span the full column width; nested ones are inset (left
-  // padding + a hair narrower) and lightly faded so frame-in-frame is visible.
+  // padding + a hair narrower) so frame-in-frame is visible.
   const positionClass = depth === 0 ? "inset-x-1" : "left-3 right-1";
-  const toneClass =
-    depth === 0 ? "bg-accent-soft" : depth === 1 ? "bg-accent-soft/70" : "bg-accent-soft/50";
+  // Tint the block with the project colour (faint fill + readable foreground
+  // text reads on any hue); deeper levels a touch lighter. Falls back to the
+  // neutral accent when the task has no project assigned.
+  const tintAlpha = depth === 0 ? "26" : depth === 1 ? "1c" : "14";
+  const tintStyle = color
+    ? { backgroundColor: `${color}${tintAlpha}`, borderColor: `${color}66` }
+    : undefined;
+  const toneClass = color
+    ? ""
+    : depth === 0
+      ? "bg-accent-soft"
+      : depth === 1
+        ? "bg-accent-soft/70"
+        : "bg-accent-soft/50";
 
   return (
     <div
       ref={move.setNodeRef}
       // Stop the click from reaching the grid, which would create a new block.
       onClick={(e) => e.stopPropagation()}
-      style={style}
+      style={{ ...style, ...tintStyle }}
       className={`absolute ${positionClass} flex min-h-[1.75rem] select-none flex-col overflow-hidden rounded-md border ${toneClass} shadow-sm transition-shadow ${
         isDragging
           ? "z-10 border-accent/60 shadow-md ring-1 ring-accent/40"
-          : "border-accent/30"
+          : color
+            ? ""
+            : "border-accent/60"
       } ${isPlaceholder ? "border-dashed opacity-60" : ""}`}
     >
       {/* Title header — fixed height (headerPx) so it never eats into the time
@@ -129,16 +153,50 @@ export function CalendarBlock({
       <div
         {...move.listeners}
         {...move.attributes}
-        style={{ height: headerPx }}
-        className="relative z-10 flex shrink-0 cursor-grab items-center gap-1 px-2 active:cursor-grabbing"
+        style={color ? { backgroundColor: `${color}40` } : undefined}
+        className={`absolute inset-x-0 top-0 z-10 flex cursor-grab items-center gap-1 rounded-t-md px-2 py-0.5 text-foreground backdrop-blur-sm active:cursor-grabbing ${
+          color ? "" : "bg-accent-soft/90"
+        }`}
       >
-        {color && (
-          <span
-            aria-hidden
-            title="Project"
-            className="size-2 shrink-0 rounded-full"
-            style={{ backgroundColor: color }}
-          />
+        {depth === 0 ? (
+          <span className="relative flex size-3 shrink-0 items-center justify-center">
+            <span
+              className="size-2 rounded-full"
+              style={{
+                backgroundColor: color ?? "transparent",
+                boxShadow: color ? undefined : "inset 0 0 0 1px var(--border)",
+              }}
+            />
+            <select
+              value={node.parentId ?? ""}
+              onChange={(e) =>
+                updateNode.mutate({
+                  id: node.id,
+                  patch: { parentId: e.target.value || null },
+                })
+              }
+              onClick={(e) => e.stopPropagation()}
+              aria-label="Assign project"
+              title="Assign project"
+              className="absolute inset-0 cursor-pointer opacity-0"
+            >
+              <option value="">No project</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title || "Project"}
+                </option>
+              ))}
+            </select>
+          </span>
+        ) : (
+          color && (
+            <span
+              aria-hidden
+              title="Project"
+              className="size-2 shrink-0 rounded-full"
+              style={{ backgroundColor: color }}
+            />
+          )
         )}
 
         <button
@@ -163,15 +221,7 @@ export function CalendarBlock({
             if (e.key === "Enter") e.currentTarget.blur();
           }}
           aria-label="Title"
-          placeholder={
-            node.type === "area"
-              ? "New area"
-              : node.type === "project"
-                ? "New project"
-                : node.type === "task"
-                  ? "New task"
-                  : "New subtask"
-          }
+          placeholder="New task"
           className="min-w-0 flex-1 truncate bg-transparent text-xs font-medium text-foreground placeholder:font-normal placeholder:text-muted focus:outline-none"
         />
 
@@ -189,18 +239,7 @@ export function CalendarBlock({
           </span>
         )}
 
-        {/* Add a subtask nested inside this block (one level deeper). */}
-        <button
-          type="button"
-          onClick={() => onAddSubtask(node)}
-          aria-label="Add subtask"
-          title="Add subtask"
-          className="shrink-0 text-muted hover:text-accent"
-        >
-          ＋
-        </button>
-
-        {/* Delete this node (its subtasks cascade via the API). */}
+        {/* Delete this node. */}
         <button
           type="button"
           onClick={() => removeNode.mutate(node.id)}

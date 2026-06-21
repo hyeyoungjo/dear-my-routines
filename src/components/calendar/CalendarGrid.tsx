@@ -44,9 +44,9 @@ import {
 /** Pixel height of one hour row; the whole grid scales off this. */
 const SLOT_HEIGHT = 48;
 const PX_PER_MINUTE = SLOT_HEIGHT / 60;
-/** Fixed pixel height of a block's title row (matches CalendarBlock's header).
- *  Children are laid out below it in pixels, so the header never eats time span. */
-const HEADER_PX = 28;
+/** The title row is now an overlay (absolute) so it takes no vertical space —
+ *  children align to pure time. Kept as 0 to feed core/time helpers unchanged. */
+const HEADER_PX = 0;
 /** Default length of a freshly-created block (one hour). */
 const DEFAULT_BLOCK_MINUTES = 60;
 /** Default length of a new subtask seeded inside its parent block. */
@@ -289,7 +289,11 @@ export function CalendarGrid() {
    * overflow, to arbitrary depth (ADR-009). All schedule math stays in `core/`.
    */
   const buildColumnTree = (kind: ColumnKind): CalBlock[] => {
-    const visible = all.filter((node) => readSpan(node, kind) != null);
+    // Project > Task only. Tasks are the time blocks; Project is a legend
+    // grouping (colour). Subtasks/areas were removed, so only tasks are drawn.
+    const visible = all.filter(
+      (node) => readSpan(node, kind) != null && node.type === "task",
+    );
     const visibleIds = new Set(visible.map((node) => node.id));
     const childrenOf = new Map<string | null, FlatNode[]>();
     for (const node of visible) {
@@ -327,7 +331,7 @@ export function CalendarGrid() {
       return {
         node,
         span,
-        color: projectColor(project?.id ?? null),
+        color: project?.color ?? projectColor(project?.id ?? null),
         isPlaceholder,
         // Estimate-vs-actual delta only once a real actual exists (not for ghosts).
         comparison:

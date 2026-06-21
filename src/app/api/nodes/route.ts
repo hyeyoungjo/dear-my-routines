@@ -37,6 +37,7 @@ function parseCreateInput(
   };
 
   if (typeof body.parentId === "string") values.parentId = body.parentId;
+  if (typeof body.color === "string") values.color = body.color;
   if (typeof body.notes === "string") values.notes = body.notes;
   if (Array.isArray(body.links)) {
     values.links = body.links.filter((l): l is string => typeof l === "string");

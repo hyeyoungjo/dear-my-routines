@@ -47,6 +47,9 @@ function parsePatchInput(body: Record<string, unknown>): Partial<NewNode> {
   if (typeof body.category === "string" || body.category === null) {
     values.category = body.category;
   }
+  if (typeof body.color === "string" || body.color === null) {
+    values.color = body.color;
+  }
   if (typeof body.isBig3 === "boolean") values.isBig3 = body.isBig3;
   if (typeof body.plannedDate === "string" || body.plannedDate === null) {
     values.plannedDate = body.plannedDate;
