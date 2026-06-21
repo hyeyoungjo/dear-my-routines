@@ -32,7 +32,7 @@
       "status": "completed",
       "started_at": "2026-06-22T00:55:57+0900",
       "summary": "Plan panel made functional. src/components/panels/PlanPanel.tsx ('use client') reads the flat list via useNodes and nests it with core/tree buildTree (useMemo), renders a recursive tree, and offers a top-level '+ Add area' entry point (parentId null = Area, ADR-009); shows loading/error/empty states. src/components/PlanNode.tsx is the recursive, indented row: Big 3 toggle (★/☆), inline title edit (uncontrolled, commit on blur/Enter), estimate-minutes input, add-child (CHILD_TYPE maps area>project>task>subtask, subtask self-nests for arbitrary depth) and delete buttons. Every edit goes through the step-2 optimistic hooks (useUpdateNode/useAddNode/useRemoveNode) — no tree logic reimplemented, all UI text English. lint/build/test (22) all pass. Drag/resize/timer deferred to phase 2.",
-      "completed_at": "2026-06-22T01:00:00+0900"
+      "completed_at": "2026-06-22T00:59:00+0900"
     }
   ],
   "created_at": "2026-06-22T00:45:18+0900"
