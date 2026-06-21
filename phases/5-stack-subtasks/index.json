@@ -1,7 +1,0 @@
-{
-  "project": "Dear My Routines",
-  "phase": "5-stack-subtasks",
-  "steps": [
-    { "step": 0, "name": "stack-layout", "status": "pending" }
-  ]
-}
