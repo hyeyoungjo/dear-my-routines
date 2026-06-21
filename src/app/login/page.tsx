@@ -61,14 +61,10 @@ export default function LoginPage() {
         <h1 className="text-2xl font-semibold tracking-tight">
           Dear My Routines
         </h1>
-        <p className="mt-2 text-sm text-neutral-500">
-          Google 계정으로 로그인하세요.
-        </p>
 
         {status === "sent" ? (
           <p className="mt-8 rounded-md bg-neutral-100 p-4 text-sm text-neutral-700">
-            메일함을 확인하세요. <strong>{email}</strong> 으로 로그인 링크를
-            보냈습니다.
+            Check your inbox. We sent a sign-in link to <strong>{email}</strong>.
           </p>
         ) : (
           <>
@@ -77,7 +73,7 @@ export default function LoginPage() {
               onClick={handleGoogleSignIn}
               className="mt-8 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium transition-colors hover:bg-neutral-50"
             >
-              Google로 로그인
+              Continue with Google
             </button>
 
             {status === "error" && (
@@ -88,7 +84,7 @@ export default function LoginPage() {
               <>
                 <div className="my-4 flex items-center gap-3 text-xs text-neutral-400">
                   <span className="h-px flex-1 bg-neutral-200" />
-                  또는
+                  or
                   <span className="h-px flex-1 bg-neutral-200" />
                 </div>
 
@@ -107,7 +103,7 @@ export default function LoginPage() {
                     disabled={status === "sending"}
                     className="rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                   >
-                    {status === "sending" ? "보내는 중…" : "매직링크 보내기"}
+                    {status === "sending" ? "Sending…" : "Send magic link"}
                   </button>
                   {status === "error" && (
                     <p className="text-sm text-red-600">{errorMessage}</p>

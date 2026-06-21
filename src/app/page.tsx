@@ -13,14 +13,15 @@ export default function Home() {
     <main className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
       <h1 className="text-3xl font-semibold tracking-tight">Dear My Routines</h1>
       <p className="max-w-md text-sm text-neutral-500">
-        매일 예상과 실제를 측정해 시간 감각을 키우는 개인용 시간관리 앱. 곧 만들어집니다.
+        A personal time-management app — measure estimate vs. actual each day to
+        sharpen your sense of time. Coming soon.
       </p>
       <form action={signOut}>
         <button
           type="submit"
           className="rounded-md border border-neutral-300 px-3 py-2 text-sm text-neutral-700 transition-colors hover:bg-neutral-100"
         >
-          로그아웃
+          Sign out
         </button>
       </form>
     </main>
