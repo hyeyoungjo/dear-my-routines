@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
   GRID_TOTAL_MINUTES,
+  MIN_BLOCK_MINUTES,
+  addMinutes,
   blockTopMinutes,
   durationMinutes,
   gridSlots,
   minutesFromGridStart,
+  moveBlock,
+  resizeBlockEnd,
   slotDate,
+  snapMinutes,
   snapToSlot,
 } from "./calendar";
 
@@ -70,5 +75,60 @@ describe("snapToSlot", () => {
     expect(snapToSlot(75)).toBe(60);
     expect(snapToSlot(-30)).toBe(0);
     expect(snapToSlot(GRID_TOTAL_MINUTES)).toBe(GRID_TOTAL_MINUTES - 60);
+  });
+});
+
+describe("snapMinutes", () => {
+  it("rounds a raw delta to the nearest 15-minute step", () => {
+    expect(snapMinutes(7)).toBe(0);
+    expect(snapMinutes(8)).toBe(15);
+    expect(snapMinutes(-22)).toBe(-15);
+    expect(snapMinutes(38)).toBe(45);
+  });
+});
+
+describe("addMinutes", () => {
+  it("returns a new shifted Date without mutating the input", () => {
+    const base = new Date(2026, 5, 21, 9, 0);
+    const later = addMinutes(base, 90);
+    expect(later.getHours()).toBe(10);
+    expect(later.getMinutes()).toBe(30);
+    expect(base.getHours()).toBe(9); // unchanged
+  });
+});
+
+describe("moveBlock", () => {
+  it("shifts both edges, preserving duration", () => {
+    const start = new Date(2026, 5, 21, 9, 0);
+    const end = new Date(2026, 5, 21, 10, 0);
+    const moved = moveBlock(start, end, 30);
+    expect(moved.start.getHours()).toBe(9);
+    expect(moved.start.getMinutes()).toBe(30);
+    expect(durationMinutes(moved.start, moved.end)).toBe(60);
+  });
+
+  it("moves upward (negative delta) too", () => {
+    const start = new Date(2026, 5, 21, 9, 0);
+    const end = new Date(2026, 5, 21, 10, 0);
+    const moved = moveBlock(start, end, -45);
+    expect(moved.start.getHours()).toBe(8);
+    expect(moved.start.getMinutes()).toBe(15);
+  });
+});
+
+describe("resizeBlockEnd", () => {
+  it("grows the end by the delta, keeping the start fixed", () => {
+    const start = new Date(2026, 5, 21, 9, 0);
+    const end = new Date(2026, 5, 21, 10, 0);
+    const resized = resizeBlockEnd(start, end, 30);
+    expect(resized.start).toBe(start);
+    expect(durationMinutes(start, resized.end)).toBe(90);
+  });
+
+  it("never shrinks below the minimum length (no inversion)", () => {
+    const start = new Date(2026, 5, 21, 9, 0);
+    const end = new Date(2026, 5, 21, 10, 0);
+    const resized = resizeBlockEnd(start, end, -120); // would invert
+    expect(durationMinutes(start, resized.end)).toBe(MIN_BLOCK_MINUTES);
   });
 });

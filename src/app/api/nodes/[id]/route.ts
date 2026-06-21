@@ -51,6 +51,17 @@ function parsePatchInput(body: Record<string, unknown>): Partial<NewNode> {
   if (typeof body.plannedDate === "string" || body.plannedDate === null) {
     values.plannedDate = body.plannedDate;
   }
+  // Calendar time blocks arrive as ISO strings (drag/resize); Drizzle wants Dates.
+  if (typeof body.plannedStart === "string") {
+    values.plannedStart = new Date(body.plannedStart);
+  } else if (body.plannedStart === null) {
+    values.plannedStart = null;
+  }
+  if (typeof body.plannedEnd === "string") {
+    values.plannedEnd = new Date(body.plannedEnd);
+  } else if (body.plannedEnd === null) {
+    values.plannedEnd = null;
+  }
   if (typeof body.sortOrder === "number") values.sortOrder = body.sortOrder;
 
   return values;

@@ -21,7 +21,10 @@
     {
       "step": 2,
       "name": "drag-resize",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-06-22T01:48:42+0900",
+      "summary": "Calendar blocks move (body drag) and resize (bottom-edge drag) via dnd-kit; pixel deltas snap to 15-min steps and commit through optimistic useUpdateNode (plannedStart/End on move, plannedEnd on resize) with live preview reusing the same pure core/time math (moveBlock/resizeBlockEnd/snapMinutes, +tests); resizeBlockEnd clamps to MIN_BLOCK_MINUTES so a block never inverts; PATCH /api/nodes/[id] now accepts plannedStart/End ISO strings so drags persist.",
+      "completed_at": "2026-06-22T01:53:53+0900"
     },
     {
       "step": 3,

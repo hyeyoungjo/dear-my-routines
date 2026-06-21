@@ -73,3 +73,45 @@ export function snapToSlot(offsetMinutes: number): number {
   const clamped = Math.max(0, Math.min(offsetMinutes, GRID_TOTAL_MINUTES - 60));
   return Math.floor(clamped / 60) * 60;
 }
+
+// --- Drag / resize geometry (step 2) --------------------------------------
+
+/** Snap step for dragging and resizing — 15-minute grid (Google-Calendar feel). */
+export const SNAP_MINUTES = 15;
+/** A block may never be resized shorter than this (prevents zero/negative spans). */
+export const MIN_BLOCK_MINUTES = 15;
+
+/** A scheduled span as concrete start/end Dates. */
+export type Span = { start: Date; end: Date };
+
+/** Round a raw minute delta to the nearest snap step. */
+export function snapMinutes(delta: number, step: number = SNAP_MINUTES): number {
+  return Math.round(delta / step) * step;
+}
+
+/** A new Date `minutes` after `date` (immutable — never mutates the input). */
+export function addMinutes(date: Date, minutes: number): Date {
+  return new Date(date.getTime() + minutes * 60000);
+}
+
+/**
+ * Shift a whole block by a minute delta, preserving its duration (drag-to-move).
+ * Both edges move together, so the gap between start and end is unchanged.
+ */
+export function moveBlock(start: Date, end: Date, deltaMinutes: number): Span {
+  return {
+    start: addMinutes(start, deltaMinutes),
+    end: addMinutes(end, deltaMinutes),
+  };
+}
+
+/**
+ * Resize a block's bottom edge by a minute delta. The end is clamped so the
+ * block never becomes shorter than MIN_BLOCK_MINUTES — this prevents a zero or
+ * inverted (end before start) span when the user drags the edge upward.
+ */
+export function resizeBlockEnd(start: Date, end: Date, deltaMinutes: number): Span {
+  const proposed = durationMinutes(start, end) + deltaMinutes;
+  const duration = Math.max(MIN_BLOCK_MINUTES, proposed);
+  return { start, end: addMinutes(start, duration) };
+}
