@@ -1,7 +1,12 @@
 "use client";
 
 import { useDraggable } from "@dnd-kit/core";
-import { durationMinutes, formatHours, type Span } from "@/core/time/calendar";
+import {
+  blockPixelHeight,
+  childOffsetPx,
+  formatHours,
+  type Span,
+} from "@/core/time/calendar";
 import type { FlatNode } from "@/core/tree/types";
 import { useRemoveNode, useUpdateNode } from "@/hooks/nodes";
 
@@ -30,11 +35,12 @@ export type CalBlock = {
 /**
  * One scheduled task drawn on a calendar column as an absolutely-positioned
  * block, rendering its subtasks **recursively inside itself** as inset, time-
- * positioned child blocks (frame-in-frame, arbitrary depth — ADR-009). A
- * top-level block (`depth === 0`) is positioned by the grid in pixels; nested
- * children are positioned in percentages of their parent's effective span. Both
- * drag to move and edge-drag to resize at any depth — the per-minute pixel scale
- * is constant through the nesting, so the grid's minute math is depth-agnostic.
+ * positioned child blocks (frame-in-frame, arbitrary depth — ADR-009). Every
+ * block — top-level or nested — is positioned and sized in **pixels** off the
+ * shared `pxPerMinute` scale and the fixed `headerPx` title row: a child sits
+ * just below its parent's header (`childOffsetPx`) and is as tall as its own
+ * footprint (`blockPixelHeight`), so the parent always wraps title + children
+ * with nothing clipped, at any depth. Both drag to move and edge-drag to resize.
  * Deeper levels are indented and lightly shaded so the nesting reads at a glance.
  *
  * Title editing, the Big 3 star, deriving an actual block from a plan, and
@@ -52,13 +58,19 @@ export function CalendarBlock({
   column,
   depth,
   style,
+  pxPerMinute,
+  headerPx,
   onAddSubtask,
 }: {
   block: CalBlock;
   column: ColumnKind;
   depth: number;
-  /** Position/size — pixels for a top-level block, percentages for a nested one. */
+  /** Absolute pixel position/size of this block within its parent (or the grid). */
   style: React.CSSProperties;
+  /** Shared minute→pixel scale; constant through the nesting (set by the grid). */
+  pxPerMinute: number;
+  /** Fixed pixel height of the title row; children sit below it. */
+  headerPx: number;
   /** Create a child node under `parent` in this column (optimistic, owned by grid). */
   onAddSubtask: (parent: FlatNode) => void;
 }) {
@@ -94,10 +106,6 @@ export function CalendarBlock({
   const overran =
     comparison != null && comparison.actualMinutes > comparison.plannedMinutes;
 
-  // Child positions are percentages of *this* block's effective span, so a child
-  // that overflows simply sits lower — the parent has already grown to wrap it.
-  const spanMinutes = Math.max(durationMinutes(span.start, span.end), 1);
-
   // Top-level blocks span the full column width; nested ones are inset (left
   // padding + a hair narrower) and lightly faded so frame-in-frame is visible.
   const positionClass = depth === 0 ? "inset-x-1" : "left-3 right-1";
@@ -116,17 +124,19 @@ export function CalendarBlock({
           : "border-accent/30"
       } ${isPlaceholder ? "border-dashed opacity-60" : ""}`}
     >
-      {/* Body — on a top-level block, drag anywhere here to move it in time. */}
+      {/* Title header — fixed height (headerPx) so it never eats into the time
+          span below it; drag anywhere here to move the block in time. */}
       <div
         {...move.listeners}
         {...move.attributes}
-        className="flex shrink-0 cursor-grab items-start gap-1 px-2 py-1 active:cursor-grabbing"
+        style={{ height: headerPx }}
+        className="relative z-10 flex shrink-0 cursor-grab items-center gap-1 px-2 active:cursor-grabbing"
       >
         {color && (
           <span
             aria-hidden
             title="Project"
-            className="mt-1 size-2 shrink-0 rounded-full"
+            className="size-2 shrink-0 rounded-full"
             style={{ backgroundColor: color }}
           />
         )}
@@ -156,6 +166,20 @@ export function CalendarBlock({
           className="min-w-0 flex-1 truncate bg-transparent text-xs font-medium text-foreground focus:outline-none"
         />
 
+        {/* Action-only: planned-vs-actual delta, flagged when it overran. Kept
+            inside the fixed-height header so it never overlaps the children. */}
+        {comparison && (
+          <span
+            className={`shrink-0 text-[10px] tabular-nums ${
+              overran ? "text-amber-600" : "text-muted"
+            }`}
+          >
+            {formatHours(comparison.plannedMinutes)} →{" "}
+            {formatHours(comparison.actualMinutes)}
+            {overran && " ⚠"}
+          </span>
+        )}
+
         {/* Add a subtask nested inside this block (one level deeper). */}
         <button
           type="button"
@@ -179,40 +203,27 @@ export function CalendarBlock({
         </button>
       </div>
 
-      {/* Action-only: planned-vs-actual delta, flagged when the actual overran. */}
-      {comparison && (
-        <p
-          className={`truncate px-2 pb-0.5 text-[10px] tabular-nums ${
-            overran ? "text-amber-600" : "text-muted"
-          }`}
-        >
-          {formatHours(comparison.plannedMinutes)} →{" "}
-          {formatHours(comparison.actualMinutes)}
-          {overran && " ⚠"}
-        </p>
-      )}
-
-      {/* Nested subtasks live in the area *below* the title row so they never
-          cover it. Each is positioned by its time within this block's span,
-          recursing to arbitrary depth (ADR-009). */}
-      <div className="relative flex-1">
-        {children.map((child) => {
-          const top =
-            (durationMinutes(span.start, child.span.start) / spanMinutes) * 100;
-          const height =
-            (durationMinutes(child.span.start, child.span.end) / spanMinutes) *
-            100;
-          return (
-            <CalendarBlock
-              key={child.node.id}
-              block={child}
-              column={column}
-              depth={depth + 1}
-              style={{ top: `${top}%`, height: `${height}%` }}
-              onAddSubtask={onAddSubtask}
-            />
-          );
-        })}
+      {/* Nested subtasks, positioned in pixels off this block's own top edge:
+          each sits just below the header (childOffsetPx) and is as tall as its
+          full footprint (blockPixelHeight), so nothing is clipped at any depth
+          (ADR-009). The layer spans the whole block; children start at headerPx
+          and never cover the title row above. */}
+      <div className="absolute inset-0">
+        {children.map((child) => (
+          <CalendarBlock
+            key={child.node.id}
+            block={child}
+            column={column}
+            depth={depth + 1}
+            pxPerMinute={pxPerMinute}
+            headerPx={headerPx}
+            style={{
+              top: childOffsetPx(span.start, child.span.start, pxPerMinute, headerPx),
+              height: blockPixelHeight(child, pxPerMinute, headerPx),
+            }}
+            onAddSubtask={onAddSubtask}
+          />
+        ))}
       </div>
 
       {/* Bottom edge — drag to resize the block's duration (any depth). */}

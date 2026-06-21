@@ -12,6 +12,7 @@ import {
 import {
   GRID_TOTAL_MINUTES,
   addMinutes,
+  blockPixelHeight,
   blockTopMinutes,
   clampChildToParent,
   durationMinutes,
@@ -43,6 +44,9 @@ import {
 /** Pixel height of one hour row; the whole grid scales off this. */
 const SLOT_HEIGHT = 48;
 const PX_PER_MINUTE = SLOT_HEIGHT / 60;
+/** Fixed pixel height of a block's title row (matches CalendarBlock's header).
+ *  Children are laid out below it in pixels, so the header never eats time span. */
+const HEADER_PX = 28;
 /** Default length of a freshly-created block (one hour). */
 const DEFAULT_BLOCK_MINUTES = 60;
 /** Default length of a new subtask seeded inside its parent block. */
@@ -356,22 +360,21 @@ export function CalendarGrid() {
         />
       ))}
 
-      {buildColumnTree(kind).map((block) => {
-        const mins = durationMinutes(block.span.start, block.span.end);
-        return (
-          <CalendarBlock
-            key={block.node.id}
-            block={block}
-            column={kind}
-            depth={0}
-            style={{
-              top: blockTopMinutes(block.span.start) * PX_PER_MINUTE,
-              height: Math.max(mins, 30) * PX_PER_MINUTE,
-            }}
-            onAddSubtask={(parent) => addSubtask(parent, kind)}
-          />
-        );
-      })}
+      {buildColumnTree(kind).map((block) => (
+        <CalendarBlock
+          key={block.node.id}
+          block={block}
+          column={kind}
+          depth={0}
+          pxPerMinute={PX_PER_MINUTE}
+          headerPx={HEADER_PX}
+          style={{
+            top: blockTopMinutes(block.span.start) * PX_PER_MINUTE,
+            height: blockPixelHeight(block, PX_PER_MINUTE, HEADER_PX),
+          }}
+          onAddSubtask={(parent) => addSubtask(parent, kind)}
+        />
+      ))}
     </div>
   );
 

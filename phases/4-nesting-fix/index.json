@@ -2,6 +2,13 @@
   "project": "Dear My Routines",
   "phase": "4-nesting-fix",
   "steps": [
-    { "step": 0, "name": "block-layout", "status": "pending" }
-  ]
+    {
+      "step": 0,
+      "name": "block-layout",
+      "status": "completed",
+      "started_at": "2026-06-22T02:50:42+0900",
+      "summary": "Pixel-based nested block layout: added pure childOffsetPx/blockPixelHeight (core/time + tests) so parents wrap header+children with nothing clipped; CalendarBlock/Grid now position children in px (HEADER_PX) instead of % of parent span, comparison moved into the fixed header row."
+    }
+  ],
+  "created_at": "2026-06-22T02:50:42+0900"
 }
