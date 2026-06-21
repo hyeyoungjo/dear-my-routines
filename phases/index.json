@@ -19,6 +19,7 @@
       "dir": "3-nested",
       "status": "completed",
       "completed_at": "2026-06-22T02:25:48+0900"
-    }
+    },
+    { "dir": "4-nesting-fix", "status": "pending" }
   ]
 }

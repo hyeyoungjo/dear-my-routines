@@ -3,7 +3,7 @@
 import { useDraggable } from "@dnd-kit/core";
 import { durationMinutes, formatHours, type Span } from "@/core/time/calendar";
 import type { FlatNode } from "@/core/tree/types";
-import { useUpdateNode } from "@/hooks/nodes";
+import { useRemoveNode, useUpdateNode } from "@/hooks/nodes";
 
 /** Which time-block pair a column reads/writes (ADR-004 Plan vs. Act). */
 export type ColumnKind = "plan" | "action";
@@ -20,6 +20,8 @@ export type CalBlock = {
   node: FlatNode;
   span: Span;
   color: string | null;
+  /** Action-column ghost: drawn from the plan span, no actual recorded yet. */
+  isPlaceholder?: boolean;
   /** Own (un-fitted) action duration vs. its plan, for the overrun label. */
   comparison?: { plannedMinutes: number; actualMinutes: number };
   children: CalBlock[];
@@ -60,8 +62,9 @@ export function CalendarBlock({
   /** Create a child node under `parent` in this column (optimistic, owned by grid). */
   onAddSubtask: (parent: FlatNode) => void;
 }) {
-  const { node, span, color, comparison, children } = block;
+  const { node, span, color, comparison, children, isPlaceholder } = block;
   const updateNode = useUpdateNode();
+  const removeNode = useRemoveNode();
 
   // Every block drags to move and edge-drags to resize, at any nesting depth
   // (ADR-009 frame-in-frame). dnd-kit ids are namespaced by column + node id so
@@ -88,16 +91,6 @@ export function CalendarBlock({
     updateNode.mutate({ id: node.id, patch: { isBig3: !node.isBig3 } });
   };
 
-  // Derive an actual block from this plan block: copy the planned span onto the
-  // same node so it appears in the Action column, ready to drag to reality.
-  const trackActual = () => {
-    if (!node.plannedStart) return;
-    updateNode.mutate({
-      id: node.id,
-      patch: { actualStart: node.plannedStart, actualEnd: node.plannedEnd },
-    });
-  };
-
   const overran =
     comparison != null && comparison.actualMinutes > comparison.plannedMinutes;
 
@@ -117,11 +110,11 @@ export function CalendarBlock({
       // Stop the click from reaching the grid, which would create a new block.
       onClick={(e) => e.stopPropagation()}
       style={style}
-      className={`absolute ${positionClass} flex select-none flex-col overflow-hidden rounded-md border ${toneClass} shadow-sm transition-shadow ${
+      className={`absolute ${positionClass} flex min-h-[1.75rem] select-none flex-col overflow-hidden rounded-md border ${toneClass} shadow-sm transition-shadow ${
         isDragging
           ? "z-10 border-accent/60 shadow-md ring-1 ring-accent/40"
           : "border-accent/30"
-      }`}
+      } ${isPlaceholder ? "border-dashed opacity-60" : ""}`}
     >
       {/* Body — on a top-level block, drag anywhere here to move it in time. */}
       <div
@@ -174,18 +167,16 @@ export function CalendarBlock({
           ＋
         </button>
 
-        {/* Plan-only: derive an actual block once, when none exists yet. */}
-        {column === "plan" && node.actualStart == null && (
-          <button
-            type="button"
-            onClick={trackActual}
-            aria-label="Track actual time"
-            title="Track actual time"
-            className="shrink-0 text-muted hover:text-accent"
-          >
-            ▶
-          </button>
-        )}
+        {/* Delete this node (its subtasks cascade via the API). */}
+        <button
+          type="button"
+          onClick={() => removeNode.mutate(node.id)}
+          aria-label="Delete"
+          title="Delete"
+          className="shrink-0 text-muted hover:text-red-500"
+        >
+          ✕
+        </button>
       </div>
 
       {/* Action-only: planned-vs-actual delta, flagged when the actual overran. */}
@@ -201,24 +192,28 @@ export function CalendarBlock({
         </p>
       )}
 
-      {/* Nested subtasks: each positioned by its time within this block's span,
+      {/* Nested subtasks live in the area *below* the title row so they never
+          cover it. Each is positioned by its time within this block's span,
           recursing to arbitrary depth (ADR-009). */}
-      {children.map((child) => {
-        const top =
-          (durationMinutes(span.start, child.span.start) / spanMinutes) * 100;
-        const height =
-          (durationMinutes(child.span.start, child.span.end) / spanMinutes) * 100;
-        return (
-          <CalendarBlock
-            key={child.node.id}
-            block={child}
-            column={column}
-            depth={depth + 1}
-            style={{ top: `${top}%`, height: `${height}%` }}
-            onAddSubtask={onAddSubtask}
-          />
-        );
-      })}
+      <div className="relative flex-1">
+        {children.map((child) => {
+          const top =
+            (durationMinutes(span.start, child.span.start) / spanMinutes) * 100;
+          const height =
+            (durationMinutes(child.span.start, child.span.end) / spanMinutes) *
+            100;
+          return (
+            <CalendarBlock
+              key={child.node.id}
+              block={child}
+              column={column}
+              depth={depth + 1}
+              style={{ top: `${top}%`, height: `${height}%` }}
+              onAddSubtask={onAddSubtask}
+            />
+          );
+        })}
+      </div>
 
       {/* Bottom edge — drag to resize the block's duration (any depth). */}
       <div

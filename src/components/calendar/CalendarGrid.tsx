@@ -64,8 +64,15 @@ type DragPreview = {
  * when the column's start is unset — i.e. the block does not belong here.
  */
 function readSpan(node: FlatNode, kind: ColumnKind): Span | null {
-  const startVal = kind === "plan" ? node.plannedStart : node.actualStart;
-  const endVal = kind === "plan" ? node.plannedEnd : node.actualEnd;
+  let startVal = kind === "plan" ? node.plannedStart : node.actualStart;
+  let endVal = kind === "plan" ? node.plannedEnd : node.actualEnd;
+  // Action column: when no actual is recorded yet, fall back to the plan span so
+  // a faint "ghost" placeholder shows on the right automatically. Dragging it
+  // writes the actual fields (see handleDragEnd), turning the ghost real.
+  if (kind === "action" && startVal == null) {
+    startVal = node.plannedStart;
+    endVal = node.plannedEnd;
+  }
   if (startVal == null) return null;
   const start = new Date(startVal);
   const end = endVal ? new Date(endVal) : addMinutes(start, DEFAULT_BLOCK_MINUTES);
@@ -141,10 +148,18 @@ export function CalendarGrid() {
   const addSubtask = (parent: FlatNode, kind: ColumnKind) => {
     const base = readSpan(parent, kind);
     if (!base) return;
-    const seed = clampChildToParent(
-      { start: base.start, end: addMinutes(base.start, DEFAULT_SUBTASK_MINUTES) },
-      base,
-    );
+    // Stack the new subtask *after* existing siblings (their max end), so each
+    // one appends below the previous instead of overlapping at the parent start.
+    // If it runs past the parent, the parent auto-expands at render time
+    // (fitParentToChildren) — that overflow is the "this is really a subproject"
+    // signal, so we don't clamp it back inside the parent.
+    let start = base.start;
+    for (const sib of all) {
+      if (sib.parentId !== parent.id) continue;
+      const sp = readSpan(sib, kind);
+      if (sp && sp.end.getTime() > start.getTime()) start = sp.end;
+    }
+    const seed = { start, end: addMinutes(start, DEFAULT_SUBTASK_MINUTES) };
     addNode.mutate({
       title: "New subtask",
       type: childTypeOf(parent.type),
@@ -301,18 +316,23 @@ export function CalendarGrid() {
         children.map((child) => child.span),
       );
       const project = ancestorOfType(all, node.id, "project");
+      // A ghost: shown in the Action column from the plan span, no actual yet.
+      const isPlaceholder = kind === "action" && node.actualStart == null;
       const planSpan = kind === "action" ? readSpan(node, "plan") : null;
 
       return {
         node,
         span,
         color: projectColor(project?.id ?? null),
-        comparison: planSpan
-          ? {
-              plannedMinutes: durationMinutes(planSpan.start, planSpan.end),
-              actualMinutes: durationMinutes(own.start, own.end),
-            }
-          : undefined,
+        isPlaceholder,
+        // Estimate-vs-actual delta only once a real actual exists (not for ghosts).
+        comparison:
+          planSpan && !isPlaceholder
+            ? {
+                plannedMinutes: durationMinutes(planSpan.start, planSpan.end),
+                actualMinutes: durationMinutes(own.start, own.end),
+              }
+            : undefined,
         children,
       };
     };
