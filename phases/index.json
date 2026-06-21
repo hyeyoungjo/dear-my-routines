@@ -10,6 +10,10 @@
       "status": "completed",
       "completed_at": "2026-06-22T00:59:00+0900"
     },
-    { "dir": "2-calendar", "status": "pending" }
+    {
+      "dir": "2-calendar",
+      "status": "completed",
+      "completed_at": "2026-06-22T02:02:09+0900"
+    }
   ]
 }
