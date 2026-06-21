@@ -17,8 +17,16 @@
       "started_at": "2026-06-21T13:38:36+0900",
       "completed_at": "2026-06-21T13:41:46+0900",
       "summary": "Supabase magic-link auth via @supabase/ssr: services/supabase/{client,server,middleware}.ts (publishable key only, no service_role); root src/middleware.ts refreshes session + redirects unauthenticated users to /login (except /login, /auth/*); /login page (signInWithOtp), /auth/callback route (exchangeCodeForSession), temp signOut server action on home. lint/build/test pass."
+    },
+    {
+      "step": 2,
+      "name": "google-oauth",
+      "status": "completed",
+      "started_at": "2026-06-21T13:48:34+0900",
+      "completed_at": "2026-06-21T13:52:00+0900",
+      "summary": "Added Google OAuth alongside magic link (ADR-011): /login now renders a 'Google로 로그인' button (signInWithOAuth provider:'google', redirectTo /auth/callback) above an '또는' divider, with the existing magic-link email form kept intact. Shared /auth/callback PKCE code exchange handles both flows unchanged; publishable key only, no service_role. lint/build/test pass."
     }
   ],
   "created_at": "2026-06-21T13:26:12+0900",
-  "completed_at": "2026-06-21T13:41:46+0900"
+  "completed_at": "2026-06-21T13:52:00+0900"
 }

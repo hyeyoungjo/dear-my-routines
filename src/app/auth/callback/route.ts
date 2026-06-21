@@ -2,9 +2,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/services/supabase/server";
 
 /**
- * Magic-link callback. Supabase redirects here with a `code` query param;
- * we exchange it for a session (cookies are set via the server client) and
- * send the user to the home page.
+ * Auth callback shared by magic-link and Google OAuth (ADR-011). In both
+ * flows Supabase redirects here with a PKCE `code` query param; we exchange
+ * it for a session (cookies are set via the server client) and send the
+ * user to the home page.
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);

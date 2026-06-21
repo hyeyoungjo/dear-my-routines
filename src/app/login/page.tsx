@@ -32,6 +32,25 @@ export default function LoginPage() {
     setStatus("sent");
   }
 
+  async function handleGoogleSignIn() {
+    setErrorMessage("");
+
+    const supabase = createClient();
+    // OAuth redirects back to the shared /auth/callback route (same PKCE
+    // `code` exchange as magic links — see ADR-011).
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) {
+      setStatus("error");
+      setErrorMessage(error.message);
+    }
+  }
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-8">
       <div className="w-full max-w-sm">
@@ -48,7 +67,22 @@ export default function LoginPage() {
             보냈습니다.
           </p>
         ) : (
-          <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-3">
+          <>
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              className="mt-8 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium transition-colors hover:bg-neutral-50"
+            >
+              Google로 로그인
+            </button>
+
+            <div className="my-4 flex items-center gap-3 text-xs text-neutral-400">
+              <span className="h-px flex-1 bg-neutral-200" />
+              또는
+              <span className="h-px flex-1 bg-neutral-200" />
+            </div>
+
+            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             <input
               type="email"
               required
@@ -65,10 +99,11 @@ export default function LoginPage() {
             >
               {status === "sending" ? "보내는 중…" : "매직링크 보내기"}
             </button>
-            {status === "error" && (
-              <p className="text-sm text-red-600">{errorMessage}</p>
-            )}
-          </form>
+              {status === "error" && (
+                <p className="text-sm text-red-600">{errorMessage}</p>
+              )}
+            </form>
+          </>
         )}
       </div>
     </main>
