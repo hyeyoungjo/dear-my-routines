@@ -163,7 +163,16 @@ export function CalendarBlock({
             if (e.key === "Enter") e.currentTarget.blur();
           }}
           aria-label="Title"
-          className="min-w-0 flex-1 truncate bg-transparent text-xs font-medium text-foreground focus:outline-none"
+          placeholder={
+            node.type === "area"
+              ? "New area"
+              : node.type === "project"
+                ? "New project"
+                : node.type === "task"
+                  ? "New task"
+                  : "New subtask"
+          }
+          className="min-w-0 flex-1 truncate bg-transparent text-xs font-medium text-foreground placeholder:font-normal placeholder:text-muted focus:outline-none"
         />
 
         {/* Action-only: planned-vs-actual delta, flagged when it overran. Kept
@@ -218,8 +227,15 @@ export function CalendarBlock({
             pxPerMinute={pxPerMinute}
             headerPx={headerPx}
             style={{
-              top: childOffsetPx(span.start, child.span.start, pxPerMinute, headerPx),
-              height: blockPixelHeight(child, pxPerMinute, headerPx),
+              // Inset a few px top/bottom so subtasks breathe inside the parent
+              // instead of touching its header and bottom edge.
+              top:
+                childOffsetPx(span.start, child.span.start, pxPerMinute, headerPx) +
+                6,
+              height: Math.max(
+                blockPixelHeight(child, pxPerMinute, headerPx) - 12,
+                24,
+              ),
             }}
             onAddSubtask={onAddSubtask}
           />

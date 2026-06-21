@@ -134,7 +134,7 @@ export function CalendarGrid() {
     const start = slotDate(new Date(), offsetMinutes);
     const end = slotDate(new Date(), offsetMinutes + DEFAULT_BLOCK_MINUTES);
     addNode.mutate({
-      title: "New task",
+      title: "",
       type: "task",
       ...(kind === "plan"
         ? { plannedStart: start, plannedEnd: end }
@@ -165,7 +165,7 @@ export function CalendarGrid() {
     }
     const seed = { start, end: addMinutes(start, DEFAULT_SUBTASK_MINUTES) };
     addNode.mutate({
-      title: "New subtask",
+      title: "",
       type: childTypeOf(parent.type),
       parentId: parent.id,
       ...(kind === "plan"

@@ -22,8 +22,10 @@ function parseCreateInput(
   body: Record<string, unknown>,
 ): Omit<NewNode, "userId"> | { error: string } {
   const { title, type } = body;
-  if (typeof title !== "string" || title.trim() === "") {
-    return { error: "title is required" };
+  // Allow an empty title: new blocks start blank so the UI shows a placeholder
+  // ("New subtask" etc.) and the user types straight in — no clearing needed.
+  if (typeof title !== "string") {
+    return { error: "title must be a string" };
   }
   if (typeof type !== "string" || !NODE_TYPES.includes(type as never)) {
     return { error: "type must be one of area|project|task|subtask" };

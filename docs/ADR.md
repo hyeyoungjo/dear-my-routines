@@ -91,3 +91,12 @@ DB가 직접 차단(ADR-003 멀티유저 확장과도 맞물림). **Vercel AI SD
 미들웨어·Supabase 클라이언트는 매직링크와 그대로 공유하므로 추가 비용이 작다.
 **트레이드오프**: Google Cloud Console에 OAuth 앱을 한 번 등록해야 한다. 로그인 화면에 두
 경로(Google 버튼 + 이메일 폼)가 생겨 약간 복잡. **ADR-003을 대체하지 않고 보강**한다.
+
+### ADR-012: AI 기본 provider는 Gemini, OpenAI 제거 (2026-06-22)
+**결정**: 실제 AI 호출(데일리 리뷰·카테고리 분류 등)의 기본 provider를 **Gemini**로 한다
+(Vercel AI SDK + `@ai-sdk/google`). `.env`/`.env.example`에서 OpenAI 키·모델을 제거한다.
+**이유**: 한 provider로 단순화. 모델 비종속(ADR-005)은 유지하므로, 나중에 OpenAI 등을 다시
+붙이려면 어댑터(provider)만 바꾸면 된다.
+**트레이드오프**: 지금은 Gemini에 의존. 단 Vercel AI SDK 추상화 덕분에 교체 비용은 작다.
+**비고**: ADR-005를 대체하지 않고 *기본값을 지정*해 구체화한다. Gemini 키는 `AIza...` 형식
+(aistudio.google.com). 실제 AI 코드는 다음 AI phase(데일리 리뷰)에서 작성한다.
