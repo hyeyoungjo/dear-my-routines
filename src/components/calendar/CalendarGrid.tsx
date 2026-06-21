@@ -18,6 +18,7 @@ import {
   durationMinutes,
   fitParentToChildren,
   gridSlots,
+  layoutOverlaps,
   moveBlock,
   resizeBlockEnd,
   slotDate,
@@ -25,7 +26,7 @@ import {
   snapToSlot,
   type Span,
 } from "@/core/time/calendar";
-import { ancestorOfType, childTypeOf } from "@/core/tree/tree";
+import { ancestorOfType } from "@/core/tree/tree";
 import type { FlatNode } from "@/core/tree/types";
 import type { NewNode } from "@/db/schema";
 import { projectColor } from "@/lib/projectColor";
@@ -44,13 +45,8 @@ import {
 /** Pixel height of one hour row; the whole grid scales off this. */
 const SLOT_HEIGHT = 48;
 const PX_PER_MINUTE = SLOT_HEIGHT / 60;
-/** The title row is now an overlay (absolute) so it takes no vertical space —
- *  children align to pure time. Kept as 0 to feed core/time helpers unchanged. */
-const HEADER_PX = 0;
 /** Default length of a freshly-created block (one hour). */
 const DEFAULT_BLOCK_MINUTES = 60;
-/** Default length of a new subtask seeded inside its parent block. */
-const DEFAULT_SUBTASK_MINUTES = 30;
 
 type DragMode = "move" | "resize";
 type DragData = { mode: DragMode; nodeId: string; column: ColumnKind };
@@ -139,38 +135,6 @@ export function CalendarGrid() {
       ...(kind === "plan"
         ? { plannedStart: start, plannedEnd: end }
         : { actualStart: start, actualEnd: end }),
-    });
-  };
-
-  /**
-   * Create a child node nested inside `parent` for this column (frame-in-frame).
-   * The child's type is one level deeper (`childTypeOf`) and its seed span is the
-   * first slice of the parent's range, clamped to stay inside it. Optimistic via
-   * `useAddNode`; if subtasks grow past the parent, the parent block auto-expands
-   * to wrap them at render time (`fitParentToChildren`).
-   */
-  const addSubtask = (parent: FlatNode, kind: ColumnKind) => {
-    const base = readSpan(parent, kind);
-    if (!base) return;
-    // Stack the new subtask *after* existing siblings (their max end), so each
-    // one appends below the previous instead of overlapping at the parent start.
-    // If it runs past the parent, the parent auto-expands at render time
-    // (fitParentToChildren) — that overflow is the "this is really a subproject"
-    // signal, so we don't clamp it back inside the parent.
-    let start = base.start;
-    for (const sib of all) {
-      if (sib.parentId !== parent.id) continue;
-      const sp = readSpan(sib, kind);
-      if (sp && sp.end.getTime() > start.getTime()) start = sp.end;
-    }
-    const seed = { start, end: addMinutes(start, DEFAULT_SUBTASK_MINUTES) };
-    addNode.mutate({
-      title: "",
-      type: childTypeOf(parent.type),
-      parentId: parent.id,
-      ...(kind === "plan"
-        ? { plannedStart: seed.start, plannedEnd: seed.end }
-        : { actualStart: seed.start, actualEnd: seed.end }),
     });
   };
 
@@ -364,21 +328,29 @@ export function CalendarGrid() {
         />
       ))}
 
-      {buildColumnTree(kind).map((block) => (
-        <CalendarBlock
-          key={block.node.id}
-          block={block}
-          column={kind}
-          depth={0}
-          pxPerMinute={PX_PER_MINUTE}
-          headerPx={HEADER_PX}
-          style={{
-            top: blockTopMinutes(block.span.start) * PX_PER_MINUTE,
-            height: blockPixelHeight(block, PX_PER_MINUTE, HEADER_PX),
-          }}
-          onAddSubtask={(parent) => addSubtask(parent, kind)}
-        />
-      ))}
+      {(() => {
+        // Side-by-side layout for time-overlapping tasks (Google-Calendar style):
+        // overlapping blocks split the column width; non-overlapping take it all.
+        const blocks = buildColumnTree(kind);
+        const layout = layoutOverlaps(blocks);
+        return blocks.map((block) => {
+          const slot = layout.get(block) ?? { col: 0, cols: 1 };
+          const widthPct = 100 / slot.cols;
+          return (
+            <CalendarBlock
+              key={block.node.id}
+              block={block}
+              column={kind}
+              style={{
+                top: blockTopMinutes(block.span.start) * PX_PER_MINUTE,
+                height: blockPixelHeight(block, PX_PER_MINUTE),
+                left: `calc(${slot.col * widthPct}% + 2px)`,
+                width: `calc(${widthPct}% - 4px)`,
+              }}
+            />
+          );
+        });
+      })()}
     </div>
   );
 
@@ -386,23 +358,13 @@ export function CalendarGrid() {
     <section className="flex min-h-0 flex-col rounded-xl border border-border bg-panel p-5">
       {/* Column headers aligned to the body layout below. */}
       <div className="mb-4 flex items-baseline">
-        <div className="flex-1">
-          <h2 className="text-base font-semibold tracking-tight text-foreground">
-            Plan
-          </h2>
-          <p className="mt-0.5 text-xs text-muted">
-            Estimated — click an empty slot to add
-          </p>
-        </div>
+        <h2 className="flex-1 text-center text-base font-semibold tracking-tight text-foreground">
+          Plan
+        </h2>
         <div className="w-14 shrink-0" aria-hidden />
-        <div className="flex-1 text-right">
-          <h2 className="text-base font-semibold tracking-tight text-foreground">
-            Action
-          </h2>
-          <p className="mt-0.5 text-xs text-muted">
-            Actual — ▶ a plan block, or click to add
-          </p>
-        </div>
+        <h2 className="flex-1 text-center text-base font-semibold tracking-tight text-foreground">
+          Action
+        </h2>
       </div>
 
       {isLoading ? (

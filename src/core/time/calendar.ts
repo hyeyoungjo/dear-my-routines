@@ -203,3 +203,65 @@ export function formatHours(minutes: number): string {
   const hours = minutes / 60;
   return Number.isInteger(hours) ? `${hours}h` : `${hours.toFixed(1)}h`;
 }
+
+// --- Overlap layout (Google-Calendar side-by-side) ------------------------
+
+/** A laid-out item's horizontal slot: its column index and the band's column count. */
+export type OverlapSlot = { col: number; cols: number };
+
+/**
+ * Lay out time-overlapping items side by side, Google-Calendar style. A maximal
+ * run of items connected by overlap forms a "cluster" that shares a width; each
+ * item takes the first free column, and the cluster's column count (capped at
+ * `maxCols`) becomes every member's `cols`. Items that don't overlap anything get
+ * a full-width single column. The UI turns `{col, cols}` into left/width
+ * fractions. Pure — sorts a copy, never mutates inputs.
+ */
+export function layoutOverlaps<T extends { span: Span }>(
+  items: T[],
+  maxCols = 4,
+): Map<T, OverlapSlot> {
+  const result = new Map<T, OverlapSlot>();
+  const sorted = [...items].sort(
+    (a, b) =>
+      a.span.start.getTime() - b.span.start.getTime() ||
+      a.span.end.getTime() - b.span.end.getTime(),
+  );
+
+  let cluster: { item: T; col: number }[] = [];
+  let clusterEnd = Number.NEGATIVE_INFINITY;
+
+  const flush = () => {
+    if (cluster.length === 0) return;
+    const cols = Math.min(
+      Math.max(...cluster.map((c) => c.col)) + 1,
+      maxCols,
+    );
+    for (const c of cluster) {
+      result.set(c.item, { col: Math.min(c.col, cols - 1), cols });
+    }
+    cluster = [];
+  };
+
+  for (const item of sorted) {
+    const start = item.span.start.getTime();
+    // A gap (this item starts at/after everything so far ended) closes the cluster.
+    if (cluster.length > 0 && start >= clusterEnd) {
+      flush();
+      clusterEnd = Number.NEGATIVE_INFINITY;
+    }
+    // First column not held by an item still running when this one starts.
+    const used = new Set(
+      cluster
+        .filter((c) => c.item.span.end.getTime() > start)
+        .map((c) => c.col),
+    );
+    let col = 0;
+    while (used.has(col)) col++;
+    cluster.push({ item, col });
+    clusterEnd = Math.max(clusterEnd, item.span.end.getTime());
+  }
+  flush();
+
+  return result;
+}

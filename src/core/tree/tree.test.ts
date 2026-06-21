@@ -33,6 +33,11 @@ function makeNode(over: Partial<FlatNode> & { id: string }): FlatNode {
     sortOrder: 0,
     createdAt: new Date("2026-06-21T00:00:00Z"),
     updatedAt: new Date("2026-06-21T00:00:00Z"),
+    plannedStart: null,
+    plannedEnd: null,
+    actualStart: null,
+    actualEnd: null,
+    color: null,
     ...over,
   };
 }

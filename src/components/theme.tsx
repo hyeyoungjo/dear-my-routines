@@ -2,13 +2,13 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 
-export type Theme = "lavender" | "slate" | "dark";
-export const THEMES: Theme[] = ["lavender", "slate", "dark"];
+export type Theme = "light" | "dark";
+export const THEMES: Theme[] = ["light", "dark"];
 
 const ThemeContext = createContext<{
   theme: Theme;
   setTheme: (t: Theme) => void;
-}>({ theme: "lavender", setTheme: () => {} });
+}>({ theme: "light", setTheme: () => {} });
 
 export const useTheme = () => useContext(ThemeContext);
 
@@ -18,7 +18,7 @@ export const useTheme = () => useContext(ThemeContext);
  * "lavender". FOUC is minimal since lavender is the :root default.
  */
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("lavender");
+  const [theme, setThemeState] = useState<Theme>("light");
 
   useEffect(() => {
     const saved = localStorage.getItem("theme") as Theme | null;

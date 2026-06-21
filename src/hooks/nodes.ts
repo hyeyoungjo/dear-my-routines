@@ -150,6 +150,7 @@ function optimisticNode(input: AddNodeInput): FlatNode {
     actualEnd: input.actualEnd ?? null,
     status: input.status ?? "pending",
     category: input.category ?? null,
+    color: null,
     isBig3: input.isBig3 ?? false,
     plannedDate: input.plannedDate ?? null,
     carryCount: 0,

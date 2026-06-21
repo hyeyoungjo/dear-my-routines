@@ -7,7 +7,7 @@
  * tinted background). Switch via the gear menu (sets data-theme on <html>).
  */
 :root,
-[data-theme="lavender"] {
+[data-theme="light"] {
   --background: #fafafb; /* off-white canvas */
   --foreground: #1d1b22; /* near-black, high contrast */
   --muted: #8a869a; /* secondary text */
@@ -15,16 +15,6 @@
   --border: #ededf1; /* hairline border */
   --accent: #7c5cff; /* violet accent — used as a point only */
   --accent-soft: #f2efff; /* faint violet surface (blocks/hover) */
-}
-
-[data-theme="slate"] {
-  --background: #fafafa;
-  --foreground: #1f2430;
-  --muted: #8b909c;
-  --panel: #ffffff;
-  --border: #ecedf0;
-  --accent: #4b5563;
-  --accent-soft: #f2f4f6;
 }
 
 [data-theme="dark"] {

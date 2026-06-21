@@ -4,8 +4,7 @@ import { useState } from "react";
 import { THEMES, useTheme, type Theme } from "@/components/theme";
 
 const LABELS: Record<Theme, string> = {
-  lavender: "Lavender",
-  slate: "Slate",
+  light: "Light",
   dark: "Dark",
 };
 
