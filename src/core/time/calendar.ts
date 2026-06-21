@@ -217,48 +217,59 @@ export type OverlapSlot = { col: number; cols: number };
  * a full-width single column. The UI turns `{col, cols}` into left/width
  * fractions. Pure — sorts a copy, never mutates inputs.
  */
-export function layoutOverlaps<T extends { span: Span }>(
-  items: T[],
-  maxCols = 4,
-): Map<T, OverlapSlot> {
+export function layoutOverlaps<
+  T extends { span: Span; node: { sortOrder: number } },
+>(items: T[], maxCols = 4): Map<T, OverlapSlot> {
   const result = new Map<T, OverlapSlot>();
-  const sorted = [...items].sort(
-    (a, b) =>
-      a.span.start.getTime() - b.span.start.getTime() ||
-      a.span.end.getTime() - b.span.end.getTime(),
+  // Scan in start order to group items into overlap clusters.
+  const byStart = [...items].sort(
+    (a, b) => a.span.start.getTime() - b.span.start.getTime(),
   );
 
-  let cluster: { item: T; col: number }[] = [];
+  let cluster: T[] = [];
   let clusterEnd = Number.NEGATIVE_INFINITY;
 
   const flush = () => {
     if (cluster.length === 0) return;
-    const cols = Math.min(
-      Math.max(...cluster.map((c) => c.col)) + 1,
-      maxCols,
+    // Within the cluster, place items left-to-right by the user-set column order
+    // (sortOrder), each taking the first column free of an *overlapping* sibling.
+    // So dragging a block to change its sortOrder changes which column it lands in.
+    const ordered = [...cluster].sort(
+      (a, b) =>
+        a.node.sortOrder - b.node.sortOrder ||
+        a.span.start.getTime() - b.span.start.getTime(),
     );
-    for (const c of cluster) {
-      result.set(c.item, { col: Math.min(c.col, cols - 1), cols });
+    const placed: { item: T; col: number }[] = [];
+    let maxCol = 0;
+    for (const item of ordered) {
+      const s = item.span.start.getTime();
+      const e = item.span.end.getTime();
+      const used = new Set(
+        placed
+          .filter(
+            (p) =>
+              p.item.span.start.getTime() < e && p.item.span.end.getTime() > s,
+          )
+          .map((p) => p.col),
+      );
+      let col = 0;
+      while (used.has(col)) col++;
+      placed.push({ item, col });
+      maxCol = Math.max(maxCol, col);
+    }
+    const cols = Math.min(maxCol + 1, maxCols);
+    for (const p of placed) {
+      result.set(p.item, { col: Math.min(p.col, cols - 1), cols });
     }
     cluster = [];
   };
 
-  for (const item of sorted) {
-    const start = item.span.start.getTime();
-    // A gap (this item starts at/after everything so far ended) closes the cluster.
-    if (cluster.length > 0 && start >= clusterEnd) {
+  for (const item of byStart) {
+    if (cluster.length > 0 && item.span.start.getTime() >= clusterEnd) {
       flush();
       clusterEnd = Number.NEGATIVE_INFINITY;
     }
-    // First column not held by an item still running when this one starts.
-    const used = new Set(
-      cluster
-        .filter((c) => c.item.span.end.getTime() > start)
-        .map((c) => c.col),
-    );
-    let col = 0;
-    while (used.has(col)) col++;
-    cluster.push({ item, col });
+    cluster.push(item);
     clusterEnd = Math.max(clusterEnd, item.span.end.getTime());
   }
   flush();

@@ -1,12 +1,15 @@
 "use client";
 
-import { useDraggable } from "@dnd-kit/core";
+import { useRef } from "react";
 import { formatHours, type Span } from "@/core/time/calendar";
 import type { FlatNode } from "@/core/tree/types";
 import { useNodes, useRemoveNode, useUpdateNode } from "@/hooks/nodes";
 
 /** Which time-block pair a column reads/writes (ADR-004 Plan vs. Act). */
 export type ColumnKind = "plan" | "action";
+
+/** Move shifts the whole block in time; resize drags only its bottom edge. */
+export type DragMode = "move" | "resize";
 
 /**
  * One task laid out for a calendar column. `span` is its effective time span;
@@ -28,19 +31,37 @@ export type CalBlock = {
  * A task drawn as an absolutely-positioned block on a calendar column. The block
  * is tinted with its project colour (white when unassigned), and the title
  * **wraps inside it** — no header band. A small control row (project colour →
- * assign menu, Big 3, plan-vs-actual delta, delete) sits on top and is the drag
- * handle; the bottom edge drags to resize. All schedule math lives in `core/time`
- * — the block only turns the span (via `style` from the grid) into a box.
+ * assign menu, plan-vs-actual delta, delete) sits on top and is the drag handle;
+ * the bottom edge drags to resize. All schedule math lives in `core/time`.
+ *
+ * Dragging is plain pointer events (no dnd-kit): pressing the control row starts
+ * a move, the bottom edge starts a resize, and the grid tracks the pointer on
+ * `window` (so the layout can re-flow freely as overlaps change — no library
+ * fighting our re-render). While moving, the grid re-positions this block
+ * vertically via its `style` (snapped time) and we follow the cursor
+ * horizontally via `dragDeltaX` so the column choice reads live before drop.
  */
 export function CalendarBlock({
   block,
   column,
   style,
+  onDragStart,
+  dragDeltaX,
 }: {
   block: CalBlock;
   column: ColumnKind;
   /** Absolute pixel position/size of this block within the grid column. */
   style: React.CSSProperties;
+  /** Begin a pointer drag (move/resize) — the grid owns the drag state. */
+  onDragStart: (
+    nodeId: string,
+    column: ColumnKind,
+    mode: DragMode,
+    clientX: number,
+    clientY: number,
+  ) => void;
+  /** Live horizontal cursor delta while this block is being moved, else null. */
+  dragDeltaX: number | null;
 }) {
   const { node, color, comparison, isPlaceholder } = block;
   const updateNode = useUpdateNode();
@@ -55,15 +76,22 @@ export function CalendarBlock({
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
 
-  const move = useDraggable({
-    id: `move:${column}:${node.id}`,
-    data: { mode: "move", nodeId: node.id, column },
-  });
-  const resize = useDraggable({
-    id: `resize:${column}:${node.id}`,
-    data: { mode: "resize", nodeId: node.id, column },
-  });
-  const isDragging = move.isDragging || resize.isDragging;
+  const isDragging = dragDeltaX !== null;
+  // Clamp the horizontal drag to the block's own column so it stops at the edge
+  // (like a wall) instead of sliding into the other column.
+  const blockRef = useRef<HTMLDivElement>(null);
+  let clampedDeltaX = dragDeltaX ?? 0;
+  if (isDragging) {
+    const el = blockRef.current;
+    if (el) {
+      const parentW =
+        (el.offsetParent as HTMLElement | null)?.clientWidth ?? el.offsetWidth;
+      clampedDeltaX = Math.max(
+        -el.offsetLeft,
+        Math.min(clampedDeltaX, parentW - el.offsetLeft - el.offsetWidth),
+      );
+    }
+  }
 
   const commitTitle = (value: string) => {
     const title = value.trim();
@@ -79,10 +107,16 @@ export function CalendarBlock({
 
   return (
     <div
-      ref={move.setNodeRef}
+      ref={blockRef}
       // Stop the click from reaching the grid (which would create a new block).
       onClick={(e) => e.stopPropagation()}
-      style={{ ...style, ...tintStyle }}
+      style={{
+        ...style,
+        ...tintStyle,
+        // Vertical movement comes from the grid's `style` (snapped time); we
+        // follow the cursor horizontally here, clamped to the column edges.
+        transform: isDragging ? `translateX(${clampedDeltaX}px)` : undefined,
+      }}
       className={`group absolute flex select-none flex-col gap-0.5 overflow-hidden rounded-md border p-1 shadow-sm transition-shadow ${
         color ? "" : "border-accent/50 bg-accent-soft"
       } ${
@@ -93,10 +127,13 @@ export function CalendarBlock({
             : "border-accent/50"
       } ${isPlaceholder ? "border-dashed opacity-60" : ""}`}
     >
-      {/* Control row — also the drag handle (grab to move the block in time). */}
+      {/* Control row — also the drag handle (press and drag to move in time). */}
       <div
-        {...move.listeners}
-        {...move.attributes}
+        onPointerDown={(e) => {
+          if (e.button !== 0) return;
+          e.preventDefault();
+          onDragStart(node.id, column, "move", e.clientX, e.clientY);
+        }}
         className="flex flex-1 cursor-grab items-start gap-1 active:cursor-grabbing"
       >
         {/* Project colour swatch with a transparent native picker → assign menu. */}
@@ -117,7 +154,7 @@ export function CalendarBlock({
               })
             }
             onClick={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
             aria-label="Assign project"
             title="Assign project"
             className="absolute inset-0 cursor-pointer opacity-0"
@@ -136,7 +173,7 @@ export function CalendarBlock({
           defaultValue={node.title}
           placeholder="New task"
           onBlur={(e) => commitTitle(e.target.value)}
-          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
           aria-label="Title"
           rows={1}
           className="min-h-0 flex-1 resize-none break-words bg-transparent text-xs font-medium leading-tight text-foreground placeholder:font-normal placeholder:text-muted focus:outline-none"
@@ -157,7 +194,7 @@ export function CalendarBlock({
         <button
           type="button"
           onClick={() => removeNode.mutate(node.id)}
-          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
           aria-label="Delete"
           title="Delete"
           className="shrink-0 text-muted opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
@@ -168,10 +205,12 @@ export function CalendarBlock({
 
       {/* Bottom edge — drag to resize the block's duration. */}
       <div
-        ref={resize.setNodeRef}
-        {...resize.listeners}
-        {...resize.attributes}
-        onMouseDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => {
+          if (e.button !== 0) return;
+          e.preventDefault();
+          e.stopPropagation();
+          onDragStart(node.id, column, "resize", e.clientX, e.clientY);
+        }}
         aria-label="Resize block"
         className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize"
       />
