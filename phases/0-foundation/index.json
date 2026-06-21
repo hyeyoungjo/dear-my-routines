@@ -37,7 +37,10 @@
     {
       "step": 4,
       "name": "panel-routes",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-06-21T14:27:55+0900",
+      "completed_at": "2026-06-21T14:35:00+0900",
+      "summary": "Plan/Act/Review 3-panel skeleton (ADR-004, empty state). src/components/panels/{Plan,Act,Review}Panel.tsx are propless Server Components (title + short phase caption + 'Coming soon'). src/app/page.tsx now renders a light header (app name + reused signOut server action) above a responsive grid (grid-cols-1, md:grid-cols-3) of the three panels. Login protection unchanged (middleware untouched); all UI text English. lint/build/test pass."
     }
   ],
   "created_at": "2026-06-21T13:26:12+0900",
