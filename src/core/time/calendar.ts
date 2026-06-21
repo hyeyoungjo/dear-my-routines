@@ -150,63 +150,44 @@ export function fitParentToChildren(parent: Span, children: Span[]): Span {
   return { start: new Date(start), end: new Date(end) };
 }
 
-// --- Nested block pixel layout (phase 4) ----------------------------------
+// --- Nested block pixel layout (phase 5) ----------------------------------
 
 /**
- * The minimal shape `blockPixelHeight`/`childOffsetPx` need from a laid-out
- * block: its effective span (already grown to wrap children) and its children,
- * recursively. The calendar's richer `CalBlock` structurally satisfies this, so
- * the geometry stays pure (`core/`) and never imports a UI type.
+ * The minimal shape `blockPixelHeight` needs from a laid-out block: its
+ * effective span, already grown to wrap its children (`fitParentToChildren`).
+ * The calendar's richer `CalBlock` structurally satisfies this, so the geometry
+ * stays pure (`core/`) and never imports a UI type.
  */
 export type LaidOutBlock = {
   span: Span;
-  children: LaidOutBlock[];
 };
 
 /**
  * Vertical pixel offset of a child *inside* its parent block, measured from the
- * parent's top edge: it starts just below the parent's fixed title header
- * (`headerPx`) and drops proportionally to how far past the parent's start the
- * child begins. This is what keeps a child time-aligned without the header
- * eating into its time span (the bug this phase fixes).
+ * parent's top edge: purely how far past the parent's start the child begins,
+ * in pixels. The title is drawn as a zero-height overlay (it no longer occupies
+ * layout space), so a child is positioned by time alone and stays exactly on the
+ * shared axis — the bug this phase fixes, where a fixed header ate into the span.
  */
 export function childOffsetPx(
   parentStart: Date,
   childStart: Date,
   pxPerMinute: number,
-  headerPx: number,
 ): number {
-  return headerPx + durationMinutes(parentStart, childStart) * pxPerMinute;
+  return durationMinutes(parentStart, childStart) * pxPerMinute;
 }
 
 /**
- * Total pixel height of a block so it fully wraps its title header *and* every
- * child (frame-in-frame, arbitrary depth — ADR-009). Because each nested level
- * carries its own fixed `headerPx`, a child's real pixel footprint is taller
- * than its bare time span, so the parent must grow to the lowest of:
- *  - its own header plus its own time span (the floor when it has no children),
- *  - each child's offset (`childOffsetPx`) plus that child's full pixel height,
- *    computed recursively.
- * Pure — depends only on spans, the per-minute scale, and the header constant.
+ * Pixel height of a block: simply its effective time span (already grown to wrap
+ * every child via `fitParentToChildren`, so the children's footprints are inside
+ * it — ADR-009 frame-in-frame). Because the title is a zero-layout overlay, the
+ * height is pure time and the time axis stays exact at any nesting depth.
  */
 export function blockPixelHeight(
   block: LaidOutBlock,
   pxPerMinute: number,
-  headerPx: number,
 ): number {
-  const ownMinutes = durationMinutes(block.span.start, block.span.end);
-  let bottom = headerPx + ownMinutes * pxPerMinute;
-  for (const child of block.children) {
-    const top = childOffsetPx(
-      block.span.start,
-      child.span.start,
-      pxPerMinute,
-      headerPx,
-    );
-    const childBottom = top + blockPixelHeight(child, pxPerMinute, headerPx);
-    if (childBottom > bottom) bottom = childBottom;
-  }
-  return bottom;
+  return durationMinutes(block.span.start, block.span.end) * pxPerMinute;
 }
 
 // --- Plan vs. actual presentation (step 3) --------------------------------

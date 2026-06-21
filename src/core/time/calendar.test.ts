@@ -238,74 +238,58 @@ describe("fitParentToChildren", () => {
 
 describe("childOffsetPx", () => {
   const PPM = 1; // 1px per minute keeps the arithmetic obvious.
-  const HEADER = 20;
 
-  it("starts a child at the parent's start just below the header", () => {
+  it("is zero when the child starts at the parent's start (no header inset)", () => {
     const at = new Date(2026, 5, 21, 9, 0);
-    expect(childOffsetPx(at, at, PPM, HEADER)).toBe(HEADER);
+    expect(childOffsetPx(at, at, PPM)).toBe(0);
   });
 
-  it("drops a later-starting child proportionally below the header", () => {
+  it("drops a later-starting child by its pure time offset", () => {
     const parentStart = new Date(2026, 5, 21, 9, 0);
     const childStart = new Date(2026, 5, 21, 9, 30); // 30m later
-    expect(childOffsetPx(parentStart, childStart, PPM, HEADER)).toBe(
-      HEADER + 30,
-    );
+    expect(childOffsetPx(parentStart, childStart, PPM)).toBe(30);
+  });
+
+  it("scales the offset by pxPerMinute", () => {
+    const parentStart = new Date(2026, 5, 21, 9, 0);
+    const childStart = new Date(2026, 5, 21, 9, 30);
+    expect(childOffsetPx(parentStart, childStart, 2)).toBe(60);
   });
 });
 
 describe("blockPixelHeight", () => {
   const PPM = 1; // 1px per minute.
-  const HEADER = 20;
 
-  it("is header + own span when there are no children", () => {
+  it("is exactly the block's own time span (the title eats no time)", () => {
     const block = {
       span: {
         start: new Date(2026, 5, 21, 9, 0),
         end: new Date(2026, 5, 21, 10, 0), // 60m
       },
-      children: [],
     };
-    expect(blockPixelHeight(block, PPM, HEADER)).toBe(HEADER + 60);
+    expect(blockPixelHeight(block, PPM)).toBe(60);
   });
 
-  it("grows so a child's full footprint (its own header + span) is wrapped", () => {
-    // Parent's own span is only 30m, but a 30m child carries its own header, so
-    // the child's pixel footprint (HEADER + 30) starts below the parent header
-    // and pushes the parent taller than its bare 30m time span would suggest.
-    const start = new Date(2026, 5, 21, 9, 0);
+  it("scales the height by pxPerMinute", () => {
     const block = {
-      span: { start, end: new Date(2026, 5, 21, 9, 30) }, // 30m own
-      children: [
-        {
-          span: { start, end: new Date(2026, 5, 21, 9, 30) }, // 30m child at offset 0
-          children: [],
-        },
-      ],
+      span: {
+        start: new Date(2026, 5, 21, 9, 0),
+        end: new Date(2026, 5, 21, 9, 30), // 30m
+      },
     };
-    // child bottom = childOffsetPx(0) + (HEADER + 30) = HEADER + (HEADER + 30)
-    const childBottom = HEADER + (HEADER + 30);
-    // own floor = HEADER + 30; the child footprint is lower, so it wins.
-    expect(blockPixelHeight(block, PPM, HEADER)).toBe(childBottom);
-    expect(childBottom).toBeGreaterThan(HEADER + 30);
+    expect(blockPixelHeight(block, 2)).toBe(60);
   });
 
-  it("wraps a multi-level nest by recursing to the deepest leaf", () => {
+  it("covers an overflowing child once the span is grown to wrap it", () => {
+    // The grid grows a parent's span with fitParentToChildren, so by the time
+    // it reaches blockPixelHeight the span already contains every child — height
+    // is just that grown span in pixels, no recursion or header stacking.
     const start = new Date(2026, 5, 21, 9, 0);
-    const leaf = {
-      span: { start, end: new Date(2026, 5, 21, 9, 30) }, // 30m
-      children: [],
-    };
-    const mid = {
-      span: { start, end: new Date(2026, 5, 21, 9, 30) },
-      children: [leaf],
-    };
-    const root = {
-      span: { start, end: new Date(2026, 5, 21, 9, 30) },
-      children: [mid],
-    };
-    // Three headers stack (each child at offset 0) + the leaf's 30m span.
-    expect(blockPixelHeight(root, PPM, HEADER)).toBe(HEADER * 3 + 30);
+    const grown = fitParentToChildren(
+      { start, end: new Date(2026, 5, 21, 9, 30) }, // 30m own
+      [{ start, end: new Date(2026, 5, 21, 10, 30) }], // child overflows to +90m
+    );
+    expect(blockPixelHeight({ span: grown }, PPM)).toBe(90);
   });
 });
 
