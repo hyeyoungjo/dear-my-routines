@@ -7,7 +7,8 @@
       "name": "block-layout",
       "status": "completed",
       "started_at": "2026-06-22T02:50:42+0900",
-      "summary": "Pixel-based nested block layout: added pure childOffsetPx/blockPixelHeight (core/time + tests) so parents wrap header+children with nothing clipped; CalendarBlock/Grid now position children in px (HEADER_PX) instead of % of parent span, comparison moved into the fixed header row."
+      "summary": "Pixel-based nested block layout: added pure childOffsetPx/blockPixelHeight (core/time + tests) so parents wrap header+children with nothing clipped; CalendarBlock/Grid now position children in px (HEADER_PX) instead of % of parent span, comparison moved into the fixed header row.",
+      "completed_at": "2026-06-22T02:57:33+0900"
     }
   ],
   "created_at": "2026-06-22T02:50:42+0900"
