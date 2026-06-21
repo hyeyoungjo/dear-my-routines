@@ -16,7 +16,7 @@
       "status": "completed",
       "started_at": "2026-06-22T02:18:26+0900",
       "summary": "Nested subtask blocks now drag-move and edge-resize at any depth (dnd-kit ids namespaced by column+node, 15-min snap, optimistic useUpdateNode) in both Plan and Action columns; per-minute pixel scale is constant through nesting so the grid's minute math is depth-agnostic. On commit, handleDragEnd walks the visible-parent chain, clamping each child inside its parent (clampChildToParent) and stretching ancestors' stored spans to wrap overflowing children (fitParentToChildren), cascading to arbitrary depth; render-time fit keeps the live drag preview wrapping too.",
-      "completed_at": "2026-06-22T02:25:30+0900"
+      "completed_at": "2026-06-22T02:25:48+0900"
     }
   ],
   "created_at": "2026-06-22T02:10:40+0900"
