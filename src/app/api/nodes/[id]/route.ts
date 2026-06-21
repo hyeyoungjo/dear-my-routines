@@ -62,6 +62,16 @@ function parsePatchInput(body: Record<string, unknown>): Partial<NewNode> {
   } else if (body.plannedEnd === null) {
     values.plannedEnd = null;
   }
+  if (typeof body.actualStart === "string") {
+    values.actualStart = new Date(body.actualStart);
+  } else if (body.actualStart === null) {
+    values.actualStart = null;
+  }
+  if (typeof body.actualEnd === "string") {
+    values.actualEnd = new Date(body.actualEnd);
+  } else if (body.actualEnd === null) {
+    values.actualEnd = null;
+  }
   if (typeof body.sortOrder === "number") values.sortOrder = body.sortOrder;
 
   return values;

@@ -115,3 +115,17 @@ export function resizeBlockEnd(start: Date, end: Date, deltaMinutes: number): Sp
   const duration = Math.max(MIN_BLOCK_MINUTES, proposed);
   return { start, end: addMinutes(start, duration) };
 }
+
+// --- Plan vs. actual presentation (step 3) --------------------------------
+
+/**
+ * Human-readable duration for the planned-vs-actual comparison label
+ * (PRD "예상 vs. 실제" — e.g. `~1.5h → 2.1h`). Under an hour reads as minutes
+ * (`45m`); an hour or more reads as hours with one decimal, dropping a trailing
+ * `.0` so a whole hour is `1h`, not `1.0h`.
+ */
+export function formatHours(minutes: number): string {
+  if (minutes < 60) return `${minutes}m`;
+  const hours = minutes / 60;
+  return Number.isInteger(hours) ? `${hours}h` : `${hours.toFixed(1)}h`;
+}

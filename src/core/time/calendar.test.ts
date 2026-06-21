@@ -5,6 +5,7 @@ import {
   addMinutes,
   blockTopMinutes,
   durationMinutes,
+  formatHours,
   gridSlots,
   minutesFromGridStart,
   moveBlock,
@@ -130,5 +131,22 @@ describe("resizeBlockEnd", () => {
     const end = new Date(2026, 5, 21, 10, 0);
     const resized = resizeBlockEnd(start, end, -120); // would invert
     expect(durationMinutes(start, resized.end)).toBe(MIN_BLOCK_MINUTES);
+  });
+});
+
+describe("formatHours", () => {
+  it("reads under an hour as minutes", () => {
+    expect(formatHours(45)).toBe("45m");
+    expect(formatHours(0)).toBe("0m");
+  });
+
+  it("reads a whole hour without a decimal", () => {
+    expect(formatHours(60)).toBe("1h");
+    expect(formatHours(120)).toBe("2h");
+  });
+
+  it("reads a partial hour with one decimal", () => {
+    expect(formatHours(90)).toBe("1.5h");
+    expect(formatHours(125)).toBe("2.1h");
   });
 });

@@ -61,6 +61,12 @@ function parseCreateInput(
   if (typeof body.plannedEnd === "string") {
     values.plannedEnd = new Date(body.plannedEnd);
   }
+  if (typeof body.actualStart === "string") {
+    values.actualStart = new Date(body.actualStart);
+  }
+  if (typeof body.actualEnd === "string") {
+    values.actualEnd = new Date(body.actualEnd);
+  }
   if (typeof body.sortOrder === "number") values.sortOrder = body.sortOrder;
 
   return values;

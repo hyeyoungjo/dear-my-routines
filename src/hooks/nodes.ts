@@ -48,6 +48,8 @@ export type AddNodeInput = Pick<NewNode, "title" | "type"> &
       | "plannedDate"
       | "plannedStart"
       | "plannedEnd"
+      | "actualStart"
+      | "actualEnd"
       | "sortOrder"
     >
   >;
@@ -144,8 +146,8 @@ function optimisticNode(input: AddNodeInput): FlatNode {
     actualMinutes: input.actualMinutes ?? null,
     plannedStart: input.plannedStart ?? null,
     plannedEnd: input.plannedEnd ?? null,
-    actualStart: null,
-    actualEnd: null,
+    actualStart: input.actualStart ?? null,
+    actualEnd: input.actualEnd ?? null,
     status: input.status ?? "pending",
     category: input.category ?? null,
     isBig3: input.isBig3 ?? false,

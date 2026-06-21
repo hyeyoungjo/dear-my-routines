@@ -68,6 +68,31 @@ export function addNode(nodes: FlatNode[], newNode: FlatNode): FlatNode[] {
   return [...nodes, newNode];
 }
 
+/**
+ * Walk up the `parentId` chain from `id` and return the nearest ancestor whose
+ * `type` matches (e.g. the Project a Task lives under, for its colour tag in the
+ * calendar). Returns null when no such ancestor exists or `id` is unknown. A
+ * `seen` guard keeps a malformed cyclic parent chain from looping forever.
+ */
+export function ancestorOfType(
+  nodes: FlatNode[],
+  id: string,
+  type: FlatNode["type"],
+): FlatNode | null {
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+  const seen = new Set<string>();
+  let current = byId.get(id);
+  while (current && current.parentId != null) {
+    if (seen.has(current.id)) break;
+    seen.add(current.id);
+    const parent = byId.get(current.parentId);
+    if (!parent) break;
+    if (parent.type === type) return parent;
+    current = parent;
+  }
+  return null;
+}
+
 /** Collect `id` plus every descendant id, recursively. */
 function descendantIds(nodes: FlatNode[], id: string): Set<string> {
   const childrenOf = new Map<string, string[]>();

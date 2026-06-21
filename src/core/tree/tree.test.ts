@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   addNode,
+  ancestorOfType,
   buildTree,
   flattenTree,
   moveNode,
@@ -211,5 +212,25 @@ describe("reorderSiblings", () => {
     const nodes = sample();
     reorderSiblings(nodes, "p1", ["t2", "t1"]);
     expect(nodes.find((n) => n.id === "t1")!.sortOrder).toBe(0);
+  });
+});
+
+describe("ancestorOfType", () => {
+  // area > project > task > subtask, one straight chain.
+  const nodes = [
+    makeNode({ id: "area", type: "area" }),
+    makeNode({ id: "proj", type: "project", parentId: "area" }),
+    makeNode({ id: "task", type: "task", parentId: "proj" }),
+    makeNode({ id: "sub", type: "subtask", parentId: "task" }),
+  ];
+
+  it("finds the nearest ancestor of a given type", () => {
+    expect(ancestorOfType(nodes, "sub", "project")?.id).toBe("proj");
+    expect(ancestorOfType(nodes, "task", "area")?.id).toBe("area");
+  });
+
+  it("returns null when no such ancestor exists", () => {
+    expect(ancestorOfType(nodes, "area", "project")).toBeNull();
+    expect(ancestorOfType(nodes, "missing", "area")).toBeNull();
   });
 });
