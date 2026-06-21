@@ -21,7 +21,10 @@
     {
       "step": 2,
       "name": "query-hooks",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-06-22T00:52:17+0900",
+      "summary": "TanStack Query hooks for nodes with optimistic updates. src/app/providers.tsx ('use client', QueryClient in useState) wrapped around children in layout.tsx. src/hooks/nodes.ts: useNodes (GET flat array, consumers nest via buildTree) + useAddNode/useUpdateNode/useRemoveNode/useMoveNode. A shared useOptimisticNodeMutation helper gives every mutation the same lifecycle — cancelQueries, snapshot, immediate cache write, onError rollback, onSettled invalidate — injecting only the fetcher + cache updater. Structural cache edits reuse core/tree addNode/removeNode/moveNode (single source of truth); update is a plain field merge. lint/build/test (22) all pass.",
+      "completed_at": "2026-06-22T00:55:30+0900"
     },
     {
       "step": 3,
