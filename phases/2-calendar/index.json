@@ -16,7 +16,7 @@
       "status": "completed",
       "started_at": "2026-06-22T01:43:16+0900",
       "summary": "Calendar day grid (07:00→02:00) renders timed task blocks (top=start, height=duration) and creates a 1h task on empty-slot click via optimistic useAddNode; time→pixel math is pure in core/time/calendar.ts (+tests); AddNodeInput/POST route extended with plannedStart/End; globals.css retuned minimal (off-white, hairline borders, Geist body font); home page now shows CalendarGrid.",
-      "completed_at": "2026-06-22T12:48:00+0900"
+      "completed_at": "2026-06-22T01:48:42+0900"
     },
     {
       "step": 2,
