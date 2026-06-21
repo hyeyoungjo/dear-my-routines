@@ -7,7 +7,8 @@
       "name": "core-tree",
       "status": "completed",
       "started_at": "2026-06-22T00:45:18+0900",
-      "summary": "Pure tree logic in src/core/tree (types.ts: FlatNode/TreeNode reusing db schema; tree.ts: buildTree/flattenTree/addNode/removeNode/moveNode/reorderSiblings, all pure, no React/DB runtime deps). 22 Vitest tests cover round-trip, descendant removal, cycle rejection, sortOrder."
+      "summary": "Pure tree logic in src/core/tree (types.ts: FlatNode/TreeNode reusing db schema; tree.ts: buildTree/flattenTree/addNode/removeNode/moveNode/reorderSiblings, all pure, no React/DB runtime deps). 22 Vitest tests cover round-trip, descendant removal, cycle rejection, sortOrder.",
+      "completed_at": "2026-06-22T00:48:54+0900"
     },
     {
       "step": 1,
