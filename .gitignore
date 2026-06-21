@@ -1,0 +1,28 @@
+# --- secrets: NEVER commit ---
+.env
+.env.*
+!.env.example
+
+# dependencies
+node_modules/
+
+# build output
+.next/
+out/
+dist/
+next-env.d.ts
+tsconfig.tsbuildinfo
+
+# python (harness scripts)
+__pycache__/
+*.pyc
+
+# phase execution outputs
+phases/**/phase*-output.json
+phases/**/step*-output.json
+
+# transcript audio (keep .srt/.meta.json, drop heavy audio)
+transcript/*.wav
+
+# OS / editor
+.DS_Store
