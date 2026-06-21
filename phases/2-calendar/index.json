@@ -2,9 +2,28 @@
   "project": "Dear My Routines",
   "phase": "2-calendar",
   "steps": [
-    { "step": 0, "name": "time-schema", "status": "pending" },
-    { "step": 1, "name": "calendar-grid", "status": "pending" },
-    { "step": 2, "name": "drag-resize", "status": "pending" },
-    { "step": 3, "name": "plan-vs-actual", "status": "pending" }
-  ]
+    {
+      "step": 0,
+      "name": "time-schema",
+      "status": "completed",
+      "started_at": "2026-06-22T01:41:07+0900",
+      "summary": "Added nullable timestamptz time-block fields (planned_start/end, actual_start/end) to nodes; migration 0001 generated and applied to Supabase, RLS unchanged; optimisticNode in hooks/nodes.ts updated to match FlatNode."
+    },
+    {
+      "step": 1,
+      "name": "calendar-grid",
+      "status": "pending"
+    },
+    {
+      "step": 2,
+      "name": "drag-resize",
+      "status": "pending"
+    },
+    {
+      "step": 3,
+      "name": "plan-vs-actual",
+      "status": "pending"
+    }
+  ],
+  "created_at": "2026-06-22T01:41:07+0900"
 }

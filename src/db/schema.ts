@@ -84,6 +84,12 @@ export const nodes = pgTable(
     links: text("links").array(),
     estimateMinutes: integer("estimate_minutes"),
     actualMinutes: integer("actual_minutes"),
+    // Calendar time blocks (all nullable). When unset, estimateMinutes is the
+    // fallback for tasks not yet placed on the calendar grid.
+    plannedStart: timestamp("planned_start", { withTimezone: true }),
+    plannedEnd: timestamp("planned_end", { withTimezone: true }),
+    actualStart: timestamp("actual_start", { withTimezone: true }),
+    actualEnd: timestamp("actual_end", { withTimezone: true }),
     status: nodeStatus("status").notNull().default("pending"),
     category: text("category"),
     isBig3: boolean("is_big3").notNull().default(false),

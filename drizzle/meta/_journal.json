@@ -8,6 +8,13 @@
       "when": 1782019593971,
       "tag": "0000_icy_prima",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1782060137438,
+      "tag": "0001_tan_hercules",
+      "breakpoints": true
     }
   ]
 }
