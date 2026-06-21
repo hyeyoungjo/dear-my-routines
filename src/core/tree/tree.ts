@@ -63,6 +63,19 @@ export function flattenTree(tree: TreeNode[]): FlatNode[] {
   return out;
 }
 
+/** The four node levels, deepest last (ADR-009 Area › Project › Task › Subtask). */
+const TYPE_ORDER: FlatNode["type"][] = ["area", "project", "task", "subtask"];
+
+/**
+ * The node type one level below `type` (area→project→task→subtask). Subtask is
+ * the deepest level, so it maps to itself — nesting deeper than that just keeps
+ * adding subtasks. Used when creating a child inside a calendar block.
+ */
+export function childTypeOf(type: FlatNode["type"]): FlatNode["type"] {
+  const index = TYPE_ORDER.indexOf(type);
+  return TYPE_ORDER[Math.min(index + 1, TYPE_ORDER.length - 1)];
+}
+
 /** Append a node. Returns a new array; inputs are untouched. */
 export function addNode(nodes: FlatNode[], newNode: FlatNode): FlatNode[] {
   return [...nodes, newNode];

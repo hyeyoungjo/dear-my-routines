@@ -4,7 +4,9 @@ import {
   MIN_BLOCK_MINUTES,
   addMinutes,
   blockTopMinutes,
+  clampChildToParent,
   durationMinutes,
+  fitParentToChildren,
   formatHours,
   gridSlots,
   minutesFromGridStart,
@@ -131,6 +133,104 @@ describe("resizeBlockEnd", () => {
     const end = new Date(2026, 5, 21, 10, 0);
     const resized = resizeBlockEnd(start, end, -120); // would invert
     expect(durationMinutes(start, resized.end)).toBe(MIN_BLOCK_MINUTES);
+  });
+});
+
+describe("clampChildToParent", () => {
+  const parent = {
+    start: new Date(2026, 5, 21, 9, 0),
+    end: new Date(2026, 5, 21, 11, 0),
+  };
+
+  it("leaves a child already inside the parent untouched", () => {
+    const child = {
+      start: new Date(2026, 5, 21, 9, 30),
+      end: new Date(2026, 5, 21, 10, 0),
+    };
+    const clamped = clampChildToParent(child, parent);
+    expect(clamped.start.getHours()).toBe(9);
+    expect(clamped.start.getMinutes()).toBe(30);
+    expect(durationMinutes(clamped.start, clamped.end)).toBe(30);
+  });
+
+  it("pushes a child starting before the parent up to the parent start", () => {
+    const child = {
+      start: new Date(2026, 5, 21, 8, 0),
+      end: new Date(2026, 5, 21, 10, 0),
+    };
+    const clamped = clampChildToParent(child, parent);
+    expect(clamped.start.getTime()).toBe(parent.start.getTime());
+    expect(clamped.end.getHours()).toBe(10);
+  });
+
+  it("clips a child overflowing the parent end down to the parent end", () => {
+    const child = {
+      start: new Date(2026, 5, 21, 10, 0),
+      end: new Date(2026, 5, 21, 12, 0),
+    };
+    const clamped = clampChildToParent(child, parent);
+    expect(clamped.end.getTime()).toBe(parent.end.getTime());
+  });
+
+  it("clips a child longer than the parent to exactly the parent span", () => {
+    const child = {
+      start: new Date(2026, 5, 21, 7, 0),
+      end: new Date(2026, 5, 21, 13, 0),
+    };
+    const clamped = clampChildToParent(child, parent);
+    expect(clamped.start.getTime()).toBe(parent.start.getTime());
+    expect(clamped.end.getTime()).toBe(parent.end.getTime());
+  });
+});
+
+describe("fitParentToChildren", () => {
+  const parent = {
+    start: new Date(2026, 5, 21, 9, 0),
+    end: new Date(2026, 5, 21, 11, 0),
+  };
+
+  it("returns the parent unchanged when there are no children", () => {
+    const fitted = fitParentToChildren(parent, []);
+    expect(fitted.start.getTime()).toBe(parent.start.getTime());
+    expect(fitted.end.getTime()).toBe(parent.end.getTime());
+  });
+
+  it("returns the parent unchanged when children fit exactly", () => {
+    const children = [
+      { start: new Date(2026, 5, 21, 9, 0), end: new Date(2026, 5, 21, 11, 0) },
+    ];
+    const fitted = fitParentToChildren(parent, children);
+    expect(fitted.start.getTime()).toBe(parent.start.getTime());
+    expect(fitted.end.getTime()).toBe(parent.end.getTime());
+  });
+
+  it("stretches the end when a child overflows past it (subproject growth)", () => {
+    const children = [
+      { start: new Date(2026, 5, 21, 10, 0), end: new Date(2026, 5, 21, 12, 30) },
+    ];
+    const fitted = fitParentToChildren(parent, children);
+    expect(fitted.start.getTime()).toBe(parent.start.getTime());
+    expect(fitted.end.getHours()).toBe(12);
+    expect(fitted.end.getMinutes()).toBe(30);
+  });
+
+  it("stretches both edges to wrap every child", () => {
+    const children = [
+      { start: new Date(2026, 5, 21, 8, 0), end: new Date(2026, 5, 21, 9, 30) },
+      { start: new Date(2026, 5, 21, 10, 30), end: new Date(2026, 5, 21, 12, 0) },
+    ];
+    const fitted = fitParentToChildren(parent, children);
+    expect(fitted.start.getHours()).toBe(8);
+    expect(fitted.end.getHours()).toBe(12);
+  });
+
+  it("does not mutate the parent or child inputs", () => {
+    const children = [
+      { start: new Date(2026, 5, 21, 8, 0), end: new Date(2026, 5, 21, 12, 0) },
+    ];
+    fitParentToChildren(parent, children);
+    expect(parent.start.getHours()).toBe(9);
+    expect(parent.end.getHours()).toBe(11);
   });
 });
 

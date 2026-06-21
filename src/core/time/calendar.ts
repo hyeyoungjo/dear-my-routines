@@ -116,6 +116,40 @@ export function resizeBlockEnd(start: Date, end: Date, deltaMinutes: number): Sp
   return { start, end: addMinutes(start, duration) };
 }
 
+// --- Parent / child nesting (phase 3) -------------------------------------
+
+/**
+ * Clamp a child span fully inside its parent's [start, end] window (rule A): a
+ * child starting before the parent is pushed to the parent's start, one ending
+ * after the parent is clipped to the parent's end. If clipping would invert the
+ * span (start past end) it collapses to a zero-length span at the boundary. Pure
+ * — inputs are not mutated. Used to seed a new subtask inside its parent's range.
+ */
+export function clampChildToParent(child: Span, parent: Span): Span {
+  const lo = parent.start.getTime();
+  const hi = parent.end.getTime();
+  const start = Math.min(Math.max(child.start.getTime(), lo), hi);
+  const end = Math.max(Math.min(child.end.getTime(), hi), start);
+  return { start: new Date(start), end: new Date(end) };
+}
+
+/**
+ * Grow a parent span so it fully wraps its children: the result starts at the
+ * earliest of the parent and any child start, and ends at the latest of the
+ * parent and any child end. With no children the parent is returned unchanged.
+ * This is what makes a "subproject-sized" task visibly stretch its block when
+ * its subtasks overflow the original estimate (PRD). Pure — never mutates input.
+ */
+export function fitParentToChildren(parent: Span, children: Span[]): Span {
+  let start = parent.start.getTime();
+  let end = parent.end.getTime();
+  for (const child of children) {
+    start = Math.min(start, child.start.getTime());
+    end = Math.max(end, child.end.getTime());
+  }
+  return { start: new Date(start), end: new Date(end) };
+}
+
 // --- Plan vs. actual presentation (step 3) --------------------------------
 
 /**

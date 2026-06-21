@@ -1,7 +1,7 @@
 "use client";
 
 import { useDraggable } from "@dnd-kit/core";
-import { formatHours } from "@/core/time/calendar";
+import { durationMinutes, formatHours, type Span } from "@/core/time/calendar";
 import type { FlatNode } from "@/core/tree/types";
 import { useUpdateNode } from "@/hooks/nodes";
 
@@ -9,48 +9,73 @@ import { useUpdateNode } from "@/hooks/nodes";
 export type ColumnKind = "plan" | "action";
 
 /**
+ * One node laid out for the calendar (frame-in-frame, ADR-009). `span` is the
+ * node's *effective* span — its own time grown to wrap its children
+ * (`fitParentToChildren`) — so a parent whose subtasks overflow stretches to
+ * contain them. `children` are the same shape, nested to arbitrary depth. The
+ * grid builds this tree (all schedule math stays in `core/time`); the block only
+ * turns spans into positions.
+ */
+export type CalBlock = {
+  node: FlatNode;
+  span: Span;
+  color: string | null;
+  /** Own (un-fitted) action duration vs. its plan, for the overrun label. */
+  comparison?: { plannedMinutes: number; actualMinutes: number };
+  children: CalBlock[];
+};
+
+/**
  * One scheduled task drawn on a calendar column as an absolutely-positioned
- * block (top = start, height = duration — both pre-computed by the grid from the
- * pure `core/time` geometry, including any live drag/resize preview). The same
- * node may appear in both columns (its planned block on the left, its actual
- * block on the right), so the dnd-kit draggable ids are namespaced by `column`
- * to stay unique. Title editing and the Big 3 star flow through the optimistic
- * `useUpdateNode` hook (CLAUDE.md CRITICAL — smooth UX, no tree/time logic
- * re-implemented here); the grid owns the `DndContext` and turns each drag's
- * pixel delta into a snapped time change for this column's fields.
+ * block, rendering its subtasks **recursively inside itself** as inset, time-
+ * positioned child blocks (frame-in-frame, arbitrary depth — ADR-009). A
+ * top-level block (`depth === 0`) is positioned by the grid in pixels and is
+ * draggable; nested children are positioned in percentages of their parent's
+ * effective span and are static (nested drag/resize is phase-3 step 1, out of
+ * scope here). Deeper levels are indented and lightly shaded so the nesting
+ * reads at a glance.
+ *
+ * Title editing, the Big 3 star, deriving an actual block from a plan, and
+ * adding a subtask all flow through optimistic hooks (CLAUDE.md CRITICAL —
+ * smooth UX, no tree/time logic re-implemented here).
  *
  * - Plan blocks carry a "track" affordance that derives an actual block from the
- *   plan (copies plannedStart/End → actualStart/End on the same node), which is
- *   what lines the same task up across both columns for comparison.
+ *   plan (copies plannedStart/End → actualStart/End on the same node), lining the
+ *   same task up across both columns for comparison.
  * - Action blocks that have a matching plan show the planned-vs-actual delta
  *   (e.g. `1.5h → 2.1h`), flagged when the actual overran the estimate.
  */
 export function CalendarBlock({
-  node,
+  block,
   column,
-  top,
-  height,
+  depth,
+  style,
   isDragging,
-  color,
-  comparison,
+  onAddSubtask,
 }: {
-  node: FlatNode;
+  block: CalBlock;
   column: ColumnKind;
-  top: number;
-  height: number;
+  depth: number;
+  /** Position/size — pixels for a top-level block, percentages for a nested one. */
+  style: React.CSSProperties;
   isDragging: boolean;
-  color: string | null;
-  comparison?: { plannedMinutes: number; actualMinutes: number };
+  /** Create a child node under `parent` in this column (optimistic, owned by grid). */
+  onAddSubtask: (parent: FlatNode) => void;
 }) {
+  const { node, span, color, comparison, children } = block;
   const updateNode = useUpdateNode();
 
+  // Only top-level blocks drag/resize in this step (nested drag is step 1).
+  const draggable = depth === 0;
   const move = useDraggable({
     id: `move:${column}:${node.id}`,
     data: { mode: "move", nodeId: node.id, column },
+    disabled: !draggable,
   });
   const resize = useDraggable({
     id: `resize:${column}:${node.id}`,
     data: { mode: "resize", nodeId: node.id, column },
+    disabled: !draggable,
   });
 
   const commitTitle = (value: string) => {
@@ -77,23 +102,34 @@ export function CalendarBlock({
   const overran =
     comparison != null && comparison.actualMinutes > comparison.plannedMinutes;
 
+  // Child positions are percentages of *this* block's effective span, so a child
+  // that overflows simply sits lower — the parent has already grown to wrap it.
+  const spanMinutes = Math.max(durationMinutes(span.start, span.end), 1);
+
+  // Top-level blocks span the full column width; nested ones are inset (left
+  // padding + a hair narrower) and lightly faded so frame-in-frame is visible.
+  const positionClass = depth === 0 ? "inset-x-1" : "left-3 right-1";
+  const toneClass =
+    depth === 0 ? "bg-accent-soft" : depth === 1 ? "bg-accent-soft/70" : "bg-accent-soft/50";
+
   return (
     <div
-      ref={move.setNodeRef}
+      ref={draggable ? move.setNodeRef : undefined}
       // Stop the click from reaching the grid, which would create a new block.
       onClick={(e) => e.stopPropagation()}
-      style={{ top, height }}
-      className={`absolute inset-x-1 flex select-none flex-col overflow-hidden rounded-md border bg-accent-soft shadow-sm transition-shadow ${
+      style={style}
+      className={`absolute ${positionClass} flex select-none flex-col overflow-hidden rounded-md border ${toneClass} shadow-sm transition-shadow ${
         isDragging
           ? "z-10 border-accent/60 shadow-md ring-1 ring-accent/40"
           : "border-accent/30"
       }`}
     >
-      {/* Body — drag anywhere here to move the block in time. */}
+      {/* Body — on a top-level block, drag anywhere here to move it in time. */}
       <div
-        {...move.listeners}
-        {...move.attributes}
-        className="flex min-h-0 flex-1 items-start gap-1 px-2 py-1 cursor-grab active:cursor-grabbing"
+        {...(draggable ? { ...move.listeners, ...move.attributes } : {})}
+        className={`flex shrink-0 items-start gap-1 px-2 py-1 ${
+          draggable ? "cursor-grab active:cursor-grabbing" : ""
+        }`}
       >
         {color && (
           <span
@@ -129,6 +165,17 @@ export function CalendarBlock({
           className="min-w-0 flex-1 truncate bg-transparent text-xs font-medium text-foreground focus:outline-none"
         />
 
+        {/* Add a subtask nested inside this block (one level deeper). */}
+        <button
+          type="button"
+          onClick={() => onAddSubtask(node)}
+          aria-label="Add subtask"
+          title="Add subtask"
+          className="shrink-0 text-muted hover:text-accent"
+        >
+          ＋
+        </button>
+
         {/* Plan-only: derive an actual block once, when none exists yet. */}
         {column === "plan" && node.actualStart == null && (
           <button
@@ -156,14 +203,36 @@ export function CalendarBlock({
         </p>
       )}
 
-      {/* Bottom edge — drag to resize the block's duration. */}
-      <div
-        ref={resize.setNodeRef}
-        {...resize.listeners}
-        {...resize.attributes}
-        aria-label="Resize block"
-        className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize"
-      />
+      {/* Nested subtasks: each positioned by its time within this block's span,
+          recursing to arbitrary depth (ADR-009). */}
+      {children.map((child) => {
+        const top =
+          (durationMinutes(span.start, child.span.start) / spanMinutes) * 100;
+        const height =
+          (durationMinutes(child.span.start, child.span.end) / spanMinutes) * 100;
+        return (
+          <CalendarBlock
+            key={child.node.id}
+            block={child}
+            column={column}
+            depth={depth + 1}
+            style={{ top: `${top}%`, height: `${height}%` }}
+            isDragging={false}
+            onAddSubtask={onAddSubtask}
+          />
+        );
+      })}
+
+      {/* Bottom edge — top-level only: drag to resize the block's duration. */}
+      {draggable && (
+        <div
+          ref={resize.setNodeRef}
+          {...resize.listeners}
+          {...resize.attributes}
+          aria-label="Resize block"
+          className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize"
+        />
+      )}
     </div>
   );
 }

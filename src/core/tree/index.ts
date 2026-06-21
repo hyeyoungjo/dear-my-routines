@@ -3,6 +3,7 @@ export {
   addNode,
   ancestorOfType,
   buildTree,
+  childTypeOf,
   flattenTree,
   moveNode,
   removeNode,

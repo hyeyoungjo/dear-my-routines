@@ -13,7 +13,9 @@ import {
   GRID_TOTAL_MINUTES,
   addMinutes,
   blockTopMinutes,
+  clampChildToParent,
   durationMinutes,
+  fitParentToChildren,
   gridSlots,
   moveBlock,
   resizeBlockEnd,
@@ -22,12 +24,13 @@ import {
   snapToSlot,
   type Span,
 } from "@/core/time/calendar";
-import { ancestorOfType } from "@/core/tree/tree";
+import { ancestorOfType, childTypeOf } from "@/core/tree/tree";
 import type { FlatNode } from "@/core/tree/types";
 import type { NewNode } from "@/db/schema";
 import { projectColor } from "@/lib/projectColor";
 import {
   CalendarBlock,
+  type CalBlock,
   type ColumnKind,
 } from "@/components/calendar/CalendarBlock";
 import { useAddNode, useNodes, useUpdateNode } from "@/hooks/nodes";
@@ -37,6 +40,8 @@ const SLOT_HEIGHT = 48;
 const PX_PER_MINUTE = SLOT_HEIGHT / 60;
 /** Default length of a freshly-created block (one hour). */
 const DEFAULT_BLOCK_MINUTES = 60;
+/** Default length of a new subtask seeded inside its parent block. */
+const DEFAULT_SUBTASK_MINUTES = 30;
 
 type DragMode = "move" | "resize";
 type DragData = { mode: DragMode; nodeId: string; column: ColumnKind };
@@ -121,6 +126,30 @@ export function CalendarGrid() {
     });
   };
 
+  /**
+   * Create a child node nested inside `parent` for this column (frame-in-frame).
+   * The child's type is one level deeper (`childTypeOf`) and its seed span is the
+   * first slice of the parent's range, clamped to stay inside it. Optimistic via
+   * `useAddNode`; if subtasks grow past the parent, the parent block auto-expands
+   * to wrap them at render time (`fitParentToChildren`).
+   */
+  const addSubtask = (parent: FlatNode, kind: ColumnKind) => {
+    const base = readSpan(parent, kind);
+    if (!base) return;
+    const seed = clampChildToParent(
+      { start: base.start, end: addMinutes(base.start, DEFAULT_SUBTASK_MINUTES) },
+      base,
+    );
+    addNode.mutate({
+      title: "New subtask",
+      type: childTypeOf(parent.type),
+      parentId: parent.id,
+      ...(kind === "plan"
+        ? { plannedStart: seed.start, plannedEnd: seed.end }
+        : { actualStart: seed.start, actualEnd: seed.end }),
+    });
+  };
+
   const handleBodyClick = (
     e: React.MouseEvent<HTMLDivElement>,
     kind: ColumnKind,
@@ -164,6 +193,65 @@ export function CalendarGrid() {
     updateNode.mutate({ id: node.id, patch });
   };
 
+  /**
+   * Build the nested block tree for a column. Only nodes that have a span in this
+   * column are visible; a visible node nests under its parent when the parent is
+   * also visible here, otherwise it becomes a root. Each node's `span` is its own
+   * (live-preview-applied) span grown to wrap its children's effective spans
+   * (`fitParentToChildren`), bottom-up — so a parent auto-expands when subtasks
+   * overflow, to arbitrary depth (ADR-009). All schedule math stays in `core/`.
+   */
+  const buildColumnTree = (kind: ColumnKind): CalBlock[] => {
+    const visible = all.filter((node) => readSpan(node, kind) != null);
+    const visibleIds = new Set(visible.map((node) => node.id));
+    const childrenOf = new Map<string | null, FlatNode[]>();
+    for (const node of visible) {
+      const parentKey =
+        node.parentId != null && visibleIds.has(node.parentId)
+          ? node.parentId
+          : null;
+      const list = childrenOf.get(parentKey) ?? [];
+      list.push(node);
+      childrenOf.set(parentKey, list);
+    }
+
+    const buildBlock = (node: FlatNode): CalBlock => {
+      const children = (childrenOf.get(node.id) ?? []).map(buildBlock);
+
+      // Own span, with the live drag/resize preview applied via the same pure
+      // math the commit uses (top-level only — nested blocks don't drag here).
+      const base = readSpan(node, kind)!;
+      const own =
+        drag?.column === kind && drag.nodeId === node.id
+          ? drag.mode === "move"
+            ? moveBlock(base.start, base.end, drag.deltaMinutes)
+            : resizeBlockEnd(base.start, base.end, drag.deltaMinutes)
+          : base;
+
+      const span = fitParentToChildren(
+        own,
+        children.map((child) => child.span),
+      );
+      const project = ancestorOfType(all, node.id, "project");
+      const planSpan = kind === "action" ? readSpan(node, "plan") : null;
+
+      return {
+        node,
+        span,
+        color: projectColor(project?.id ?? null),
+        comparison: planSpan
+          ? {
+              plannedMinutes: durationMinutes(planSpan.start, planSpan.end),
+              actualMinutes: durationMinutes(own.start, own.end),
+            }
+          : undefined,
+        children,
+      };
+    };
+
+    return (childrenOf.get(null) ?? []).map(buildBlock);
+  };
+
   /** Render one column's grid body: hour lines, click-to-create, and blocks. */
   const renderColumn = (kind: ColumnKind) => (
     <div
@@ -180,40 +268,20 @@ export function CalendarGrid() {
         />
       ))}
 
-      {all.map((node) => {
-        const base = readSpan(node, kind);
-        if (!base) return null;
-
-        // Apply the live drag/resize preview with the exact same pure math the
-        // commit uses, so what you see is what you get.
-        const span =
-          drag?.column === kind && drag.nodeId === node.id
-            ? drag.mode === "move"
-              ? moveBlock(base.start, base.end, drag.deltaMinutes)
-              : resizeBlockEnd(base.start, base.end, drag.deltaMinutes)
-            : base;
-
-        const mins = durationMinutes(span.start, span.end);
-        const project = ancestorOfType(all, node.id, "project");
-        const planSpan = kind === "action" ? readSpan(node, "plan") : null;
-
+      {buildColumnTree(kind).map((block) => {
+        const mins = durationMinutes(block.span.start, block.span.end);
         return (
           <CalendarBlock
-            key={node.id}
-            node={node}
+            key={block.node.id}
+            block={block}
             column={kind}
-            top={blockTopMinutes(span.start) * PX_PER_MINUTE}
-            height={Math.max(mins, 30) * PX_PER_MINUTE}
-            isDragging={drag?.column === kind && drag.nodeId === node.id}
-            color={projectColor(project?.id ?? null)}
-            comparison={
-              planSpan
-                ? {
-                    plannedMinutes: durationMinutes(planSpan.start, planSpan.end),
-                    actualMinutes: mins,
-                  }
-                : undefined
-            }
+            depth={0}
+            style={{
+              top: blockTopMinutes(block.span.start) * PX_PER_MINUTE,
+              height: Math.max(mins, 30) * PX_PER_MINUTE,
+            }}
+            isDragging={drag?.column === kind && drag.nodeId === block.node.id}
+            onAddSubtask={(parent) => addSubtask(parent, kind)}
           />
         );
       })}

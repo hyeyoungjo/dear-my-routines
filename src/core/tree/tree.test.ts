@@ -3,6 +3,7 @@ import {
   addNode,
   ancestorOfType,
   buildTree,
+  childTypeOf,
   flattenTree,
   moveNode,
   removeNode,
@@ -48,6 +49,18 @@ function sample(): FlatNode[] {
 }
 
 const idsOf = (nodes: FlatNode[]) => nodes.map((n) => n.id).sort();
+
+describe("childTypeOf", () => {
+  it("returns the level one step deeper", () => {
+    expect(childTypeOf("area")).toBe("project");
+    expect(childTypeOf("project")).toBe("task");
+    expect(childTypeOf("task")).toBe("subtask");
+  });
+
+  it("keeps subtask as the deepest level", () => {
+    expect(childTypeOf("subtask")).toBe("subtask");
+  });
+});
 
 describe("buildTree", () => {
   it("nests children under parents and orders siblings by sortOrder", () => {

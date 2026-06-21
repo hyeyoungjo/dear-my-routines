@@ -2,7 +2,18 @@
   "project": "Dear My Routines",
   "phase": "3-nested",
   "steps": [
-    { "step": 0, "name": "nested-render", "status": "pending" },
-    { "step": 1, "name": "nested-drag", "status": "pending" }
-  ]
+    {
+      "step": 0,
+      "name": "nested-render",
+      "status": "completed",
+      "started_at": "2026-06-22T02:10:40+0900",
+      "summary": "Recursive frame-in-frame calendar: CalendarBlock renders subtasks as inset, time-positioned child blocks (arbitrary depth) in both Plan/Action columns; parent blocks auto-expand to wrap overflowing children via new pure core/time fitParentToChildren + clampChildToParent (with tests); '+ subtask' creates a one-level-deeper child (childTypeOf) optimistically."
+    },
+    {
+      "step": 1,
+      "name": "nested-drag",
+      "status": "pending"
+    }
+  ],
+  "created_at": "2026-06-22T02:10:40+0900"
 }
