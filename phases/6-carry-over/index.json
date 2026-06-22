@@ -16,7 +16,7 @@
       "status": "completed",
       "started_at": "2026-06-23T00:52:57+0900",
       "summary": "CalendarBlock.tsx: Action ghost ✕ now carries the task to the next day via carryOverNode(node, addDays(selectedDate, 1)) through the existing optimistic useUpdateNode (no direct fetch); aria-label/title → 'Carry to tomorrow'. Removed all 'dropped' display paths — the line-through title style, the ↺ restore button branch, and CalendarGrid.tsx's `action && status==='dropped'` Action-column filter. Plan ✕ (removeNode) and Action real-block ✕ (clear actual) untouched.",
-      "completed_at": "2026-06-23T00:55:00+0900"
+      "completed_at": "2026-06-23T00:54:48+0900"
     },
     {
       "step": 2,
