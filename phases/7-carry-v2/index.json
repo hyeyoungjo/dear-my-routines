@@ -32,7 +32,7 @@
       "status": "completed",
       "started_at": "2026-06-23T03:49:11+0900",
       "summary": "Switched CalendarGrid/CalendarBlock from node time fields to task_blocks (ADR-014): each drawn block is one occurrence (blocksForDay scopes to selected grid day), title/project-colour joined from its node via nodeById. CalBlock now { block, node, span, color, isPlaceholder, comparison, carryCount }; nesting removed (blocks are flat/independent). readBlockSpan reuses core blockSpan (Plan=plan span, Action=actual else plan ghost); geometry (blockTopMinutes/blockPixelHeight/layoutOverlaps using block.sortOrder) reused from core. Drag/resize commit → optimistic useUpdateBlock (movePatch/resizePatch ISO into the column's pair); empty-slot click → useAddNode then useAddBlock (gridDay=dayKey); ghost confirm copies plan→actual; comparison label only when both spans exist; 🔁 carryCount via carryCountOf(blocksByNode). Plan ✕=removeBlock, Action ✕=clear actual; ghost ✕ (carry-over) deferred to step 4.",
-      "completed_at": "2026-06-23T15:03:00+0900"
+      "completed_at": "2026-06-23T04:03:05+0900"
     },
     {
       "step": 4,
