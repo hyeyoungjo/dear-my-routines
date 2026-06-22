@@ -173,3 +173,32 @@ DB가 직접 차단(ADR-003 멀티유저 확장과도 맞물림). **Vercel AI SD
 그래서 `grid_day`는 `start`에서 파생 가능하나 날짜 필터 쿼리 편의로 컬럼을 **남긴다**. ② 통계의
 "예상" 기준(첫 plan=원래 예측 vs 마지막 plan=최종 예측)은 통계 단계에서 확정한다. ③ 이월의
 구체 UI(별도 버튼/제스처)는 동작 설계 단계에서 정한다.
+
+### ADR-016: 유연한 트리(nodes) 폐기 → projects + tasks 2층 고정 (2026-06-22)
+**맥락**: ADR-009의 유연한 자기참조 트리(`nodes`: Area>Project>Task>Subtask, 깊이 자유)는
+개인용 1인 앱에 과했다. 실제로 쓰는 건 "프로젝트 안에 task" 2층뿐이고, area/subtask/임의 깊이는
+렌더·쿼리·이름만 복잡하게 했다. 작업 연속성 작업(ADR-015) 내내 area/subtask는 한 번도 등장하지
+않았다.
+**결정**: `nodes` 트리를 폐기하고 **`projects` + `tasks` 2층 고정**으로 단순화한다. 이름도 정리한다.
+- **`projects`**: `projectId`(PK)·`userId`·`title`·`projectColor`·`createdOn`·`updatedOn`.
+- **`tasks`**: `taskId`(PK)·`userId`·`projectId`(**nullable** — 무프로젝트 task 허용)·`title`·
+  `notes`·`category`·`createdOn`·`updatedOn`.
+- **`plan_blocks`**: `planBlockId`(PK)·`userId`·`taskId`·`date`·`startAt`·`endAt`·
+  `status`(planned|missed)·`createdOn`·`updatedOn`. (ADR-015의 plan_blocks를 rename: `id`→
+  `planBlockId`, `nodeId`→`taskId`, `gridDay`→`date`.)
+- **`action_blocks`**: `actionBlockId`(PK)·`userId`·`taskId`·`date`·`startAt`·`endAt`(**nullable**)·
+  `status`(**in-progress|done**)·`createdOn`·`updatedOn`. action에 status를 도입해 "doing"
+  (진행 중 = 시작했으나 끝 시각 없음)을 살린다. 그래서 `endAt`은 nullable.
+- **status는 두 층위**(ADR-015 유지): plan/action 행의 `status`는 *그 칸*의 상태(저장). projects·
+  tasks의 "current status"(planned/missed/in-progress/done)는 plan+action에서 **파생**(저장 안 함,
+  `currentStatusOf`).
+- **`createdAt`/`updatedAt` → `createdOn`/`updatedOn`** 전 테이블 통일.
+- **estimate_minutes·isBig3·links·sortOrder는 task에서 제거**(최소 스펙). `category`는 PRD의
+  카테고리별 통계 때문에 **task에 유지**. `title`은 UI(프로젝트 배정 메뉴)에 필요해 project에 **유지**.
+**이유**: 개인용·소량 데이터(ADR-001 YAGNI)에서 2층 고정이 사고·렌더·쿼리를 단순화한다. 이름을
+도메인 용어(project/task)로 명시화하면 `nodes`/`nodeId`의 모호함이 사라진다.
+**트레이드오프**: ADR-009의 *유연한 깊이*와 PRD 7의 *"subtask 증가 → subproject 감지"* 신호를
+**잃는다**(subtask가 없으므로). 대신 "이월 횟수(carryCount)"가 subproject 신호로 남는다. 기존 16개
+`nodes`(트리)를 projects/tasks로 **재분류 이전**해야 한다 — area→drop 또는 project로, subtask→task로
+승격 등 의미 매핑은 실데이터를 보고 마이그레이션 단계에서 정한다. **ADR-009를 대체**하고 ADR-015의
+nodes 부분을 **구체화**한다(정체성/배치/통계 묶음의 의도는 유지).
