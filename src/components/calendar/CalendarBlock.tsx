@@ -183,7 +183,9 @@ export function CalendarBlock({
           onPointerDown={(e) => e.stopPropagation()}
           aria-label="Title"
           rows={1}
-          className={`min-h-0 flex-1 resize-none break-words bg-transparent text-xs font-medium leading-tight placeholder:font-normal placeholder:text-muted focus:outline-none ${
+          // field-sizing:content grows the textarea to fit wrapped lines; the
+          // block's own overflow-hidden crops it once it exceeds the box.
+          className={`min-h-0 flex-1 resize-none break-words [field-sizing:content] bg-transparent text-xs font-medium leading-tight placeholder:font-normal placeholder:text-muted focus:outline-none ${
             node.status === "dropped" ? "text-muted line-through" : "text-foreground"
           }`}
         />
