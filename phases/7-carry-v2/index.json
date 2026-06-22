@@ -16,7 +16,7 @@
       "status": "completed",
       "started_at": "2026-06-23T03:40:01+0900",
       "summary": "Added src/core/time/blocks.ts (+blocks.test.ts, 20 tests) — pure task_blocks logic reusing day.ts/calendar.ts/carry.ts (no duplication). FlatBlock wire type + exports: blockBelongsToDay/blocksForDay (grid-day attribution), blockSpan, shiftBlockPlanned (moves gridDay)/shiftBlockActual (reschedule, status untouched), carryOverBlock (missedPatch + new planned block on toDate), findOverdueBlocks (status==='planned' & gridDay<today, idempotent), and derived plannedDateOf/revisedDateOf/actualDateOf/carryCountOf. clock+duration preserved on all shifts.",
-      "completed_at": "2026-06-23T03:46:00+0900"
+      "completed_at": "2026-06-23T03:46:21+0900"
     },
     {
       "step": 2,
