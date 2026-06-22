@@ -6,6 +6,8 @@ import {
   useQueryClient,
   type UseMutationResult,
 } from "@tanstack/react-query";
+import { useRef } from "react";
+import { useUndo, type UndoCommand } from "@/components/undo";
 import { addNode, moveNode, removeNode } from "@/core/tree/tree";
 import type { FlatNode } from "@/core/tree/types";
 import type { NewNode } from "@/db/schema";
@@ -52,7 +54,10 @@ export type AddNodeInput = Pick<NewNode, "title" | "type"> &
       | "actualEnd"
       | "sortOrder"
     >
-  >;
+  > & {
+    /** True when replayed by undo/redo — suppresses re-recording (see undo.tsx). */
+    fromHistory?: boolean;
+  };
 
 async function createNode(input: AddNodeInput): Promise<FlatNode> {
   const res = await fetch("/api/nodes", {
@@ -64,7 +69,11 @@ async function createNode(input: AddNodeInput): Promise<FlatNode> {
   return res.json();
 }
 
-export type UpdateNodeInput = { id: string; patch: Partial<NewNode> };
+export type UpdateNodeInput = {
+  id: string;
+  patch: Partial<NewNode>;
+  fromHistory?: boolean;
+};
 
 async function patchNode({ id, patch }: UpdateNodeInput): Promise<FlatNode> {
   const res = await fetch(`/api/nodes/${id}`, {
@@ -86,6 +95,7 @@ export type MoveNodeInput = {
   id: string;
   newParentId: string | null;
   newIndex: number;
+  fromHistory?: boolean;
 };
 
 // --- Query ----------------------------------------------------------------
@@ -108,8 +118,17 @@ type OptimisticContext = { previous: FlatNode[] | undefined };
 function useOptimisticNodeMutation<TVars, TData>(
   mutationFn: (vars: TVars) => Promise<TData>,
   updater: (nodes: FlatNode[], vars: TVars) => FlatNode[],
+  // Build the inverse command from the just-applied mutation. Runs on success
+  // (so a failed/rolled-back edit is never recorded) and is skipped when the
+  // mutation is itself an undo/redo replay (vars.fromHistory).
+  recordCommand?: (
+    vars: TVars,
+    previous: FlatNode[] | undefined,
+    data: TData,
+  ) => UndoCommand | null,
 ): UseMutationResult<TData, Error, TVars, OptimisticContext> {
   const queryClient = useQueryClient();
+  const { record } = useUndo();
 
   return useMutation<TData, Error, TVars, OptimisticContext>({
     mutationFn,
@@ -124,6 +143,12 @@ function useOptimisticNodeMutation<TVars, TData>(
     },
     onError: (_err, _vars, context) => {
       if (context) queryClient.setQueryData(nodesKey, context.previous);
+    },
+    onSuccess: (data, vars, context) => {
+      const fromHistory = (vars as { fromHistory?: boolean })?.fromHistory;
+      if (fromHistory || !recordCommand) return;
+      const cmd = recordCommand(vars, context?.previous, data);
+      if (cmd) record(cmd);
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: nodesKey });
@@ -164,19 +189,66 @@ function optimisticNode(input: AddNodeInput): FlatNode {
 
 /** Create a node — optimistically appended via `core/tree` addNode. */
 export function useAddNode() {
-  return useOptimisticNodeMutation<AddNodeInput, FlatNode>(
+  const ref =
+    useRef<UseMutationResult<
+      FlatNode,
+      Error,
+      AddNodeInput,
+      OptimisticContext
+    > | null>(null);
+  const removeNode = useRemoveNode();
+  const mutation = useOptimisticNodeMutation<AddNodeInput, FlatNode>(
     createNode,
     (nodes, input) => addNode(nodes, optimisticNode(input)),
+    (vars, _previous, created) => {
+      // Undo deletes the created node; redo re-adds (a fresh id) and tracks it
+      // so a subsequent undo still removes the right row.
+      let createdId = created.id;
+      return {
+        undo: () => removeNode.mutate(createdId),
+        redo: () =>
+          ref.current?.mutate(
+            { ...vars, fromHistory: true },
+            { onSuccess: (re) => (createdId = re.id) },
+          ),
+      };
+    },
   );
+  ref.current = mutation;
+  return mutation;
 }
 
 /** Patch a node's fields — optimistically merged into the cached row. */
 export function useUpdateNode() {
-  return useOptimisticNodeMutation<UpdateNodeInput, FlatNode>(
+  const ref =
+    useRef<UseMutationResult<
+      FlatNode,
+      Error,
+      UpdateNodeInput,
+      OptimisticContext
+    > | null>(null);
+  const mutation = useOptimisticNodeMutation<UpdateNodeInput, FlatNode>(
     patchNode,
     (nodes, { id, patch }) =>
       nodes.map((node) => (node.id === id ? { ...node, ...patch } : node)),
+    ({ id, patch }, previous) => {
+      const prev = previous?.find((n) => n.id === id);
+      if (!prev) return null;
+      // Inverse = the same keys, set back to their pre-edit values.
+      const inverse: Partial<NewNode> = {};
+      for (const key of Object.keys(patch)) {
+        (inverse as Record<string, unknown>)[key] =
+          prev[key as keyof FlatNode];
+      }
+      return {
+        undo: () =>
+          ref.current?.mutate({ id, patch: inverse, fromHistory: true }),
+        redo: () => ref.current?.mutate({ id, patch, fromHistory: true }),
+      };
+    },
   );
+  ref.current = mutation;
+  return mutation;
 }
 
 /** Remove a node and its descendants — optimistically via `core/tree` removeNode. */
@@ -194,10 +266,34 @@ export function useRemoveNode() {
  * reordering on the server is reconciled by the invalidate on settle.
  */
 export function useMoveNode() {
-  return useOptimisticNodeMutation<MoveNodeInput, FlatNode>(
+  const ref =
+    useRef<UseMutationResult<
+      FlatNode,
+      Error,
+      MoveNodeInput,
+      OptimisticContext
+    > | null>(null);
+  const mutation = useOptimisticNodeMutation<MoveNodeInput, FlatNode>(
     ({ id, newParentId, newIndex }) =>
       patchNode({ id, patch: { parentId: newParentId, sortOrder: newIndex } }),
     (nodes, { id, newParentId, newIndex }) =>
       moveNode(nodes, id, newParentId, newIndex),
+    (vars, previous) => {
+      const prev = previous?.find((n) => n.id === vars.id);
+      if (!prev) return null;
+      // Inverse = move back to the original parent and sibling position.
+      return {
+        undo: () =>
+          ref.current?.mutate({
+            id: vars.id,
+            newParentId: prev.parentId,
+            newIndex: prev.sortOrder,
+            fromHistory: true,
+          }),
+        redo: () => ref.current?.mutate({ ...vars, fromHistory: true }),
+      };
+    },
   );
+  ref.current = mutation;
+  return mutation;
 }

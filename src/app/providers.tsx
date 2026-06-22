@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { DateProvider } from "@/components/date";
 import { ThemeProvider } from "@/components/theme";
+import { UndoProvider } from "@/components/undo";
 
 /**
  * App-wide client providers.
@@ -18,7 +19,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        <DateProvider>{children}</DateProvider>
+        <UndoProvider>
+          <DateProvider>{children}</DateProvider>
+        </UndoProvider>
       </QueryClientProvider>
     </ThemeProvider>
   );

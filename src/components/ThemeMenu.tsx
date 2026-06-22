@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { THEMES, useTheme, type Theme } from "@/components/theme";
+import { useUndo } from "@/components/undo";
 
 const LABELS: Record<Theme, string> = {
   light: "Light",
@@ -11,6 +12,7 @@ const LABELS: Record<Theme, string> = {
 /** Gear button (top-right) that opens a small theme picker. */
 export function ThemeMenu() {
   const { theme, setTheme } = useTheme();
+  const { max, setMax } = useUndo();
   const [open, setOpen] = useState(false);
 
   return (
@@ -26,7 +28,7 @@ export function ThemeMenu() {
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-20 mt-1 w-36 rounded-md border border-border bg-panel p-1 shadow-lg">
+          <div className="absolute right-0 z-20 mt-1 w-44 rounded-md border border-border bg-panel p-1 shadow-lg">
             {THEMES.map((t) => (
               <button
                 key={t}
@@ -43,6 +45,22 @@ export function ThemeMenu() {
                 {theme === t && <span>✓</span>}
               </button>
             ))}
+
+            <div className="my-1 border-t border-border" />
+
+            {/* Undo/redo history depth (Cmd/Ctrl+Z) — persisted in localStorage. */}
+            <label className="flex items-center justify-between gap-2 px-2 py-1.5 text-sm text-foreground">
+              <span>Undo limit</span>
+              <input
+                type="number"
+                min={1}
+                max={50}
+                value={max}
+                onChange={(e) => setMax(Number(e.target.value))}
+                aria-label="Undo history limit"
+                className="w-12 rounded border border-border bg-transparent px-1 py-0.5 text-right text-foreground focus:border-accent focus:outline-none"
+              />
+            </label>
           </div>
         </>
       )}
