@@ -40,9 +40,10 @@ function clockOntoGridDay(clock: Date, toDate: Date): Date {
  * Move a [start, end?] span onto `toDate`'s grid day, keeping the clock time and
  * exact length (ms). Spans may arrive as ISO strings over the wire, so callers
  * pass raw values and we normalize here like day.ts does. Shared by the planned
- * and actual shifts so the clock/duration-preserving rule lives in one place.
+ * and actual shifts so the clock/duration-preserving rule lives in one place —
+ * `blocks.ts` reuses it too (same rule for task_blocks, no re-implementation).
  */
-function shiftSpanOntoGridDay(
+export function shiftSpanOntoGridDay(
   rawStart: Date | string,
   rawEnd: Date | string | null,
   toDate: Date,
