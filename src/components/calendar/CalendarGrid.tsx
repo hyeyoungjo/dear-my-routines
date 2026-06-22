@@ -18,7 +18,7 @@ import {
   snapToSlot,
   type Span,
 } from "@/core/time/calendar";
-import { nodesForDay } from "@/core/time/day";
+import { nodeBelongsToDay } from "@/core/time/day";
 import { ancestorOfType } from "@/core/tree/tree";
 import type { FlatNode } from "@/core/tree/types";
 import type { NewNode } from "@/db/schema";
@@ -134,9 +134,10 @@ export function CalendarGrid() {
 
   const slots = gridSlots();
   const bodyHeight = GRID_TOTAL_MINUTES * PX_PER_MINUTE;
-  // Scope to the selected grid day — the rows are the source of truth, this is
-  // just today's view over them (ADR-013).
-  const all = nodesForDay(nodes ?? [], selectedDate);
+  // The full row set stays the source of truth so colour inheritance can walk
+  // each task's ancestor project; only the *visible blocks* are scoped to the
+  // selected grid day (in buildColumnTree, ADR-013).
+  const all = nodes ?? [];
 
   const createAt = (offsetMinutes: number, kind: ColumnKind) => {
     const start = slotDate(selectedDate, offsetMinutes);
@@ -355,7 +356,13 @@ export function CalendarGrid() {
     // Project > Task only. Tasks are the time blocks; Project is a legend
     // grouping (colour). Subtasks/areas were removed, so only tasks are drawn.
     const visible = all.filter(
-      (node) => readSpan(node, kind) != null && node.type === "task",
+      (node) =>
+        readSpan(node, kind) != null &&
+        node.type === "task" &&
+        nodeBelongsToDay(node, selectedDate) &&
+        // A "not done" task drops out of the Action column (no ghost), but stays
+        // struck-through in Plan as a record of what was planned but skipped.
+        !(kind === "action" && node.status === "dropped"),
     );
     const visibleIds = new Set(visible.map((node) => node.id));
     const childrenOf = new Map<string | null, FlatNode[]>();
@@ -471,6 +478,22 @@ export function CalendarGrid() {
               key={block.node.id}
               block={block}
               column={kind}
+              // Clicking a ghost (no drag) confirms it: copy the plan span into
+              // the actual fields so it turns into a real Action block.
+              onConfirm={
+                block.isPlaceholder
+                  ? () => {
+                      if (justDraggedRef.current) return;
+                      updateNode.mutate({
+                        id: block.node.id,
+                        patch: {
+                          actualStart: block.node.plannedStart,
+                          actualEnd: block.node.plannedEnd,
+                        },
+                      });
+                    }
+                  : undefined
+              }
               onDragStart={handleDragStart}
               // Moved block follows the cursor via transform(deltaX); resize just
               // gets the dragging highlight (0); others none.

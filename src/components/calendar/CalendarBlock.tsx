@@ -45,6 +45,7 @@ export function CalendarBlock({
   block,
   column,
   style,
+  onConfirm,
   onDragStart,
   dragDeltaX,
 }: {
@@ -52,6 +53,8 @@ export function CalendarBlock({
   column: ColumnKind;
   /** Absolute pixel position/size of this block within the grid column. */
   style: React.CSSProperties;
+  /** Click-to-confirm for a ghost (undefined for real blocks). */
+  onConfirm?: () => void;
   /** Begin a pointer drag (move/resize) — the grid owns the drag state. */
   onDragStart: (
     nodeId: string,
@@ -108,8 +111,12 @@ export function CalendarBlock({
   return (
     <div
       ref={blockRef}
-      // Stop the click from reaching the grid (which would create a new block).
-      onClick={(e) => e.stopPropagation()}
+      // Stop the click from reaching the grid (which would create a new block);
+      // on a ghost, a plain click confirms it (onConfirm guards against drags).
+      onClick={(e) => {
+        e.stopPropagation();
+        onConfirm?.();
+      }}
       style={{
         ...style,
         ...tintStyle,
@@ -176,7 +183,9 @@ export function CalendarBlock({
           onPointerDown={(e) => e.stopPropagation()}
           aria-label="Title"
           rows={1}
-          className="min-h-0 flex-1 resize-none break-words bg-transparent text-xs font-medium leading-tight text-foreground placeholder:font-normal placeholder:text-muted focus:outline-none"
+          className={`min-h-0 flex-1 resize-none break-words bg-transparent text-xs font-medium leading-tight placeholder:font-normal placeholder:text-muted focus:outline-none ${
+            node.status === "dropped" ? "text-muted line-through" : "text-foreground"
+          }`}
         />
 
         {comparison && (
@@ -191,16 +200,61 @@ export function CalendarBlock({
           </span>
         )}
 
-        <button
-          type="button"
-          onClick={() => removeNode.mutate(node.id)}
-          onPointerDown={(e) => e.stopPropagation()}
-          aria-label="Delete"
-          title="Delete"
-          className="shrink-0 text-muted opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
-        >
-          ✕
-        </button>
+        {isPlaceholder ? (
+          // A ghost (planned, no actual yet): a body click confirms it (see
+          // onConfirm); ✕ marks it not done (status → dropped — it leaves the
+          // Action column and shows struck through in Plan, the plan kept).
+          <button
+            type="button"
+            onClick={() =>
+              updateNode.mutate({ id: node.id, patch: { status: "dropped" } })
+            }
+            onPointerDown={(e) => e.stopPropagation()}
+            aria-label="Didn't do it"
+            title="Didn't do it"
+            className="shrink-0 text-muted opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
+          >
+            ✕
+          </button>
+        ) : node.status === "dropped" ? (
+          // A dropped task lingers struck-through in Plan; ↺ brings it back.
+          <button
+            type="button"
+            onClick={() =>
+              updateNode.mutate({ id: node.id, patch: { status: "pending" } })
+            }
+            onPointerDown={(e) => e.stopPropagation()}
+            aria-label="Restore — bring it back"
+            title="Bring it back"
+            className="shrink-0 text-muted opacity-0 transition-opacity hover:text-emerald-500 group-hover:opacity-100"
+          >
+            ↺
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              // Deleting from Action must never wipe the plan: when the task is
+              // also planned, clear only its actual span (the node and its Plan
+              // block survive). A plan block — or an action-only task with no
+              // plan to fall back to — is removed outright.
+              if (column === "action" && node.plannedStart != null) {
+                updateNode.mutate({
+                  id: node.id,
+                  patch: { actualStart: null, actualEnd: null },
+                });
+              } else {
+                removeNode.mutate(node.id);
+              }
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            aria-label={column === "action" ? "Clear actual" : "Delete"}
+            title={column === "action" ? "Clear actual" : "Delete"}
+            className="shrink-0 text-muted opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       {/* Bottom edge — drag to resize the block's duration. */}

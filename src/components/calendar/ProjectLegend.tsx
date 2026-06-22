@@ -1,6 +1,7 @@
 "use client";
 
 import { projectColor } from "@/lib/projectColor";
+import { ColorPicker } from "@/components/ColorPicker";
 import {
   useAddNode,
   useNodes,
@@ -43,23 +44,13 @@ export function ProjectLegend() {
             style={{ backgroundColor: `${c}22`, borderColor: `${c}66` }}
             className="flex items-center gap-1.5 rounded-full border py-1 pl-1.5 pr-1 text-xs text-foreground"
           >
-            {/* Round colour swatch: shows the colour, transparent native picker on top. */}
-            <span className="relative block size-3.5 shrink-0">
-              <span
-                className="block size-3.5 rounded-full"
-                style={{ backgroundColor: c }}
-              />
-              <input
-                type="color"
-                value={c}
-                onChange={(e) =>
-                  updateNode.mutate({ id: p.id, patch: { color: e.target.value } })
-                }
-                aria-label="Project colour"
-                title="Pick colour"
-                className="absolute inset-0 cursor-pointer opacity-0"
-              />
-            </span>
+            {/* Custom colour picker (preset palette + hex) — matches the app UI. */}
+            <ColorPicker
+              value={c}
+              onChange={(hex) =>
+                updateNode.mutate({ id: p.id, patch: { color: hex } })
+              }
+            />
 
             <input
               defaultValue={p.title}
