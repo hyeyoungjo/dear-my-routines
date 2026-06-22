@@ -29,6 +29,10 @@
       "dir": "5-calendar-redesign",
       "status": "error",
       "failed_at": "2026-06-22T03:35:19+0900"
+    },
+    {
+      "dir": "6-carry-over",
+      "status": "pending"
     }
   ]
 }
