@@ -32,7 +32,7 @@
       "status": "completed",
       "started_at": "2026-06-23T00:58:18+0900",
       "summary": "Added src/components/calendar/NodeDetailModal.tsx — a double-click detail editor that manually reschedules a task's planned and (if recorded) actual span via the reused MiniCalendar. Picks call the optimistic useUpdateNode with shiftPlannedToDate / new carry.ts shiftActualToDate, which preserve clock+duration but never touch carryCount/status (manual reschedule ≠ carry, ADR-009). Also edits title + notes (commit on blur). Accessibility: role=dialog/aria-modal, Esc + backdrop-click close, focus moves to title on open. carry.ts: added shiftActualToDate (+4 tests) and extracted a shared shiftSpanOntoGridDay helper; day.ts: added dayFromKey (inverse of dayKey) so the picker highlights the span's grid day. CalendarBlock.tsx: container onDoubleClick opens the modal (local useState), title textarea stops dblclick bubbling so inline word-select/resize/✕ are not intercepted.",
-      "completed_at": "2026-06-23T01:06:00+0900"
+      "completed_at": "2026-06-23T01:06:28+0900"
     }
   ],
   "created_at": "2026-06-23T00:49:11+0900"
