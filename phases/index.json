@@ -37,7 +37,8 @@
     },
     {
       "dir": "7-carry-v2",
-      "status": "pending"
+      "status": "error",
+      "failed_at": "2026-06-23T02:56:57+0900"
     }
   ]
 }
