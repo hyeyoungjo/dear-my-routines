@@ -117,3 +117,21 @@ DB가 직접 차단(ADR-003 멀티유저 확장과도 맞물림). **Vercel AI SD
 **트레이드오프**: 날짜 필터가 지금은 클라에서만 돌아 모든 rows를 받아온다. 기록이 많아지면
 서버 날짜 필터(`GET /api/days/[date]`) + 캐시 분할로 옮긴다 — 조립을 순수함수로 빼뒀으므로
 이전 비용이 작다.
+
+### ADR-014: task 정체성과 날짜별 배치(task_blocks) 분리 — 다중 occurrence 이월 (2026-06-23)
+**결정**: "task 정체성"과 "날짜별 시간 배치"를 **분리**한다. `nodes`는 task/project 트리와
+**통계 단위**(title·category·estimate·트리)만 갖고 시간 필드를 버린다. 새 **`task_blocks`**
+테이블이 한 task의 **날짜별 계획+실제 배치(occurrence)** 를 1:N으로 가진다
+(`node_id`, `grid_day`, `planned_start/end`, `actual_start/end`, `status` planned|done|missed).
+- **이월** = 못한 block을 `missed`로 두고 **다음 날 새 block 생성**(같은 `node_id`, 시각 유지).
+- **planned**(첫 block 날) · **revised**(마지막 planned block 날) · **actual**(actual 있는 block 날)
+  · **carryCount**(missed block 수)는 컬럼이 아니라 block들에서 **파생**한다.
+- **비교 라벨**(예상→실제)은 한 block에 planned+actual이 **둘 다 있을 때만** 띄운다.
+**이유**: 한 task가 여러 날에 걸쳐 계획·이월·실행되고, 각 날의 계획을 **독립적으로 보존·수정**해야
+리뷰("그날 뭘 계획했고 못했나")와 과소예측 분석이 가능하다. task와 배치를 한 행에 합친 모델로는
+이 1:N을 표현할 수 없다. 분리하면 각 occurrence가 행 단위로 독립 편집되고, 통계는 `node_id`로
+묶여 무결성이 유지된다(ADR-013 "rows가 진실, 하루는 조립한 view"와 정합).
+**트레이드오프**: 스키마 분리·마이그레이션·캘린더/hooks/core 재배선 비용이 크다. 점진 전환
+(`task_blocks` 추가 → 캘린더 이관 → 레거시 컬럼 제거)으로 각 step의 빌드 무결성을 지킨다. 단,
+이 앱의 핵심(리뷰·예상vs실제·성장)이 본질적으로 다중-날짜라 필수다. **ADR-009를 데이터 모델
+수준에서 구체화·대체**한다(트리·자동 이월·carryCount 신호의 *의도*는 유지, *저장 형태*만 바꿈).

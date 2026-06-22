@@ -67,6 +67,15 @@ export const nodeStatus = pgEnum("node_status", [
   "dropped",
 ]);
 
+// A task_block's lifecycle on a single grid day (ADR-014). `missed` is the
+// carry-over signal: an unfinished planned block stays `missed` and a *new*
+// block is born on the next day (same node, time kept).
+export const blockStatus = pgEnum("block_status", [
+  "planned",
+  "done",
+  "missed",
+]);
+
 // --- nodes: flexible Area > Project > Task > Subtask tree (ADR-009) --------
 
 export const nodes = pgTable(
@@ -108,6 +117,44 @@ export const nodes = pgTable(
       .defaultNow(),
   },
   (t) => ownerPolicies("nodes", t.userId),
+);
+
+// --- task_blocks: per-day plan+actual placement of a task (ADR-014) -------
+
+/**
+ * A task's *occurrence* on one grid day. `nodes` holds task identity and the
+ * stats unit (title/category/estimate/tree); a `task_block` is one date's
+ * planned + actual placement of that task, 1:N from a node.
+ *
+ * Carry-over is expressed here, not on the node: an unfinished planned block
+ * stays `missed` and a fresh block is created on the next grid day (same
+ * `nodeId`, times kept). `planned`/`revised`/`actual` dates and `carryCount`
+ * are *derived* from a node's blocks, never stored as columns.
+ */
+export const taskBlocks = pgTable(
+  "task_blocks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    nodeId: uuid("node_id")
+      .notNull()
+      .references(() => nodes.id, { onDelete: "cascade" }),
+    // The grid day this block belongs to (07:00 boundary, see core/time/day).
+    gridDay: date("grid_day").notNull(),
+    plannedStart: timestamp("planned_start", { withTimezone: true }),
+    plannedEnd: timestamp("planned_end", { withTimezone: true }),
+    actualStart: timestamp("actual_start", { withTimezone: true }),
+    actualEnd: timestamp("actual_end", { withTimezone: true }),
+    status: blockStatus("status").notNull().default("planned"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ownerPolicies("task_blocks", t.userId),
 );
 
 // --- time_logs: actual measured spans, optionally per node ----------------
@@ -167,6 +214,9 @@ export const categoryStats = pgTable(
 
 export type Node = InferSelectModel<typeof nodes>;
 export type NewNode = InferInsertModel<typeof nodes>;
+
+export type TaskBlock = InferSelectModel<typeof taskBlocks>;
+export type NewTaskBlock = InferInsertModel<typeof taskBlocks>;
 
 export type TimeLog = InferSelectModel<typeof timeLogs>;
 export type NewTimeLog = InferInsertModel<typeof timeLogs>;
