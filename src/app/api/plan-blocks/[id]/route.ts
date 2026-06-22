@@ -8,15 +8,15 @@ const PLAN_STATUSES = ["planned", "missed"] as const;
 
 /**
  * Pick only the fields a client may patch on a plan_block, validating the status
- * enum. `id`, `userId`, and `nodeId` (a plan never changes the task it belongs
- * to) are never accepted. `startAt`/`endAt` are notNull, so they can be moved
- * but not cleared.
+ * enum. `planBlockId`, `userId`, and `taskId` (a plan never changes the task it
+ * belongs to) are never accepted. `startAt`/`endAt` are notNull, so they can be
+ * moved but not cleared.
  */
 function parsePlanPatchInput(body: Record<string, unknown>): Partial<NewPlanBlock> {
   const values: Partial<NewPlanBlock> = {};
 
-  // gridDay is a `date` string (moves with a reschedule/carry, see core/plan).
-  if (typeof body.gridDay === "string") values.gridDay = body.gridDay;
+  // date is a `date` string (moves with a reschedule/carry, see core/time/plan).
+  if (typeof body.date === "string") values.date = body.date;
   // Spans arrive as ISO strings (drag/resize); Drizzle timestamps want Dates.
   if (typeof body.startAt === "string") values.startAt = new Date(body.startAt);
   if (typeof body.endAt === "string") values.endAt = new Date(body.endAt);
@@ -58,8 +58,8 @@ export async function PATCH(
 
   const [updated] = await db
     .update(planBlocks)
-    .set({ ...values, updatedAt: new Date() })
-    .where(and(eq(planBlocks.id, id), eq(planBlocks.userId, user.id)))
+    .set({ ...values, updatedOn: new Date() })
+    .where(and(eq(planBlocks.planBlockId, id), eq(planBlocks.userId, user.id)))
     .returning();
 
   if (!updated) {
@@ -84,11 +84,11 @@ export async function DELETE(
 
   const [deleted] = await db
     .delete(planBlocks)
-    .where(and(eq(planBlocks.id, id), eq(planBlocks.userId, user.id)))
-    .returning({ id: planBlocks.id });
+    .where(and(eq(planBlocks.planBlockId, id), eq(planBlocks.userId, user.id)))
+    .returning({ planBlockId: planBlocks.planBlockId });
 
   if (!deleted) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  return NextResponse.json({ id: deleted.id });
+  return NextResponse.json({ planBlockId: deleted.planBlockId });
 }

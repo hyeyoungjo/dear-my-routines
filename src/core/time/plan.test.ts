@@ -17,9 +17,9 @@ import {
 /** A plan with sensible defaults — override what a test needs. */
 function plan(partial: Partial<PlanBlock>): PlanBlock {
   return {
-    id: "p",
-    nodeId: "n",
-    gridDay: "2026-06-21",
+    planBlockId: "p",
+    taskId: "t",
+    date: "2026-06-21",
     startAt: new Date(2026, 5, 21, 9, 0).toISOString(),
     endAt: new Date(2026, 5, 21, 10, 0).toISOString(),
     status: "planned",
@@ -42,10 +42,12 @@ describe("planBelongsToDay / plansForDay", () => {
 
   it("filters the plans that belong to a day", () => {
     const plans = [
-      plan({ id: "a", startAt: new Date(2026, 5, 22, 9, 0).toISOString() }),
-      plan({ id: "b", startAt: new Date(2026, 5, 21, 9, 0).toISOString() }),
+      plan({ planBlockId: "a", startAt: new Date(2026, 5, 22, 9, 0).toISOString() }),
+      plan({ planBlockId: "b", startAt: new Date(2026, 5, 21, 9, 0).toISOString() }),
     ];
-    expect(plansForDay(plans, new Date(2026, 5, 22)).map((p) => p.id)).toEqual(["a"]);
+    expect(plansForDay(plans, new Date(2026, 5, 22)).map((p) => p.planBlockId)).toEqual([
+      "a",
+    ]);
   });
 });
 
@@ -61,7 +63,7 @@ describe("planSpan", () => {
 });
 
 describe("shiftPlan", () => {
-  it("keeps the clock time and duration, moving date and gridDay", () => {
+  it("keeps the clock time and duration, moving date", () => {
     const p = plan({
       startAt: new Date(2026, 5, 21, 14, 0).toISOString(),
       endAt: new Date(2026, 5, 21, 15, 30).toISOString(),
@@ -73,7 +75,7 @@ describe("shiftPlan", () => {
     expect(dayKey(start)).toBe("2026-06-22");
     expect([start.getHours(), start.getMinutes()]).toEqual([14, 0]);
     expect(durationMinutes(start, end)).toBe(90);
-    expect(patch.gridDay).toBe("2026-06-22");
+    expect(patch.date).toBe("2026-06-22");
     expect(patch.status).toBeUndefined(); // a reschedule is not a carry
   });
 
@@ -93,9 +95,9 @@ describe("shiftPlan", () => {
 describe("carryOverPlan", () => {
   it("marks this plan missed AND births a new planned plan on toDate", () => {
     const p = plan({
-      id: "src",
-      nodeId: "task-1",
-      gridDay: "2026-06-21",
+      planBlockId: "src",
+      taskId: "task-1",
+      date: "2026-06-21",
       startAt: new Date(2026, 5, 21, 9, 0).toISOString(),
       endAt: new Date(2026, 5, 21, 10, 30).toISOString(),
     });
@@ -103,8 +105,8 @@ describe("carryOverPlan", () => {
 
     expect(missedPatch).toEqual({ status: "missed" });
 
-    expect(nextPlan.nodeId).toBe("task-1");
-    expect(nextPlan.gridDay).toBe("2026-06-22");
+    expect(nextPlan.taskId).toBe("task-1");
+    expect(nextPlan.date).toBe("2026-06-22");
     expect(nextPlan.status).toBe("planned");
     // The span keeps clock + duration, only the date moves.
     const start = new Date(nextPlan.startAt);
@@ -113,7 +115,7 @@ describe("carryOverPlan", () => {
     expect([start.getHours(), start.getMinutes()]).toEqual([9, 0]);
     expect(durationMinutes(start, end)).toBe(90);
     // `nextPlan` has no id — the caller's insert assigns it.
-    expect("id" in nextPlan).toBe(false);
+    expect("planBlockId" in nextPlan).toBe(false);
   });
 });
 
@@ -122,35 +124,37 @@ describe("findOverduePlans", () => {
   const today = new Date(2026, 5, 22, 9, 0);
 
   it("pulls forward a past-due planned plan", () => {
-    const plans = [plan({ id: "old", gridDay: "2026-06-20" })];
-    expect(findOverduePlans(plans, today).map((p) => p.id)).toEqual(["old"]);
+    const plans = [plan({ planBlockId: "old", date: "2026-06-20" })];
+    expect(findOverduePlans(plans, today).map((p) => p.planBlockId)).toEqual(["old"]);
   });
 
   it("excludes a plan already on today's grid day (idempotency)", () => {
-    const plans = [plan({ id: "today", gridDay: "2026-06-22" })];
+    const plans = [plan({ planBlockId: "today", date: "2026-06-22" })];
     expect(findOverduePlans(plans, today)).toEqual([]);
   });
 
   it("excludes a future plan", () => {
-    const plans = [plan({ id: "fut", gridDay: "2026-06-23" })];
+    const plans = [plan({ planBlockId: "fut", date: "2026-06-23" })];
     expect(findOverduePlans(plans, today)).toEqual([]);
   });
 
   it("excludes missed plans (only planned carries)", () => {
     const plans = [
-      plan({ id: "missed", gridDay: "2026-06-20", status: "missed" }),
-      plan({ id: "planned", gridDay: "2026-06-20", status: "planned" }),
+      plan({ planBlockId: "missed", date: "2026-06-20", status: "missed" }),
+      plan({ planBlockId: "planned", date: "2026-06-20", status: "planned" }),
     ];
-    expect(findOverduePlans(plans, today).map((p) => p.id)).toEqual(["planned"]);
+    expect(findOverduePlans(plans, today).map((p) => p.planBlockId)).toEqual([
+      "planned",
+    ]);
   });
 });
 
 describe("per-task derived values", () => {
   it("originalDateOf is the earliest grid day; null when no plans", () => {
     const plans = [
-      plan({ gridDay: "2026-06-22" }),
-      plan({ gridDay: "2026-06-20" }),
-      plan({ gridDay: "2026-06-21" }),
+      plan({ date: "2026-06-22" }),
+      plan({ date: "2026-06-20" }),
+      plan({ date: "2026-06-21" }),
     ];
     expect(originalDateOf(plans)).toBe("2026-06-20");
     expect(originalDateOf([])).toBeNull();
@@ -158,9 +162,9 @@ describe("per-task derived values", () => {
 
   it("revisedDateOf is the latest still-planned grid day", () => {
     const plans = [
-      plan({ gridDay: "2026-06-20", status: "missed" }),
-      plan({ gridDay: "2026-06-21", status: "missed" }),
-      plan({ gridDay: "2026-06-22", status: "planned" }),
+      plan({ date: "2026-06-20", status: "missed" }),
+      plan({ date: "2026-06-21", status: "missed" }),
+      plan({ date: "2026-06-22", status: "planned" }),
     ];
     expect(revisedDateOf(plans)).toBe("2026-06-22");
     // All carried away → no live plan.

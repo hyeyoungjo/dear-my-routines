@@ -14,11 +14,12 @@ import { dayKey, gridDayOf } from "./day";
 /** An action with sensible defaults — override what a test needs. */
 function action(partial: Partial<ActionBlock>): ActionBlock {
   return {
-    id: "a",
-    nodeId: "n",
-    gridDay: "2026-06-21",
+    actionBlockId: "a",
+    taskId: "t",
+    date: "2026-06-21",
     startAt: new Date(2026, 5, 21, 9, 0).toISOString(),
     endAt: new Date(2026, 5, 21, 10, 0).toISOString(),
+    status: "done",
     ...partial,
   };
 }
@@ -37,10 +38,12 @@ describe("actionBelongsToDay / actionsForDay", () => {
 
   it("filters the actions that belong to a day", () => {
     const actions = [
-      action({ id: "x", startAt: new Date(2026, 5, 22, 9, 0).toISOString() }),
-      action({ id: "y", startAt: new Date(2026, 5, 21, 9, 0).toISOString() }),
+      action({ actionBlockId: "x", startAt: new Date(2026, 5, 22, 9, 0).toISOString() }),
+      action({ actionBlockId: "y", startAt: new Date(2026, 5, 21, 9, 0).toISOString() }),
     ];
-    expect(actionsForDay(actions, new Date(2026, 5, 22)).map((a) => a.id)).toEqual(["x"]);
+    expect(
+      actionsForDay(actions, new Date(2026, 5, 22)).map((a) => a.actionBlockId),
+    ).toEqual(["x"]);
   });
 });
 
@@ -50,15 +53,20 @@ describe("actionSpan", () => {
       startAt: new Date(2026, 5, 21, 14, 0).toISOString(),
       endAt: new Date(2026, 5, 21, 15, 30).toISOString(),
     });
-    const span = actionSpan(a);
+    const span = actionSpan(a)!;
     expect(durationMinutes(span.start, span.end)).toBe(90);
+  });
+
+  it("returns null while in-progress (no end yet)", () => {
+    const a = action({ endAt: null, status: "in-progress" });
+    expect(actionSpan(a)).toBeNull();
   });
 });
 
 describe("shiftAction", () => {
-  it("keeps clock + duration and moves its own gridDay (unlike old actual)", () => {
+  it("keeps clock + duration and moves its own date (unlike old actual)", () => {
     const a = action({
-      gridDay: "2026-06-21",
+      date: "2026-06-21",
       startAt: new Date(2026, 5, 21, 14, 0).toISOString(),
       endAt: new Date(2026, 5, 21, 15, 30).toISOString(),
     });
@@ -69,7 +77,18 @@ describe("shiftAction", () => {
     expect(dayKey(start)).toBe("2026-06-22");
     expect([start.getHours(), start.getMinutes()]).toEqual([14, 0]);
     expect(durationMinutes(start, end)).toBe(90);
-    expect(patch.gridDay).toBe("2026-06-22"); // action owns its day now
+    expect(patch.date).toBe("2026-06-22"); // action owns its day now
+  });
+
+  it("moves an in-progress action's start with no end", () => {
+    const a = action({
+      startAt: new Date(2026, 5, 21, 14, 0).toISOString(),
+      endAt: null,
+      status: "in-progress",
+    });
+    const patch = shiftAction(a, new Date(2026, 5, 22));
+    expect(patch.date).toBe("2026-06-22");
+    expect(patch.endAt).toBeUndefined();
   });
 
   it("anchors a post-midnight action to the target's grid day", () => {
@@ -88,15 +107,15 @@ describe("shiftAction", () => {
 describe("per-task derived values", () => {
   it("actualDateOf is the latest action's grid day; null when none", () => {
     const actions = [
-      action({ gridDay: "2026-06-20" }),
-      action({ gridDay: "2026-06-23" }),
-      action({ gridDay: "2026-06-21" }),
+      action({ date: "2026-06-20" }),
+      action({ date: "2026-06-23" }),
+      action({ date: "2026-06-21" }),
     ];
     expect(actualDateOf(actions)).toBe("2026-06-23");
     expect(actualDateOf([])).toBeNull();
   });
 
-  it("actualMinutesOf sums every action span (multi-day execution)", () => {
+  it("actualMinutesOf sums finished spans, ignoring in-progress", () => {
     const actions = [
       action({
         startAt: new Date(2026, 5, 22, 9, 0).toISOString(),
@@ -106,6 +125,7 @@ describe("per-task derived values", () => {
         startAt: new Date(2026, 5, 23, 9, 0).toISOString(),
         endAt: new Date(2026, 5, 23, 9, 30).toISOString(), // 30
       }),
+      action({ endAt: null, status: "in-progress" }), // contributes 0
     ];
     expect(actualMinutesOf(actions)).toBe(120);
     expect(actualMinutesOf([])).toBe(0);

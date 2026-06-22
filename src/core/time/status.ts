@@ -3,34 +3,33 @@ import { gridDayOf } from "./day";
 import { type PlanBlock, revisedDateOf } from "./plan";
 
 /**
- * A task's *current status* (ADR-015): one derived, task-level rollup for the
- * Task list / stats / review. Never stored — computed from a node's plans +
+ * A task's *current status* (ADR-015/016): one derived, task-level rollup for
+ * the Task list / stats / review. Never stored — computed from a task's plans +
  * actions, the same "derive, don't store" rule as carryCount / originalDate.
  *
- * This is distinct from a plan_block's per-day `status` (planned|missed), which
- * only says how to draw one day's box. `currentStatusOf` says where the *whole
- * task* stands by rolling those occurrences up against its actions.
- *
- * "doing" (a task in progress) will join once a running-timer / open action
- * exists — today's actions always have an end, so it is not derivable yet.
+ * Distinct from a plan_block's per-day `status` (planned|missed), which only
+ * says how to draw one day's box. `currentStatusOf` says where the *whole task*
+ * stands by rolling those occurrences up against its actions.
  */
-export type TaskStatus = "planned" | "missed" | "done";
+export type TaskStatus = "planned" | "missed" | "in-progress" | "done";
 
 /**
- * Roll a node's plans + actions up to one status, as of `today`:
- *  - a live plan on today/future  → "planned" (still on the books, on track)
- *  - else acted on at all         → "done"
+ * Roll a task's plans + actions up to one status, as of `today`:
+ *  - any action in progress       → "in-progress" (doing it right now)
+ *  - else a live plan today/future → "planned" (still on the books, on track)
+ *  - else acted on at all          → "done"
  *  - else plans exist(ed) but none live ahead → "missed" (fell behind)
- *  - else (no plans at all)        → "planned" (an unscheduled todo)
- * Action wins over a stale past plan, so doing it clears the "behind" feeling;
- * a live future plan wins over past actions, so a subproject still reads as
- * "planned" while more remains.
+ *  - else (no plans at all)         → "planned" (an unscheduled todo)
+ * A live future plan wins over past actions, so a subproject still reads as
+ * "planned" while more remains; doing it clears a stale "behind" feeling.
  */
 export function currentStatusOf(
   plans: PlanBlock[],
   actions: ActionBlock[],
   today: Date,
 ): TaskStatus {
+  if (actions.some((a) => a.status === "in-progress")) return "in-progress";
+
   const live = revisedDateOf(plans); // latest still-`planned` grid day, or null
   const liveAhead = live !== null && live >= gridDayOf(today);
 

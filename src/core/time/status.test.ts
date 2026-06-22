@@ -8,9 +8,9 @@ const today = new Date(2026, 5, 22, 9, 0);
 
 function plan(partial: Partial<PlanBlock>): PlanBlock {
   return {
-    id: "p",
-    nodeId: "n",
-    gridDay: "2026-06-22",
+    planBlockId: "p",
+    taskId: "t",
+    date: "2026-06-22",
     startAt: new Date(2026, 5, 22, 9, 0).toISOString(),
     endAt: new Date(2026, 5, 22, 10, 0).toISOString(),
     status: "planned",
@@ -20,41 +20,48 @@ function plan(partial: Partial<PlanBlock>): PlanBlock {
 
 function action(partial: Partial<ActionBlock>): ActionBlock {
   return {
-    id: "a",
-    nodeId: "n",
-    gridDay: "2026-06-22",
+    actionBlockId: "a",
+    taskId: "t",
+    date: "2026-06-22",
     startAt: new Date(2026, 5, 22, 9, 0).toISOString(),
     endAt: new Date(2026, 5, 22, 10, 0).toISOString(),
+    status: "done",
     ...partial,
   };
 }
 
 describe("currentStatusOf", () => {
+  it("is 'in-progress' when any action is running, beating everything else", () => {
+    const plans = [plan({ date: "2026-06-25" })]; // even a live future plan
+    const actions = [action({ endAt: null, status: "in-progress" })];
+    expect(currentStatusOf(plans, actions, today)).toBe("in-progress");
+  });
+
   it("is 'planned' when a live plan sits on today or the future", () => {
-    expect(currentStatusOf([plan({ gridDay: "2026-06-22" })], [], today)).toBe(
+    expect(currentStatusOf([plan({ date: "2026-06-22" })], [], today)).toBe(
       "planned",
     );
-    expect(currentStatusOf([plan({ gridDay: "2026-06-25" })], [], today)).toBe(
+    expect(currentStatusOf([plan({ date: "2026-06-25" })], [], today)).toBe(
       "planned",
     );
   });
 
   it("is 'missed' when the live plan is overdue and nothing was done", () => {
-    expect(currentStatusOf([plan({ gridDay: "2026-06-20" })], [], today)).toBe(
+    expect(currentStatusOf([plan({ date: "2026-06-20" })], [], today)).toBe(
       "missed",
     );
   });
 
   it("is 'missed' when plans exist but none are still planned (all carried)", () => {
     const plans = [
-      plan({ gridDay: "2026-06-20", status: "missed" }),
-      plan({ gridDay: "2026-06-21", status: "missed" }),
+      plan({ date: "2026-06-20", status: "missed" }),
+      plan({ date: "2026-06-21", status: "missed" }),
     ];
     expect(currentStatusOf(plans, [], today)).toBe("missed");
   });
 
   it("is 'done' when acted on and nothing live remains ahead", () => {
-    const plans = [plan({ gridDay: "2026-06-20", status: "missed" })];
+    const plans = [plan({ date: "2026-06-20", status: "missed" })];
     expect(currentStatusOf(plans, [action({})], today)).toBe("done");
   });
 
@@ -63,10 +70,9 @@ describe("currentStatusOf", () => {
   });
 
   it("keeps 'planned' over a past action when a live future plan remains", () => {
-    // Did some of it, but more is still on the books → a subproject in progress.
     const plans = [
-      plan({ gridDay: "2026-06-20", status: "missed" }),
-      plan({ gridDay: "2026-06-25", status: "planned" }),
+      plan({ date: "2026-06-20", status: "missed" }),
+      plan({ date: "2026-06-25", status: "planned" }),
     ];
     expect(currentStatusOf(plans, [action({})], today)).toBe("planned");
   });

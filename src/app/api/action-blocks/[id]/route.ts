@@ -4,20 +4,33 @@ import { db } from "@/db";
 import { actionBlocks, type NewActionBlock } from "@/db/schema";
 import { createClient } from "@/services/supabase/server";
 
+const ACTION_STATUSES = ["in-progress", "done"] as const;
+
 /**
- * Pick only the fields a client may patch on an action_block. `id`, `userId`,
- * and `nodeId` are never accepted. `startAt`/`endAt` are notNull (moveable, not
- * clearable); there is no status to set.
+ * Pick only the fields a client may patch on an action_block. `actionBlockId`,
+ * `userId`, and `taskId` are never accepted. `startAt` can move (not clear);
+ * `endAt` can be set or cleared to null (finishing or reopening a span); status
+ * is in-progress|done.
  */
 function parseActionPatchInput(
   body: Record<string, unknown>,
 ): Partial<NewActionBlock> {
   const values: Partial<NewActionBlock> = {};
 
-  // gridDay moves with a reschedule (an action owns its own day, see core/action).
-  if (typeof body.gridDay === "string") values.gridDay = body.gridDay;
+  // date moves with a reschedule (an action owns its own day, see core/time/action).
+  if (typeof body.date === "string") values.date = body.date;
   if (typeof body.startAt === "string") values.startAt = new Date(body.startAt);
-  if (typeof body.endAt === "string") values.endAt = new Date(body.endAt);
+  if (typeof body.endAt === "string") {
+    values.endAt = new Date(body.endAt);
+  } else if (body.endAt === null) {
+    values.endAt = null;
+  }
+  if (
+    typeof body.status === "string" &&
+    ACTION_STATUSES.includes(body.status as never)
+  ) {
+    values.status = body.status as NewActionBlock["status"];
+  }
 
   return values;
 }
@@ -50,8 +63,10 @@ export async function PATCH(
 
   const [updated] = await db
     .update(actionBlocks)
-    .set({ ...values, updatedAt: new Date() })
-    .where(and(eq(actionBlocks.id, id), eq(actionBlocks.userId, user.id)))
+    .set({ ...values, updatedOn: new Date() })
+    .where(
+      and(eq(actionBlocks.actionBlockId, id), eq(actionBlocks.userId, user.id)),
+    )
     .returning();
 
   if (!updated) {
@@ -76,11 +91,13 @@ export async function DELETE(
 
   const [deleted] = await db
     .delete(actionBlocks)
-    .where(and(eq(actionBlocks.id, id), eq(actionBlocks.userId, user.id)))
-    .returning({ id: actionBlocks.id });
+    .where(
+      and(eq(actionBlocks.actionBlockId, id), eq(actionBlocks.userId, user.id)),
+    )
+    .returning({ actionBlockId: actionBlocks.actionBlockId });
 
   if (!deleted) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  return NextResponse.json({ id: deleted.id });
+  return NextResponse.json({ actionBlockId: deleted.actionBlockId });
 }

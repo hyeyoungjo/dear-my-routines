@@ -5,8 +5,8 @@ import type { ActionBlock } from "@/core/time/action";
 
 /**
  * TanStack Query hooks for `action_blocks` — a task's actual executions
- * (ADR-015). The cache holds the flat `ActionBlock[]` exactly as
- * `/api/action-blocks` returns it (timestamps as ISO strings, gridDay as
+ * (ADR-015/016). The cache holds the flat `ActionBlock[]` exactly as
+ * `/api/action-blocks` returns it (timestamps as ISO strings, date as
  * YYYY-MM-DD). Every mutation updates that cache *optimistically* and rolls back
  * on error (ADR-007, CLAUDE.md CRITICAL). No undo wiring (ADR-015).
  */
@@ -23,10 +23,8 @@ async function fetchActionBlocks(): Promise<ActionBlock[]> {
 }
 
 /** Fields a client may supply when creating an action (server injects userId). */
-export type AddActionInput = Pick<
-  ActionBlock,
-  "nodeId" | "gridDay" | "startAt" | "endAt"
->;
+export type AddActionInput = Pick<ActionBlock, "taskId" | "date" | "startAt"> &
+  Partial<Pick<ActionBlock, "endAt" | "status">>;
 
 async function createActionBlock(input: AddActionInput): Promise<ActionBlock> {
   const res = await fetch("/api/action-blocks", {
@@ -38,13 +36,16 @@ async function createActionBlock(input: AddActionInput): Promise<ActionBlock> {
   return res.json();
 }
 
-export type UpdateActionInput = { id: string; patch: Partial<ActionBlock> };
+export type UpdateActionInput = {
+  actionBlockId: string;
+  patch: Partial<ActionBlock>;
+};
 
 async function patchActionBlock({
-  id,
+  actionBlockId,
   patch,
 }: UpdateActionInput): Promise<ActionBlock> {
-  const res = await fetch(`/api/action-blocks/${id}`, {
+  const res = await fetch(`/api/action-blocks/${actionBlockId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(patch),
@@ -53,8 +54,12 @@ async function patchActionBlock({
   return res.json();
 }
 
-async function deleteActionBlock(id: string): Promise<{ id: string }> {
-  const res = await fetch(`/api/action-blocks/${id}`, { method: "DELETE" });
+async function deleteActionBlock(
+  actionBlockId: string,
+): Promise<{ actionBlockId: string }> {
+  const res = await fetch(`/api/action-blocks/${actionBlockId}`, {
+    method: "DELETE",
+  });
   if (!res.ok) throw new Error(`Failed to delete action block (${res.status})`);
   return res.json();
 }
@@ -103,11 +108,12 @@ function useOptimisticActionMutation<TVars, TData>(
 /** Build a placeholder action for the optimistic add (replaced on invalidate). */
 function optimisticAction(input: AddActionInput): ActionBlock {
   return {
-    id: crypto.randomUUID(),
-    nodeId: input.nodeId,
-    gridDay: input.gridDay,
+    actionBlockId: crypto.randomUUID(),
+    taskId: input.taskId,
+    date: input.date,
     startAt: input.startAt,
-    endAt: input.endAt,
+    endAt: input.endAt ?? null,
+    status: input.status ?? "done",
   };
 }
 
@@ -125,17 +131,20 @@ export function useAddActionBlock() {
 export function useUpdateActionBlock() {
   return useOptimisticActionMutation<UpdateActionInput, ActionBlock>(
     patchActionBlock,
-    (actions, { id, patch }) =>
+    (actions, { actionBlockId, patch }) =>
       actions.map((action) =>
-        action.id === id ? { ...action, ...patch } : action,
+        action.actionBlockId === actionBlockId
+          ? { ...action, ...patch }
+          : action,
       ),
   );
 }
 
 /** Remove an action — optimistically filtered out of the flat cache. */
 export function useRemoveActionBlock() {
-  return useOptimisticActionMutation<string, { id: string }>(
+  return useOptimisticActionMutation<string, { actionBlockId: string }>(
     deleteActionBlock,
-    (actions, id) => actions.filter((action) => action.id !== id),
+    (actions, actionBlockId) =>
+      actions.filter((action) => action.actionBlockId !== actionBlockId),
   );
 }

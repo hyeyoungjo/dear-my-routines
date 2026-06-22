@@ -77,6 +77,14 @@ export const planBlockStatus = pgEnum("plan_block_status", [
   "missed",
 ]);
 
+// An action_block's lifecycle (ADR-016). `in-progress` = started but not yet
+// finished (a running span, no end time yet) → this is what revives "doing";
+// `done` = a completed span. Hence action_blocks.end_at is nullable.
+export const actionBlockStatus = pgEnum("action_block_status", [
+  "in-progress",
+  "done",
+]);
+
 // --- nodes: flexible Area > Project > Task > Subtask tree (ADR-009) --------
 
 export const nodes = pgTable(
@@ -150,34 +158,91 @@ export const taskBlocks = pgTable(
   (t) => ownerPolicies("task_blocks", t.userId),
 );
 
-// --- plan_blocks: per-day *intention* of a task (ADR-015) ------------------
+// --- projects: top level of the fixed two-level model (ADR-016) ------------
+
+/**
+ * A project — the only grouping level above a task (ADR-016 drops the flexible
+ * nodes tree). Holds a name + colour its tasks inherit. A project's "current
+ * status" is derived from its tasks' plans/actions, never stored.
+ */
+export const projects = pgTable(
+  "projects",
+  {
+    projectId: uuid("project_id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    title: text("title").notNull(),
+    // Optional explicit colour (hex); falls back to a deterministic id-based
+    // colour when unset (see lib/projectColor).
+    projectColor: text("project_color"),
+    createdOn: timestamp("created_on", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedOn: timestamp("updated_on", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ownerPolicies("projects", t.userId),
+);
+
+// --- tasks: the identity + stats unit (ADR-016) ---------------------------
+
+/**
+ * A task — identity and the stats unit. Per-day placement lives on plan_blocks
+ * (intent) and action_blocks (reality), 1:N. `projectId` is nullable so a task
+ * can be unassigned ("No project"); deleting a project just unassigns its tasks.
+ * `category` stays for PRD category stats; estimate/isBig3/links/sortOrder are
+ * dropped (ADR-016 minimal spec). Current status is derived, never stored.
+ */
+export const tasks = pgTable(
+  "tasks",
+  {
+    taskId: uuid("task_id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    projectId: uuid("project_id").references(() => projects.projectId, {
+      onDelete: "set null",
+    }),
+    title: text("title").notNull(),
+    notes: text("notes"),
+    category: text("category"),
+    createdOn: timestamp("created_on", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedOn: timestamp("updated_on", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ownerPolicies("tasks", t.userId),
+);
+
+// --- plan_blocks: per-day *intention* of a task (ADR-015/016) --------------
 
 /**
  * One day's plan for a task — "I intend to do this, here, then". Identity and
- * the stats unit live on `nodes`; a task's plans are 1:N plan_blocks. Carry-over
+ * the stats unit live on `tasks`; a task's plans are 1:N plan_blocks. Carry-over
  * is expressed here: an unfinished plan stays `missed` (kept as review evidence)
- * and a fresh `planned` block is created on the next grid day (same node, time
+ * and a fresh `planned` block is created on the next grid day (same task, time
  * kept). Plans are always placed as boxes, so `start_at`/`end_at` are required.
  *
- * Replaces task_blocks' planned side. Action lives in `action_blocks`, so a
- * single row never holds plan + actual together (no forced "2h→9h" label).
+ * Action lives in `action_blocks`, so a single row never holds plan + actual
+ * together (no forced "2h→9h" label).
  */
 export const planBlocks = pgTable(
   "plan_blocks",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    planBlockId: uuid("plan_block_id").primaryKey().defaultRandom(),
     userId: uuid("user_id").notNull(),
-    nodeId: uuid("node_id")
+    taskId: uuid("task_id")
       .notNull()
-      .references(() => nodes.id, { onDelete: "cascade" }),
-    gridDay: date("grid_day").notNull(),
+      .references(() => tasks.taskId, { onDelete: "cascade" }),
+    // The grid day this plan belongs to (07:00 boundary, see core/time/day).
+    date: date("date").notNull(),
     startAt: timestamp("start_at", { withTimezone: true }).notNull(),
     endAt: timestamp("end_at", { withTimezone: true }).notNull(),
     status: planBlockStatus("status").notNull().default("planned"),
-    createdAt: timestamp("created_at", { withTimezone: true })
+    createdOn: timestamp("created_on", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
+    updatedOn: timestamp("updated_on", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
@@ -187,26 +252,29 @@ export const planBlocks = pgTable(
 // --- action_blocks: per-day *actual execution* of a task (ADR-015) ---------
 
 /**
- * One span of actually doing a task — reality, not intention. A row existing
- * means "done"; there is no status. A task done across two days is two rows.
- * Stats join plan_blocks + action_blocks by `node_id`; the estimate-vs-actual
- * comparison is computed there, never on a calendar block.
+ * One span of actually doing a task — reality, not intention (ADR-015/016).
+ * `status` is `in-progress` (running, no `end_at` yet) or `done` (finished). A
+ * task done across two days is two rows. Stats join plan_blocks + action_blocks
+ * by `task_id`; the estimate-vs-actual comparison is computed there, never on a
+ * calendar block.
  */
 export const actionBlocks = pgTable(
   "action_blocks",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    actionBlockId: uuid("action_block_id").primaryKey().defaultRandom(),
     userId: uuid("user_id").notNull(),
-    nodeId: uuid("node_id")
+    taskId: uuid("task_id")
       .notNull()
-      .references(() => nodes.id, { onDelete: "cascade" }),
-    gridDay: date("grid_day").notNull(),
+      .references(() => tasks.taskId, { onDelete: "cascade" }),
+    date: date("date").notNull(),
     startAt: timestamp("start_at", { withTimezone: true }).notNull(),
-    endAt: timestamp("end_at", { withTimezone: true }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
+    // Nullable: an `in-progress` span has no end time yet.
+    endAt: timestamp("end_at", { withTimezone: true }),
+    status: actionBlockStatus("status").notNull().default("done"),
+    createdOn: timestamp("created_on", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
+    updatedOn: timestamp("updated_on", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
@@ -270,6 +338,12 @@ export const categoryStats = pgTable(
 
 export type Node = InferSelectModel<typeof nodes>;
 export type NewNode = InferInsertModel<typeof nodes>;
+
+export type Project = InferSelectModel<typeof projects>;
+export type NewProject = InferInsertModel<typeof projects>;
+
+export type Task = InferSelectModel<typeof tasks>;
+export type NewTask = InferInsertModel<typeof tasks>;
 
 export type TaskBlock = InferSelectModel<typeof taskBlocks>;
 export type NewTaskBlock = InferInsertModel<typeof taskBlocks>;

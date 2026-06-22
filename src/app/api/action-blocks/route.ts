@@ -4,33 +4,41 @@ import { db } from "@/db";
 import { actionBlocks, type NewActionBlock } from "@/db/schema";
 import { createClient } from "@/services/supabase/server";
 
+const ACTION_STATUSES = ["in-progress", "done"] as const;
+
 /**
- * Pick only the fields a client may set when creating an action_block (ADR-015).
- * `id`/`userId` are NOT accepted — the server injects `userId` from the session
- * (ADR-003/010, RLS). An action is a real span, so `startAt`/`endAt` are
- * required; there is no status (a row existing means "done").
+ * Pick only the fields a client may set when creating an action_block
+ * (ADR-015/016). `actionBlockId`/`userId` are NOT accepted — the server injects
+ * `userId` from the session (ADR-003/010, RLS). `startAt` is required; `endAt`
+ * is optional (an `in-progress` span has no end yet) and `status` defaults to
+ * `done` (the schema default) when omitted.
  */
 function parseActionCreateInput(
   body: Record<string, unknown>,
 ): Omit<NewActionBlock, "userId"> | { error: string } {
-  const { nodeId, gridDay, startAt, endAt } = body;
-  if (typeof nodeId !== "string") return { error: "nodeId must be a string" };
-  if (typeof gridDay !== "string") {
-    return { error: "gridDay must be a string (YYYY-MM-DD)" };
+  const { taskId, date, startAt } = body;
+  if (typeof taskId !== "string") return { error: "taskId must be a string" };
+  if (typeof date !== "string") {
+    return { error: "date must be a string (YYYY-MM-DD)" };
   }
   if (typeof startAt !== "string") {
     return { error: "startAt must be an ISO string" };
   }
-  if (typeof endAt !== "string") {
-    return { error: "endAt must be an ISO string" };
+
+  const values: Omit<NewActionBlock, "userId"> = {
+    taskId,
+    date,
+    startAt: new Date(startAt),
+  };
+  if (typeof body.endAt === "string") values.endAt = new Date(body.endAt);
+  if (
+    typeof body.status === "string" &&
+    ACTION_STATUSES.includes(body.status as never)
+  ) {
+    values.status = body.status as NewActionBlock["status"];
   }
 
-  return {
-    nodeId,
-    gridDay,
-    startAt: new Date(startAt),
-    endAt: new Date(endAt),
-  };
+  return values;
 }
 
 /** GET /api/action-blocks — all action_blocks owned by the user (flat array). */

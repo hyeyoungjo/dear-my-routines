@@ -7,19 +7,19 @@ import { createClient } from "@/services/supabase/server";
 const PLAN_STATUSES = ["planned", "missed"] as const;
 
 /**
- * Pick only the fields a client may set when creating a plan_block (ADR-015),
- * validating the status enum. `id`/`userId` are intentionally NOT accepted —
- * the server injects `userId` from the authenticated session (never trust a
- * client-supplied owner; ADR-003/010, RLS). A plan is always a box, so
+ * Pick only the fields a client may set when creating a plan_block (ADR-015/016),
+ * validating the status enum. `planBlockId`/`userId` are intentionally NOT
+ * accepted — the server injects `userId` from the authenticated session (never
+ * trust a client-supplied owner; ADR-003/010, RLS). A plan is always a box, so
  * `startAt`/`endAt` are required.
  */
 function parsePlanCreateInput(
   body: Record<string, unknown>,
 ): Omit<NewPlanBlock, "userId"> | { error: string } {
-  const { nodeId, gridDay, startAt, endAt } = body;
-  if (typeof nodeId !== "string") return { error: "nodeId must be a string" };
-  if (typeof gridDay !== "string") {
-    return { error: "gridDay must be a string (YYYY-MM-DD)" };
+  const { taskId, date, startAt, endAt } = body;
+  if (typeof taskId !== "string") return { error: "taskId must be a string" };
+  if (typeof date !== "string") {
+    return { error: "date must be a string (YYYY-MM-DD)" };
   }
   if (typeof startAt !== "string") {
     return { error: "startAt must be an ISO string" };
@@ -29,8 +29,8 @@ function parsePlanCreateInput(
   }
 
   const values: Omit<NewPlanBlock, "userId"> = {
-    nodeId,
-    gridDay,
+    taskId,
+    date,
     startAt: new Date(startAt),
     endAt: new Date(endAt),
   };
