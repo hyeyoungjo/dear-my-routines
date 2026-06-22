@@ -43,6 +43,13 @@
       "when": 1782162430250,
       "tag": "0005_split_plan_action",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782165885307,
+      "tag": "0006_projects_tasks_split",
+      "breakpoints": true
     }
   ]
 }
