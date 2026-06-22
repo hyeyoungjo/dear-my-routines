@@ -19,9 +19,10 @@ import {
   blockSpan,
   blocksForDay,
   carryCountOf,
+  carryOverBlock,
   type FlatBlock,
 } from "@/core/time/blocks";
-import { dayKey } from "@/core/time/day";
+import { addDays, dayKey } from "@/core/time/day";
 import { ancestorOfType } from "@/core/tree/tree";
 import { projectColor } from "@/lib/projectColor";
 import {
@@ -179,6 +180,22 @@ export function CalendarGrid() {
           }),
       },
     );
+  };
+
+  /**
+   * Carry a ghost (a planned occurrence not yet acted on) forward (ADR-014): mark
+   * THIS block `missed` so it stays here as the "planned but undone" record, and
+   * create a fresh planned block on the next day (clock + duration kept). This is
+   * a deliberate carry, distinct from a manual reschedule — only here do we touch
+   * status/carryCount. Both writes are optimistic, so the columns update at once.
+   */
+  const carryOver = (block: FlatBlock) => {
+    const { missedPatch, nextBlock } = carryOverBlock(
+      block,
+      addDays(selectedDate, 1),
+    );
+    updateBlock.mutate({ id: block.id, patch: missedPatch });
+    addBlock.mutate(nextBlock);
   };
 
   const handleBodyClick = (
@@ -438,6 +455,11 @@ export function CalendarGrid() {
                       });
                     }
                   : undefined
+              }
+              // Ghost ✕ carries this occurrence forward (missed here + new block
+              // tomorrow); real blocks have no carry control.
+              onCarryOver={
+                block.isPlaceholder ? () => carryOver(block.block) : undefined
               }
               onDragStart={handleDragStart}
               // Moved block follows the cursor via transform(deltaX); resize just

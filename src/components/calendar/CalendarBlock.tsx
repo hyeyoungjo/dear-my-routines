@@ -57,6 +57,7 @@ export function CalendarBlock({
   column,
   style,
   onConfirm,
+  onCarryOver,
   onDragStart,
   dragDeltaX,
 }: {
@@ -66,6 +67,8 @@ export function CalendarBlock({
   style: React.CSSProperties;
   /** Click-to-confirm for a ghost (undefined for real blocks). */
   onConfirm?: () => void;
+  /** Carry this ghost forward (missed here + new planned block tomorrow). */
+  onCarryOver?: () => void;
   /** Begin a pointer drag (move/resize) — the grid owns the drag state. */
   onDragStart: (
     blockId: string,
@@ -239,34 +242,52 @@ export function CalendarBlock({
           </span>
         )}
 
-        {/* A ghost (planned, no actual yet) is confirm-only here: a body click
-            copies the plan span into the actual fields (see onConfirm). The ✕
-            that carries it to the next day is wired in step 4 (modal-carry-sweep),
-            so a ghost shows no delete control for now. */}
-        {!isPlaceholder && (
-          <button
-            type="button"
-            onClick={() => {
-              // Deleting from Action must never wipe the plan: when the block is
-              // also planned, clear only its actual span (the block's Plan side
-              // survives). A plan block is removed outright (this occurrence).
-              if (column === "action" && occurrence.plannedStart != null) {
-                updateBlock.mutate({
-                  id: occurrence.id,
-                  patch: { actualStart: null, actualEnd: null },
-                });
-              } else {
-                removeBlock.mutate(occurrence.id);
-              }
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-            aria-label={column === "action" ? "Clear actual" : "Delete"}
-            title={column === "action" ? "Clear actual" : "Delete"}
-            className="shrink-0 text-muted opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
-          >
-            ✕
-          </button>
-        )}
+        {/* A ghost (planned, no actual yet): its ✕ CARRIES the occurrence forward
+            (ADR-014) — this block stays `missed` in place for review and a fresh
+            planned block is born tomorrow (onCarryOver). A real block's ✕ instead
+            deletes the occurrence (Plan) or clears only its actual span (Action),
+            never wiping the plan side. */}
+        {isPlaceholder
+          ? onCarryOver && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  // Don't also confirm the ghost (the body click's onConfirm).
+                  e.stopPropagation();
+                  onCarryOver();
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+                aria-label="Carry over to next day"
+                title="Carry over to next day"
+                className="shrink-0 text-muted opacity-0 transition-opacity hover:text-amber-600 group-hover:opacity-100"
+              >
+                ✕
+              </button>
+            )
+          : (
+              <button
+                type="button"
+                onClick={() => {
+                  // Deleting from Action must never wipe the plan: when the block
+                  // is also planned, clear only its actual span (the block's Plan
+                  // side survives). A plan block is removed outright (this occurrence).
+                  if (column === "action" && occurrence.plannedStart != null) {
+                    updateBlock.mutate({
+                      id: occurrence.id,
+                      patch: { actualStart: null, actualEnd: null },
+                    });
+                  } else {
+                    removeBlock.mutate(occurrence.id);
+                  }
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+                aria-label={column === "action" ? "Clear actual" : "Delete"}
+                title={column === "action" ? "Clear actual" : "Delete"}
+                className="shrink-0 text-muted opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
+              >
+                ✕
+              </button>
+            )}
       </div>
 
       {/* Bottom edge — drag to resize the block's duration. */}
@@ -282,7 +303,11 @@ export function CalendarBlock({
       />
     </div>
     {detailOpen && (
-      <NodeDetailModal node={node} onClose={() => setDetailOpen(false)} />
+      <NodeDetailModal
+        block={occurrence}
+        node={node}
+        onClose={() => setDetailOpen(false)}
+      />
     )}
     </>
   );

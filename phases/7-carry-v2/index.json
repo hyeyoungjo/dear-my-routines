@@ -37,7 +37,10 @@
     {
       "step": 4,
       "name": "modal-carry-sweep",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-06-23T04:03:05+0900",
+      "summary": "Completed carry-v2 on task_blocks (ADR-014). NodeDetailModal now edits one block occurrence independently: planned/actual MiniCalendar pickers save immediately via useUpdateBlock/useUpdateNode (not onBlur-only); picking an actual date when none exists CREATES an actual span from the planned clock and sets status='done' (fixes the empty-patch 찍기 bug); fixed the build by passing block={occurrence} from CalendarBlock. Wired ghost ✕ → onCarryOver: carryOverBlock(block, addDays(selectedDate,1)) marks THIS block missed (useUpdateBlock) and births a new planned block tomorrow (useAddBlock), leaving the missed record in place for review; manual reschedule still leaves status/carryCount untouched. useCarryOverSweep rebuilt block-based: findOverdueBlocks→carryOverBlock(block,today), once-per-mount useRef guard + fromHistory:true (idempotent, no undo). Comparison label already block-scoped (plan+actual both present), so the bogus '2h→9h' cross-occurrence label is gone. All optimistic. build+116 tests+lint green.",
+      "completed_at": "2026-06-23T04:03:05+0900"
     },
     {
       "step": 5,
