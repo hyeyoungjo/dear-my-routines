@@ -32,7 +32,8 @@
     },
     {
       "dir": "6-carry-over",
-      "status": "pending"
+      "status": "completed",
+      "completed_at": "2026-06-23T01:06:28+0900"
     }
   ]
 }
