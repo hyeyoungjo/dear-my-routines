@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 import type { FlatNode } from "@/core/tree/types";
 import { durationMinutes } from "./calendar";
 import { dayKey, gridDayOf, nodeBelongsToDay } from "./day";
-import { carryOverNode, findOverdueUncarried, shiftPlannedToDate } from "./carry";
+import {
+  carryOverNode,
+  findOverdueUncarried,
+  shiftActualToDate,
+  shiftPlannedToDate,
+} from "./carry";
 
 /** A minimal node with everything nullable cleared — override what a test needs. */
 function node(partial: Partial<FlatNode>): FlatNode {
@@ -74,6 +79,52 @@ describe("shiftPlannedToDate", () => {
     const patch = shiftPlannedToDate(n, new Date(2026, 5, 22));
     expect(patch.plannedDate).toBe("2026-06-22");
     expect(patch.plannedStart).toBeUndefined();
+  });
+});
+
+describe("shiftActualToDate", () => {
+  it("keeps the clock time and duration, changing only the date", () => {
+    const n = node({
+      actualStart: new Date(2026, 5, 21, 14, 0),
+      actualEnd: new Date(2026, 5, 21, 15, 30),
+    });
+    const patch = shiftActualToDate(n, new Date(2026, 5, 22));
+
+    const start = patch.actualStart as Date;
+    const end = patch.actualEnd as Date;
+    expect(dayKey(start)).toBe("2026-06-22");
+    expect([start.getHours(), start.getMinutes()]).toEqual([14, 0]);
+    expect([end.getHours(), end.getMinutes()]).toEqual([15, 30]);
+    expect(durationMinutes(start, end)).toBe(90);
+  });
+
+  it("anchors a post-midnight actual block to the target's grid day", () => {
+    const n = node({
+      actualStart: new Date(2026, 5, 21, 1, 0),
+      actualEnd: new Date(2026, 5, 21, 2, 0),
+    });
+    const patch = shiftActualToDate(n, new Date(2026, 5, 22));
+
+    const start = patch.actualStart as Date;
+    expect([start.getHours(), start.getMinutes()]).toEqual([1, 0]);
+    expect(dayKey(start)).toBe("2026-06-23"); // next calendar date...
+    expect(gridDayOf(start)).toBe("2026-06-22"); // ...but Jun 22's grid day.
+  });
+
+  it("never touches carryCount or status (a reschedule is not a carry)", () => {
+    const n = node({
+      actualStart: new Date(2026, 5, 21, 9, 0),
+      carryCount: 2,
+      status: "in_progress",
+    });
+    const patch = shiftActualToDate(n, new Date(2026, 5, 22));
+    expect(patch.carryCount).toBeUndefined();
+    expect(patch.status).toBeUndefined();
+  });
+
+  it("yields an empty patch when there is no actual span to move", () => {
+    const n = node({ plannedStart: new Date(2026, 5, 21, 9, 0) });
+    expect(shiftActualToDate(n, new Date(2026, 5, 22))).toEqual({});
   });
 });
 

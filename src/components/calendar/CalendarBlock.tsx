@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { formatHours, type Span } from "@/core/time/calendar";
 import { carryOverNode } from "@/core/time/carry";
 import { addDays } from "@/core/time/day";
 import type { FlatNode } from "@/core/tree/types";
 import { useNodes, useRemoveNode, useUpdateNode } from "@/hooks/nodes";
 import { useSelectedDate } from "@/components/date";
+import { NodeDetailModal } from "@/components/calendar/NodeDetailModal";
 
 /** Which time-block pair a column reads/writes (ADR-004 Plan vs. Act). */
 export type ColumnKind = "plan" | "action";
@@ -89,6 +90,11 @@ export function CalendarBlock({
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
 
+  // Double-clicking the block opens its detail editor (manual reschedule). Kept
+  // as light local state — the modal escapes this absolutely-positioned block via
+  // its own `fixed` layer.
+  const [detailOpen, setDetailOpen] = useState(false);
+
   const isDragging = dragDeltaX !== null;
   // Clamp the horizontal drag to the block's own column so it stops at the edge
   // (like a wall) instead of sliding into the other column.
@@ -119,6 +125,7 @@ export function CalendarBlock({
     : undefined;
 
   return (
+    <>
     <div
       ref={blockRef}
       // Stop the click from reaching the grid (which would create a new block);
@@ -126,6 +133,13 @@ export function CalendarBlock({
       onClick={(e) => {
         e.stopPropagation();
         onConfirm?.();
+      }}
+      // Double-click anywhere on the block body opens its detail editor. The
+      // title textarea stops this (so word-select editing isn't intercepted);
+      // resize/✕ keep working as their own single-click/drag handlers.
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        setDetailOpen(true);
       }}
       style={{
         ...style,
@@ -197,6 +211,9 @@ export function CalendarBlock({
           placeholder="New task"
           onBlur={(e) => commitTitle(e.target.value)}
           onPointerDown={(e) => e.stopPropagation()}
+          // Let a double-click select a word in place instead of opening the
+          // detail modal — the block's onDoubleClick stays out of the title.
+          onDoubleClick={(e) => e.stopPropagation()}
           aria-label="Title"
           rows={1}
           // field-sizing:content grows the textarea to fit wrapped lines; the
@@ -284,5 +301,9 @@ export function CalendarBlock({
         className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize"
       />
     </div>
+    {detailOpen && (
+      <NodeDetailModal node={node} onClose={() => setDetailOpen(false)} />
+    )}
+    </>
   );
 }

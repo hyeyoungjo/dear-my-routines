@@ -37,6 +37,28 @@ function clockOntoGridDay(clock: Date, toDate: Date): Date {
 }
 
 /**
+ * Move a [start, end?] span onto `toDate`'s grid day, keeping the clock time and
+ * exact length (ms). Spans may arrive as ISO strings over the wire, so callers
+ * pass raw values and we normalize here like day.ts does. Shared by the planned
+ * and actual shifts so the clock/duration-preserving rule lives in one place.
+ */
+function shiftSpanOntoGridDay(
+  rawStart: Date | string,
+  rawEnd: Date | string | null,
+  toDate: Date,
+): { start: Date; end?: Date } {
+  const start = new Date(rawStart);
+  const newStart = clockOntoGridDay(start, toDate);
+  if (!rawEnd) return { start: newStart };
+  const end = new Date(rawEnd);
+  // Preserve the exact span length (ms) rather than re-deriving from minutes.
+  return {
+    start: newStart,
+    end: new Date(newStart.getTime() + (end.getTime() - start.getTime())),
+  };
+}
+
+/**
  * Move a node's planned span to `toDate`, keeping the clock time and duration.
  * Only the calendar date changes — a task planned 14:00–15:30 carried to the
  * next day becomes 14:00–15:30 on that day. If the node has no plannedStart but
@@ -52,22 +74,45 @@ export function shiftPlannedToDate(
     return { plannedDate: dayKey(toDate) };
   }
 
-  // Spans may arrive as ISO strings over the wire; normalize like day.ts does.
-  const start = new Date(node.plannedStart);
-  const newStart = clockOntoGridDay(start, toDate);
+  const { start, end } = shiftSpanOntoGridDay(
+    node.plannedStart,
+    node.plannedEnd,
+    toDate,
+  );
 
   const patch: Partial<FlatNode> = {
-    plannedStart: newStart,
+    plannedStart: start,
     // Keep plannedDate consistent with the span's grid day so the two never
     // disagree (ADR-013: rows are the source of truth, kept coherent).
     plannedDate: dayKey(toDate),
   };
+  if (end) patch.plannedEnd = end;
 
-  if (node.plannedEnd) {
-    const end = new Date(node.plannedEnd);
-    // Preserve the exact span length (ms) rather than re-deriving from minutes.
-    patch.plannedEnd = new Date(newStart.getTime() + (end.getTime() - start.getTime()));
-  }
+  return patch;
+}
+
+/**
+ * Move a node's *actual* span to `toDate`, keeping the clock time and duration —
+ * the manual reschedule counterpart for the recorded (Act) span. Unlike the
+ * planned side there is no date-only fallback column: an actual span exists only
+ * once acted on, so a node with no actualStart yields an empty patch (nothing to
+ * move). Like shiftPlannedToDate this is a pure reschedule — it NEVER touches
+ * carryCount or status (a user dragging a date is not a carry-over, ADR-009).
+ */
+export function shiftActualToDate(
+  node: FlatNode,
+  toDate: Date,
+): Partial<FlatNode> {
+  if (!node.actualStart) return {};
+
+  const { start, end } = shiftSpanOntoGridDay(
+    node.actualStart,
+    node.actualEnd,
+    toDate,
+  );
+
+  const patch: Partial<FlatNode> = { actualStart: start };
+  if (end) patch.actualEnd = end;
 
   return patch;
 }

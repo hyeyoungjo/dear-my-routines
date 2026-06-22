@@ -21,6 +21,12 @@ export function dayKey(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+/** Inverse of `dayKey`: parse a `YYYY-MM-DD` key into that day's local midnight. */
+export function dayFromKey(key: string): Date {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
 /**
  * Which grid day a timestamp belongs to. Mirrors `minutesFromGridStart`'s
  * `hour < GRID_START_HOUR` wrap so that *where a block is drawn* and *which day
