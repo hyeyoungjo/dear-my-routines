@@ -83,10 +83,9 @@ export function shiftBlockPlanned(block: FlatBlock, toDate: Date): Partial<FlatB
 
 /**
  * Manual reschedule of a block's *actual* span to `toDate`, keeping the clock
- * time and duration. Mirrors carry.ts `shiftActualToDate`: there is no date-only
- * fallback (an actual span exists only once acted on) and it NEVER touches
- * `gridDay` or status — the block stays anchored by its plan. Empty patch when
- * there is no actual span to move.
+ * time and duration. There is no date-only fallback (an actual span exists only
+ * once acted on) and it NEVER touches `gridDay` or status — the block stays
+ * anchored by its plan. Empty patch when there is no actual span to move.
  */
 export function shiftBlockActual(block: FlatBlock, toDate: Date): Partial<FlatBlock> {
   if (!block.actualStart) return {};

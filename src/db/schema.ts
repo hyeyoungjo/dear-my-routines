@@ -59,14 +59,6 @@ export const nodeType = pgEnum("node_type", [
   "subtask",
 ]);
 
-export const nodeStatus = pgEnum("node_status", [
-  "pending",
-  "in_progress",
-  "done",
-  "carried",
-  "dropped",
-]);
-
 // A task_block's lifecycle on a single grid day (ADR-014). `missed` is the
 // carry-over signal: an unfinished planned block stays `missed` and a *new*
 // block is born on the next day (same node, time kept).
@@ -91,23 +83,15 @@ export const nodes = pgTable(
     title: text("title").notNull(),
     notes: text("notes"),
     links: text("links").array(),
+    // Estimated minutes — the task's *prediction*, a stats unit (ADR-014).
+    // Actual time and per-day placement now live on task_blocks, not here.
     estimateMinutes: integer("estimate_minutes"),
-    actualMinutes: integer("actual_minutes"),
-    // Calendar time blocks (all nullable). When unset, estimateMinutes is the
-    // fallback for tasks not yet placed on the calendar grid.
-    plannedStart: timestamp("planned_start", { withTimezone: true }),
-    plannedEnd: timestamp("planned_end", { withTimezone: true }),
-    actualStart: timestamp("actual_start", { withTimezone: true }),
-    actualEnd: timestamp("actual_end", { withTimezone: true }),
-    status: nodeStatus("status").notNull().default("pending"),
     category: text("category"),
     // Optional explicit colour (hex) — used for a project's legend chip and the
     // colour its tasks inherit. Falls back to a deterministic id-based colour
     // when unset (see lib/projectColor).
     color: text("color"),
     isBig3: boolean("is_big3").notNull().default(false),
-    plannedDate: date("planned_date"),
-    carryCount: integer("carry_count").notNull().default(0),
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
