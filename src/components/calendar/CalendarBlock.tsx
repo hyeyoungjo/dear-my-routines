@@ -2,8 +2,11 @@
 
 import { useRef } from "react";
 import { formatHours, type Span } from "@/core/time/calendar";
+import { carryOverNode } from "@/core/time/carry";
+import { addDays } from "@/core/time/day";
 import type { FlatNode } from "@/core/tree/types";
 import { useNodes, useRemoveNode, useUpdateNode } from "@/hooks/nodes";
+import { useSelectedDate } from "@/components/date";
 
 /** Which time-block pair a column reads/writes (ADR-004 Plan vs. Act). */
 export type ColumnKind = "plan" | "action";
@@ -69,6 +72,7 @@ export function CalendarBlock({
   const { node, color, comparison, isPlaceholder } = block;
   const updateNode = useUpdateNode();
   const removeNode = useRemoveNode();
+  const { selectedDate } = useSelectedDate();
 
   // Projects for the assign menu (assigning sets parentId → inherits colour).
   const { data: allNodes } = useNodes();
@@ -185,9 +189,7 @@ export function CalendarBlock({
           rows={1}
           // field-sizing:content grows the textarea to fit wrapped lines; the
           // block's own overflow-hidden crops it once it exceeds the box.
-          className={`min-h-0 flex-1 resize-none break-words [field-sizing:content] bg-transparent text-xs font-medium leading-tight placeholder:font-normal placeholder:text-muted focus:outline-none ${
-            node.status === "dropped" ? "text-muted line-through" : "text-foreground"
-          }`}
+          className="min-h-0 flex-1 resize-none break-words [field-sizing:content] bg-transparent text-xs font-medium leading-tight text-foreground placeholder:font-normal placeholder:text-muted focus:outline-none"
         />
 
         {comparison && (
@@ -204,33 +206,23 @@ export function CalendarBlock({
 
         {isPlaceholder ? (
           // A ghost (planned, no actual yet): a body click confirms it (see
-          // onConfirm); ✕ marks it not done (status → dropped — it leaves the
-          // Action column and shows struck through in Plan, the plan kept).
+          // onConfirm); ✕ means "didn't do it today" → carry the task to the
+          // next day (ADR-009). carry.ts owns the clock/duration-preserving date
+          // math; we just hand the patch to the optimistic update (ADR-007).
           <button
             type="button"
             onClick={() =>
-              updateNode.mutate({ id: node.id, patch: { status: "dropped" } })
+              updateNode.mutate({
+                id: node.id,
+                patch: carryOverNode(node, addDays(selectedDate, 1)),
+              })
             }
             onPointerDown={(e) => e.stopPropagation()}
-            aria-label="Didn't do it"
-            title="Didn't do it"
+            aria-label="Carry to tomorrow"
+            title="Carry to tomorrow"
             className="shrink-0 text-muted opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
           >
             ✕
-          </button>
-        ) : node.status === "dropped" ? (
-          // A dropped task lingers struck-through in Plan; ↺ brings it back.
-          <button
-            type="button"
-            onClick={() =>
-              updateNode.mutate({ id: node.id, patch: { status: "pending" } })
-            }
-            onPointerDown={(e) => e.stopPropagation()}
-            aria-label="Restore — bring it back"
-            title="Bring it back"
-            className="shrink-0 text-muted opacity-0 transition-opacity hover:text-emerald-500 group-hover:opacity-100"
-          >
-            ↺
           </button>
         ) : (
           <button

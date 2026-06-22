@@ -359,10 +359,7 @@ export function CalendarGrid() {
       (node) =>
         readSpan(node, kind) != null &&
         node.type === "task" &&
-        nodeBelongsToDay(node, selectedDate) &&
-        // A "not done" task drops out of the Action column (no ghost), but stays
-        // struck-through in Plan as a record of what was planned but skipped.
-        !(kind === "action" && node.status === "dropped"),
+        nodeBelongsToDay(node, selectedDate),
     );
     const visibleIds = new Set(visible.map((node) => node.id));
     const childrenOf = new Map<string | null, FlatNode[]>();
