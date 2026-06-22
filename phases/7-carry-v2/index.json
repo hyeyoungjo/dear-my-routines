@@ -1,0 +1,40 @@
+{
+  "project": "Dear My Routines",
+  "phase": "7-carry-v2",
+  "steps": [
+    {
+      "step": 0,
+      "name": "blocks-schema",
+      "status": "completed",
+      "started_at": "2026-06-23T02:43:27+0900",
+      "summary": "Added task_blocks table (1:N per-day occurrences of a node, ADR-014) + block_status enum (planned|done|missed), with user_id+RLS ownerPolicies; migration 0003_damp_sunset_bain.sql applied; idempotent scripts/migrate-to-blocks.ts ported 16 timed nodes → 16 blocks (grid_day via gridDayOf 07:00 boundary); nodes time fields left intact (removed in step 5).",
+      "completed_at": "2026-06-23T02:50:20+0900"
+    },
+    {
+      "step": 1,
+      "name": "blocks-core",
+      "status": "pending"
+    },
+    {
+      "step": 2,
+      "name": "blocks-api-hooks",
+      "status": "pending"
+    },
+    {
+      "step": 3,
+      "name": "calendar-blocks",
+      "status": "pending"
+    },
+    {
+      "step": 4,
+      "name": "modal-carry-sweep",
+      "status": "pending"
+    },
+    {
+      "step": 5,
+      "name": "nodes-cleanup",
+      "status": "pending"
+    }
+  ],
+  "created_at": "2026-06-23T02:43:27+0900"
+}
