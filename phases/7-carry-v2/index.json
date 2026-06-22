@@ -21,7 +21,10 @@
     {
       "step": 2,
       "name": "blocks-api-hooks",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-06-23T03:46:21+0900",
+      "summary": "Added task_blocks server API (src/app/api/blocks/route.ts GET+POST, src/app/api/blocks/[id]/route.ts PATCH+DELETE) modeled on nodes routes: auth.getUser() enforced, userId server-injected (never from body, RLS), parseBlockCreateInput/parseBlockPatchInput validate status enum + ISO→Date for spans, nodeId immutable on patch. Added TanStack optimistic hooks src/hooks/blocks.ts (key [\"blocks\"]): useBlocks + useAddBlock/useUpdateBlock/useRemoveBlock sharing useOptimisticBlockMutation (onMutate cache write/onError rollback/onSuccess undo record/onSettled invalidate), fromHistory suppresses re-record; cache holds FlatBlock[] (flat array ops). Coexists with nodes API/hooks.",
+      "completed_at": "2026-06-23T03:46:21+0900"
     },
     {
       "step": 3,
