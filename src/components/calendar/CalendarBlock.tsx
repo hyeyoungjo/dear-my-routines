@@ -74,6 +74,12 @@ export function CalendarBlock({
   const removeNode = useRemoveNode();
   const { selectedDate } = useSelectedDate();
 
+  // A carried task (planned but deferred from an earlier day) reads as a dashed
+  // block too — same "planned, not yet done" cue as the Action ghost. carryCount
+  // is the quiet background metadata (ADR-009): a small 🔁 badge, never loud.
+  const isCarried = node.status === "carried";
+  const carryCount = node.carryCount ?? 0;
+
   // Projects for the assign menu (assigning sets parentId → inherits colour).
   const { data: allNodes } = useNodes();
   const projects = (allNodes ?? [])
@@ -136,7 +142,13 @@ export function CalendarBlock({
           : color
             ? ""
             : "border-accent/50"
-      } ${isPlaceholder ? "border-dashed opacity-60" : ""}`}
+      } ${
+        isPlaceholder
+          ? "border-dashed opacity-60"
+          : isCarried
+            ? "border-dashed"
+            : ""
+      }`}
     >
       {/* Control row — also the drag handle (press and drag to move in time). */}
       <div
@@ -191,6 +203,15 @@ export function CalendarBlock({
           // block's own overflow-hidden crops it once it exceeds the box.
           className="min-h-0 flex-1 resize-none break-words [field-sizing:content] bg-transparent text-xs font-medium leading-tight text-foreground placeholder:font-normal placeholder:text-muted focus:outline-none"
         />
+
+        {carryCount > 0 && (
+          <span
+            className="shrink-0 text-[10px] tabular-nums text-muted"
+            title={`Carried over ${carryCount}×`}
+          >
+            🔁{carryCount}
+          </span>
+        )}
 
         {comparison && (
           <span

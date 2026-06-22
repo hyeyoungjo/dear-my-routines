@@ -5,6 +5,17 @@ import { useState } from "react";
 import { DateProvider } from "@/components/date";
 import { ThemeProvider } from "@/components/theme";
 import { UndoProvider } from "@/components/undo";
+import { useCarryOverSweep } from "@/hooks/useCarryOverSweep";
+
+/**
+ * Mount point for the day-boundary carry-over sweep. Renders nothing — it just
+ * runs the hook once, and must sit inside QueryClientProvider so it can read the
+ * `nodes` cache (see useCarryOverSweep).
+ */
+function CarryOverSweep() {
+  useCarryOverSweep();
+  return null;
+}
 
 /**
  * App-wide client providers.
@@ -20,7 +31,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <UndoProvider>
-          <DateProvider>{children}</DateProvider>
+          <DateProvider>
+            <CarryOverSweep />
+            {children}
+          </DateProvider>
         </UndoProvider>
       </QueryClientProvider>
     </ThemeProvider>

@@ -21,7 +21,10 @@
     {
       "step": 2,
       "name": "auto-carry-sweep",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-06-23T00:54:48+0900",
+      "summary": "Added src/hooks/useCarryOverSweep.ts — runs findOverdueUncarried(nodes, startOfDay(now)) once on first useNodes success and carries each past-due undone task to today via the optimistic useUpdateNode with carryOverNode patch + fromHistory:true (no undo footprint, no direct fetch). Idempotent by two layers: findOverdueUncarried excludes today's nodes (carry.ts) + a useRef guard set BEFORE mutating (survives Strict Mode double-effect and cache-change re-runs). Mounted via a <CarryOverSweep/> null-renderer inside QueryClientProvider in app/providers.tsx. CalendarBlock.tsx: status==='carried' blocks now render with a dashed border (same 'planned, not done' cue as the Action ghost), and carryCount>0 shows a small always-on 🔁{n} badge in the control row (quiet metadata, ADR-009).",
+      "completed_at": "2026-06-23T00:58:00+0900"
     },
     {
       "step": 3,
