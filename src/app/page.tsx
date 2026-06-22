@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/services/supabase/server";
 import { CalendarGrid } from "@/components/calendar/CalendarGrid";
 import { ProjectLegend } from "@/components/calendar/ProjectLegend";
+import { DateBar } from "@/components/DateBar";
 import { ThemeMenu } from "@/components/ThemeMenu";
 
 async function signOut() {
@@ -31,7 +32,10 @@ export default function Home() {
         </div>
       </header>
       <main className="mx-auto w-full max-w-5xl flex-1 p-4">
-        <ProjectLegend />
+        <DateBar />
+        <div className="mt-3">
+          <ProjectLegend />
+        </div>
         <div className="mt-3">
           <CalendarGrid />
         </div>

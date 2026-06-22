@@ -18,6 +18,7 @@ import {
   snapToSlot,
   type Span,
 } from "@/core/time/calendar";
+import { nodesForDay } from "@/core/time/day";
 import { ancestorOfType } from "@/core/tree/tree";
 import type { FlatNode } from "@/core/tree/types";
 import type { NewNode } from "@/db/schema";
@@ -27,6 +28,7 @@ import {
   type CalBlock,
   type ColumnKind,
 } from "@/components/calendar/CalendarBlock";
+import { useSelectedDate } from "@/components/date";
 import {
   useAddNode,
   useNodes,
@@ -116,6 +118,7 @@ function resizePatch(kind: ColumnKind, span: Span): Partial<NewNode> {
  */
 export function CalendarGrid() {
   const { data: nodes, isLoading, isError } = useNodes();
+  const { selectedDate } = useSelectedDate();
   const addNode = useAddNode();
   const updateNode = useUpdateNode();
   const planBodyRef = useRef<HTMLDivElement>(null);
@@ -131,11 +134,13 @@ export function CalendarGrid() {
 
   const slots = gridSlots();
   const bodyHeight = GRID_TOTAL_MINUTES * PX_PER_MINUTE;
-  const all = nodes ?? [];
+  // Scope to the selected grid day — the rows are the source of truth, this is
+  // just today's view over them (ADR-013).
+  const all = nodesForDay(nodes ?? [], selectedDate);
 
   const createAt = (offsetMinutes: number, kind: ColumnKind) => {
-    const start = slotDate(new Date(), offsetMinutes);
-    const end = slotDate(new Date(), offsetMinutes + DEFAULT_BLOCK_MINUTES);
+    const start = slotDate(selectedDate, offsetMinutes);
+    const end = slotDate(selectedDate, offsetMinutes + DEFAULT_BLOCK_MINUTES);
     addNode.mutate({
       title: "",
       type: "task",
@@ -411,13 +416,13 @@ export function CalendarGrid() {
     <div
       ref={kind === "plan" ? planBodyRef : actionBodyRef}
       onClick={(e) => handleBodyClick(e, kind)}
-      className="relative flex-1 cursor-pointer overflow-hidden border-l border-border"
+      className="relative flex-1 cursor-pointer overflow-hidden border-l border-grid"
       style={{ height: bodyHeight }}
     >
       {slots.slice(0, -1).map((slot) => (
         <div
           key={slot.offsetMinutes}
-          className="absolute inset-x-0 border-t border-border/70"
+          className="absolute inset-x-0 border-t border-grid"
           style={{ top: slot.offsetMinutes * PX_PER_MINUTE }}
         />
       ))}
