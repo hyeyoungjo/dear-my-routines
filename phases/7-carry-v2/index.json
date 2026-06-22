@@ -48,7 +48,7 @@
       "status": "completed",
       "started_at": "2026-06-23T04:17:17+0900",
       "summary": "Removed nodes' legacy time/status/carry columns (ADR-014 final cut): dropped plannedStart/plannedEnd/actualStart/actualEnd/actualMinutes/status/plannedDate/carryCount + node_status enum via migration 0004_fast_weapon_omega.sql (generated + applied to Supabase). nodes now hold only identity/stats units (title/notes/links, estimateMinutes, category, color, isBig3, tree parentId, sortOrder). Cleaned the dead node-level references the transition orphaned: deleted carry.ts shiftPlannedToDate/shiftActualToDate/carryOverNode/findOverdueUncarried (kept pure shiftSpanOntoGridDay used by blocks.ts) and day.ts nodeBelongsToDay/nodesForDay; trimmed AddNodeInput/optimisticNode (hooks/nodes.ts) and parseCreateInput/parsePatchInput (api/nodes routes) to the surviving fields; removed obsolete carry.test.ts + node-belongs tests in day.test.ts; deleted the completed one-off scripts/migrate-to-blocks.ts. build + 92 tests + lint green.",
-      "completed_at": "2026-06-23T04:17:17+0900"
+      "completed_at": "2026-06-23T04:24:43+0900"
     }
   ],
   "created_at": "2026-06-23T02:43:27+0900"
