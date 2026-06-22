@@ -2,11 +2,10 @@
 
 import { useRef, useState } from "react";
 import { formatHours, type Span } from "@/core/time/calendar";
-import { carryOverNode } from "@/core/time/carry";
-import { addDays } from "@/core/time/day";
+import type { FlatBlock } from "@/core/time/blocks";
 import type { FlatNode } from "@/core/tree/types";
-import { useNodes, useRemoveNode, useUpdateNode } from "@/hooks/nodes";
-import { useSelectedDate } from "@/components/date";
+import { useNodes, useUpdateNode } from "@/hooks/nodes";
+import { useRemoveBlock, useUpdateBlock } from "@/hooks/blocks";
 import { NodeDetailModal } from "@/components/calendar/NodeDetailModal";
 
 /** Which time-block pair a column reads/writes (ADR-004 Plan vs. Act). */
@@ -16,11 +15,15 @@ export type ColumnKind = "plan" | "action";
 export type DragMode = "move" | "resize";
 
 /**
- * One task laid out for a calendar column. `span` is its effective time span;
- * `color` is its project's colour (null = unassigned → white block). `children`
- * is retained on the type but no longer rendered (Project > Task only).
+ * One task occurrence (a `task_block`, ADR-014) laid out for a calendar column.
+ * `block` is the occurrence being drawn (the drag/resize/delete target); `node`
+ * is its owning task, joined in for title and project colour. `span` is its
+ * effective time span; `color` is its project's colour (null = unassigned →
+ * white block). `carryCount` is derived from the node's blocks (count of missed
+ * occurrences) — shown as the quiet 🔁 badge (ADR-009).
  */
 export type CalBlock = {
+  block: FlatBlock;
   node: FlatNode;
   span: Span;
   color: string | null;
@@ -28,15 +31,19 @@ export type CalBlock = {
   isPlaceholder?: boolean;
   /** Own action duration vs. its plan, for the overrun label. */
   comparison?: { plannedMinutes: number; actualMinutes: number };
-  children: CalBlock[];
+  /** How many times the owning task has been carried (missed blocks). */
+  carryCount: number;
 };
 
 /**
- * A task drawn as an absolutely-positioned block on a calendar column. The block
- * is tinted with its project colour (white when unassigned), and the title
- * **wraps inside it** — no header band. A small control row (project colour →
- * assign menu, plan-vs-actual delta, delete) sits on top and is the drag handle;
- * the bottom edge drags to resize. All schedule math lives in `core/time`.
+ * A task occurrence drawn as an absolutely-positioned block on a calendar column.
+ * The block is tinted with its project colour (white when unassigned), and the
+ * title **wraps inside it** — no header band. A small control row (project colour
+ * → assign menu, plan-vs-actual delta, delete) sits on top and is the drag
+ * handle; the bottom edge drags to resize. The schedule math lives in
+ * `core/time`; the title/colour belong to the task `node`, the time span to the
+ * `task_block` (ADR-014), so title edits go through `useUpdateNode` while
+ * span/delete edits go through the optimistic `useUpdateBlock`/`useRemoveBlock`.
  *
  * Dragging is plain pointer events (no dnd-kit): pressing the control row starts
  * a move, the bottom edge starts a resize, and the grid tracks the pointer on
@@ -61,7 +68,7 @@ export function CalendarBlock({
   onConfirm?: () => void;
   /** Begin a pointer drag (move/resize) — the grid owns the drag state. */
   onDragStart: (
-    nodeId: string,
+    blockId: string,
     column: ColumnKind,
     mode: DragMode,
     clientX: number,
@@ -70,18 +77,14 @@ export function CalendarBlock({
   /** Live horizontal cursor delta while this block is being moved, else null. */
   dragDeltaX: number | null;
 }) {
-  const { node, color, comparison, isPlaceholder } = block;
+  const { block: occurrence, node, color, comparison, isPlaceholder, carryCount } =
+    block;
   const updateNode = useUpdateNode();
-  const removeNode = useRemoveNode();
-  const { selectedDate } = useSelectedDate();
+  const updateBlock = useUpdateBlock();
+  const removeBlock = useRemoveBlock();
 
-  // A carried task (planned but deferred from an earlier day) reads as a dashed
-  // block too — same "planned, not yet done" cue as the Action ghost. carryCount
-  // is the quiet background metadata (ADR-009): a small 🔁 badge, never loud.
-  const isCarried = node.status === "carried";
-  const carryCount = node.carryCount ?? 0;
-
-  // Projects for the assign menu (assigning sets parentId → inherits colour).
+  // Projects for the assign menu (assigning sets the node's parentId → inherits
+  // colour). Project membership is a property of the task, not the occurrence.
   const { data: allNodes } = useNodes();
   const projects = (allNodes ?? [])
     .filter((n) => n.type === "project")
@@ -156,20 +159,14 @@ export function CalendarBlock({
           : color
             ? ""
             : "border-accent/50"
-      } ${
-        isPlaceholder
-          ? "border-dashed opacity-60"
-          : isCarried
-            ? "border-dashed"
-            : ""
-      }`}
+      } ${isPlaceholder ? "border-dashed opacity-60" : ""}`}
     >
       {/* Control row — also the drag handle (press and drag to move in time). */}
       <div
         onPointerDown={(e) => {
           if (e.button !== 0) return;
           e.preventDefault();
-          onDragStart(node.id, column, "move", e.clientX, e.clientY);
+          onDragStart(occurrence.id, column, "move", e.clientX, e.clientY);
         }}
         className="flex flex-1 cursor-grab items-start gap-1 active:cursor-grabbing"
       >
@@ -242,41 +239,24 @@ export function CalendarBlock({
           </span>
         )}
 
-        {isPlaceholder ? (
-          // A ghost (planned, no actual yet): a body click confirms it (see
-          // onConfirm); ✕ means "didn't do it today" → carry the task to the
-          // next day (ADR-009). carry.ts owns the clock/duration-preserving date
-          // math; we just hand the patch to the optimistic update (ADR-007).
-          <button
-            type="button"
-            onClick={() =>
-              updateNode.mutate({
-                id: node.id,
-                patch: carryOverNode(node, addDays(selectedDate, 1)),
-              })
-            }
-            onPointerDown={(e) => e.stopPropagation()}
-            aria-label="Carry to tomorrow"
-            title="Carry to tomorrow"
-            className="shrink-0 text-muted opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
-          >
-            ✕
-          </button>
-        ) : (
+        {/* A ghost (planned, no actual yet) is confirm-only here: a body click
+            copies the plan span into the actual fields (see onConfirm). The ✕
+            that carries it to the next day is wired in step 4 (modal-carry-sweep),
+            so a ghost shows no delete control for now. */}
+        {!isPlaceholder && (
           <button
             type="button"
             onClick={() => {
-              // Deleting from Action must never wipe the plan: when the task is
-              // also planned, clear only its actual span (the node and its Plan
-              // block survive). A plan block — or an action-only task with no
-              // plan to fall back to — is removed outright.
-              if (column === "action" && node.plannedStart != null) {
-                updateNode.mutate({
-                  id: node.id,
+              // Deleting from Action must never wipe the plan: when the block is
+              // also planned, clear only its actual span (the block's Plan side
+              // survives). A plan block is removed outright (this occurrence).
+              if (column === "action" && occurrence.plannedStart != null) {
+                updateBlock.mutate({
+                  id: occurrence.id,
                   patch: { actualStart: null, actualEnd: null },
                 });
               } else {
-                removeNode.mutate(node.id);
+                removeBlock.mutate(occurrence.id);
               }
             }}
             onPointerDown={(e) => e.stopPropagation()}
@@ -295,7 +275,7 @@ export function CalendarBlock({
           if (e.button !== 0) return;
           e.preventDefault();
           e.stopPropagation();
-          onDragStart(node.id, column, "resize", e.clientX, e.clientY);
+          onDragStart(occurrence.id, column, "resize", e.clientX, e.clientY);
         }}
         aria-label="Resize block"
         className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize"
