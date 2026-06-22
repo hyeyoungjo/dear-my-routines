@@ -68,6 +68,15 @@ export const blockStatus = pgEnum("block_status", [
   "missed",
 ]);
 
+// A plan_block's lifecycle (ADR-015). Plan and action are now separate lists;
+// "done" no longer lives here — completion is expressed by an action_block
+// existing. A carried-over plan stays `missed` (kept as review evidence) while
+// a fresh `planned` block is born on the next day.
+export const planBlockStatus = pgEnum("plan_block_status", [
+  "planned",
+  "missed",
+]);
+
 // --- nodes: flexible Area > Project > Task > Subtask tree (ADR-009) --------
 
 export const nodes = pgTable(
@@ -141,6 +150,69 @@ export const taskBlocks = pgTable(
   (t) => ownerPolicies("task_blocks", t.userId),
 );
 
+// --- plan_blocks: per-day *intention* of a task (ADR-015) ------------------
+
+/**
+ * One day's plan for a task — "I intend to do this, here, then". Identity and
+ * the stats unit live on `nodes`; a task's plans are 1:N plan_blocks. Carry-over
+ * is expressed here: an unfinished plan stays `missed` (kept as review evidence)
+ * and a fresh `planned` block is created on the next grid day (same node, time
+ * kept). Plans are always placed as boxes, so `start_at`/`end_at` are required.
+ *
+ * Replaces task_blocks' planned side. Action lives in `action_blocks`, so a
+ * single row never holds plan + actual together (no forced "2h→9h" label).
+ */
+export const planBlocks = pgTable(
+  "plan_blocks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    nodeId: uuid("node_id")
+      .notNull()
+      .references(() => nodes.id, { onDelete: "cascade" }),
+    gridDay: date("grid_day").notNull(),
+    startAt: timestamp("start_at", { withTimezone: true }).notNull(),
+    endAt: timestamp("end_at", { withTimezone: true }).notNull(),
+    status: planBlockStatus("status").notNull().default("planned"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ownerPolicies("plan_blocks", t.userId),
+);
+
+// --- action_blocks: per-day *actual execution* of a task (ADR-015) ---------
+
+/**
+ * One span of actually doing a task — reality, not intention. A row existing
+ * means "done"; there is no status. A task done across two days is two rows.
+ * Stats join plan_blocks + action_blocks by `node_id`; the estimate-vs-actual
+ * comparison is computed there, never on a calendar block.
+ */
+export const actionBlocks = pgTable(
+  "action_blocks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    nodeId: uuid("node_id")
+      .notNull()
+      .references(() => nodes.id, { onDelete: "cascade" }),
+    gridDay: date("grid_day").notNull(),
+    startAt: timestamp("start_at", { withTimezone: true }).notNull(),
+    endAt: timestamp("end_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ownerPolicies("action_blocks", t.userId),
+);
+
 // --- time_logs: actual measured spans, optionally per node ----------------
 
 export const timeLogs = pgTable(
@@ -201,6 +273,12 @@ export type NewNode = InferInsertModel<typeof nodes>;
 
 export type TaskBlock = InferSelectModel<typeof taskBlocks>;
 export type NewTaskBlock = InferInsertModel<typeof taskBlocks>;
+
+export type PlanBlock = InferSelectModel<typeof planBlocks>;
+export type NewPlanBlock = InferInsertModel<typeof planBlocks>;
+
+export type ActionBlock = InferSelectModel<typeof actionBlocks>;
+export type NewActionBlock = InferInsertModel<typeof actionBlocks>;
 
 export type TimeLog = InferSelectModel<typeof timeLogs>;
 export type NewTimeLog = InferInsertModel<typeof timeLogs>;
