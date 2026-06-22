@@ -135,3 +135,41 @@ DB가 직접 차단(ADR-003 멀티유저 확장과도 맞물림). **Vercel AI SD
 (`task_blocks` 추가 → 캘린더 이관 → 레거시 컬럼 제거)으로 각 step의 빌드 무결성을 지킨다. 단,
 이 앱의 핵심(리뷰·예상vs실제·성장)이 본질적으로 다중-날짜라 필수다. **ADR-009를 데이터 모델
 수준에서 구체화·대체**한다(트리·자동 이월·carryCount 신호의 *의도*는 유지, *저장 형태*만 바꿈).
+
+### ADR-015: Plan과 Action을 별도 리스트로 분리 — task_blocks 한 행 해체 (2026-06-22)
+**맥락**: ADR-014의 `task_blocks`는 한 행에 계획(`planned_*`)과 실제(`actual_*`)를 **함께** 들었다.
+이 "한 행 동거"가 세 문제의 공통 뿌리였다 — (a) 한 블록이 planned+actual을 둘 다 들어 강제
+비교 라벨(`2h→9h`)이 자동 생성, (b) ✕가 맥락별로 이월/clear/삭제로 갈려 혼란, (c) undo가 그
+혼란과 충돌(`docs/Task-Continuity_Problem.md` 5절).
+**결정**: 데이터를 **세 리스트로 분리**한다. ADR-014의 "정체성=nodes / 배치=blocks" 분리는
+유지하되, **배치를 다시 plan과 action 두 테이블로 쪼갠다**.
+- **① Task = `nodes`** (정체성·통계 단위, task당 1행): `parent`·`type`·`title`·`category`·
+  `notes/links/color/isBig3`. **`estimate_minutes`는 제거** — 예상은 고정 한 칸이 아니라 Plan
+  줄마다(시작~끝 길이)에 흩어져 있다. 아직 캘린더에 안 올린 task는 예상값이 없다(예측=배치).
+- **② Plan = `plan_blocks`** (`task_blocks`에서 `actual_*` 제거, 날짜별 N행): `node_id`·
+  `grid_day`·`start`·`end`·`status`. **status는 `planned|missed` 둘뿐**(`done` 제거 — "했다"는
+  Action 줄이 대신 말한다). 모든 Plan은 박스로 만들어 **항상 시각을 가진다.** `sort_order` 제거
+  (시간순 배치라 불필요).
+- **③ Action = `action_blocks`** (신규, 날짜별 N행): `node_id`·`grid_day`·`start`·`end`.
+  **status 없음**(행이 존재함 = 실행함), **sort_order 없음**. 하루에 못 끝내 나눠 하면 N행.
+- **파생값은 컬럼 아님, 읽을 때 계산**: 원래계획일(가장 이른 plan)·현재목표일(`planned` plan)·
+  거쳐온 날(`missed` plan들)·carryCount(`missed` 수)·**실제 시간(action 길이들의 합)**·
+  **예상vs실제**. 합계·평균은 저장하지 않는다.
+- **✕ = 삭제**(그 행 DELETE, 박스가 실제로 사라짐). **이월은 별도의 명시적 동작**으로 분리.
+- **비교(예상→실제)는 캘린더 블록 라벨이 아니라 통계/리뷰에서 `node_id` 단위로** 한다 → `2h→9h`
+  라벨이 구조적으로 제거된다.
+- **undo 제거**(`undo.tsx`·providers·깊이설정·`recordCommand`).
+**이유**: plan과 action을 다른 리스트에 두면 (a) 한 블록이 둘을 동시에 들 수 없어 강제 비교가
+원천 차단되고, (b) ✕가 "그 줄 삭제" 하나로 명확해지며, (c) 각 날의 계획/실행을 독립 줄로
+보존·수정할 수 있다. 예상이 여러 개라는 사실(Plan 줄마다 길이 수정 가능)을 평균으로 뭉개 저장하지
+않고 raw 줄로 보존하면, "원래 예측 vs 최종 예측" 같은 통계 규칙을 나중에 바꿔도 데이터 이전이
+필요 없다(ADR-013 "rows가 진실, view는 조립"과 정합).
+**트레이드오프**: 테이블 1개 추가(`action_blocks`) + `task_blocks` 슬림화 + 캘린더/hooks/core/API
+재배선 + 기존 16개 task의 `actual_*` 데이터를 `action_blocks`로 이관하는 마이그레이션이 필요하다.
+점진 전환(스키마/마이그레이션 → core/time 분리 → API/hooks → 캘린더 → 모달 → undo 제거 →
+통계)으로 각 step 빌드 무결성을 지킨다. **ADR-014를 구체화·대체**한다(정체성/배치 분리·이월·
+통계 묶음의 *의도*는 유지, plan+actual 한 행 합침만 해체).
+**비고(다음 작업에서 결정)**: ① "시간 미정 계획"은 도입하지 않기로 함(모든 Plan은 시각 보유) —
+그래서 `grid_day`는 `start`에서 파생 가능하나 날짜 필터 쿼리 편의로 컬럼을 **남긴다**. ② 통계의
+"예상" 기준(첫 plan=원래 예측 vs 마지막 plan=최종 예측)은 통계 단계에서 확정한다. ③ 이월의
+구체 UI(별도 버튼/제스처)는 동작 설계 단계에서 정한다.
