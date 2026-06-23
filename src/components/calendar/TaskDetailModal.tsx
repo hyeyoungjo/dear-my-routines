@@ -23,6 +23,7 @@ import {
 } from "@/hooks/planBlocks";
 import { useProjects } from "@/hooks/projects";
 import { useTasks, useUpdateTask } from "@/hooks/tasks";
+import { useTranslations } from "@/i18n/context";
 
 /**
  * The detail card for a single `task` — the *bar* editor (the user's mental
@@ -61,6 +62,7 @@ export function TaskDetailModal({
   const { data: allActions } = useActionBlocks();
   const { data: projectData } = useProjects();
 
+  const t = useTranslations("taskDetail");
   const updateTask = useUpdateTask();
   const addPlan = useAddPlanBlock();
   const updatePlan = useUpdatePlanBlock();
@@ -179,7 +181,7 @@ export function TaskDetailModal({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Task details"
+        aria-label={t("modalLabel")}
         onClick={(e) => e.stopPropagation()}
         className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-xl border border-border bg-panel shadow-lg"
       >
@@ -188,17 +190,17 @@ export function TaskDetailModal({
           <textarea
             ref={titleRef}
             defaultValue={task.title}
-            placeholder="New task"
+            placeholder={t("titlePlaceholder")}
             onBlur={commitText}
             rows={1}
-            aria-label="Title"
+            aria-label={t("titleLabel")}
             className="min-h-0 flex-1 resize-none break-words [field-sizing:content] bg-transparent text-base font-medium leading-tight text-foreground placeholder:font-normal placeholder:text-muted focus:outline-none"
           />
           <button
             type="button"
             onClick={close}
-            aria-label="Close"
-            title="Close"
+            aria-label={t("close")}
+            title={t("close")}
             className="shrink-0 rounded-md px-1 text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
           >
             ✕
@@ -209,27 +211,27 @@ export function TaskDetailModal({
           <textarea
             ref={notesRef}
             defaultValue={task.notes ?? ""}
-            placeholder="Notes"
+            placeholder={t("notesPlaceholder")}
             onBlur={commitText}
             rows={2}
-            aria-label="Notes"
+            aria-label={t("notesLabel")}
             className="mb-3 w-full resize-none rounded-md border border-border bg-transparent p-2 text-sm leading-snug text-foreground placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent/40"
           />
 
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <label className="flex items-center gap-2 text-sm">
-              <span className="text-muted">Category</span>
+              <span className="text-muted">{t("categoryLabel")}</span>
               <input
                 ref={categoryRef}
                 defaultValue={task.category ?? ""}
                 placeholder="—"
                 onBlur={commitText}
-                aria-label="Category"
+                aria-label={t("categoryInputLabel")}
                 className="w-28 rounded-md border border-border bg-transparent px-2 py-1 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent/40"
               />
             </label>
             <label className="flex items-center gap-2 text-sm">
-              <span className="text-muted">Project</span>
+              <span className="text-muted">{t("projectLabel")}</span>
               <select
                 value={task.projectId ?? ""}
                 onChange={(e) =>
@@ -238,13 +240,13 @@ export function TaskDetailModal({
                     patch: { projectId: e.target.value || null },
                   })
                 }
-                aria-label="Project"
+                aria-label={t("projectLabel")}
                 className="rounded-md border border-border bg-transparent px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent/40"
               >
-                <option value="">No project</option>
+                <option value="">{t("noProject")}</option>
                 {projects.map((p) => (
                   <option key={p.projectId} value={p.projectId}>
-                    {p.title || "Project"}
+                    {p.title || t("projectFallback")}
                   </option>
                 ))}
               </select>
@@ -256,7 +258,7 @@ export function TaskDetailModal({
             {/* Originally — the left end (first planned day) */}
             <div>
               <div className="flex items-center">
-                <span className={rowLabel}>Originally</span>
+                <span className={rowLabel}>{t("originally")}</span>
                 {originallyDate ? (
                   <button
                     type="button"
@@ -264,7 +266,7 @@ export function TaskDetailModal({
                       setOpenCal((c) => (c === "originally" ? null : "originally"))
                     }
                     className={dateBtn}
-                    title="Move the first planned day"
+                    title={t("movePlannedDay")}
                   >
                     {fmtDate(originallyDate)}
                   </button>
@@ -285,13 +287,13 @@ export function TaskDetailModal({
             {/* Done — the right end (actually done day) */}
             <div>
               <div className="flex items-center">
-                <span className={rowLabel}>Done</span>
+                <span className={rowLabel}>{t("done")}</span>
                 {doneDate ? (
                   <button
                     type="button"
                     onClick={() => setOpenCal((c) => (c === "done" ? null : "done"))}
                     className={dateBtn}
-                    title="Move the done day"
+                    title={t("moveDoneDay")}
                   >
                     {fmtDate(doneDate)}
                   </button>
@@ -300,9 +302,9 @@ export function TaskDetailModal({
                     type="button"
                     onClick={() => setOpenCal((c) => (c === "done" ? null : "done"))}
                     className={`${dateBtn} text-muted`}
-                    title="Mark done on a day"
+                    title={t("markDoneDay")}
                   >
-                    Not done · pick a day
+                    {t("notDone")}
                   </button>
                 ) : (
                   <span className="text-sm text-muted">—</span>
@@ -321,12 +323,12 @@ export function TaskDetailModal({
             {/* Carried — read-only subproject signal */}
             {carryCount >= 1 && (
               <div className="flex items-center">
-                <span className={rowLabel}>Carried</span>
+                <span className={rowLabel}>{t("carried")}</span>
                 <span
                   className={`text-sm tabular-nums ${
                     carryCount >= 4 ? "text-amber-600" : "text-foreground"
                   }`}
-                  title="Times this task was carried over"
+                  title={t("carriedTitle")}
                 >
                   {carryCount}×
                 </span>

@@ -1,0 +1,83 @@
+{
+  "settings": {
+    "buttonLabel": "Settings",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "aiAnalysis": "AI Analysis",
+    "aiModel": "AI Model",
+    "undoLimit": "Undo limit",
+    "exportData": "Export data",
+    "language": "Language"
+  },
+  "calendar": {
+    "plan": "Plan",
+    "action": "Action",
+    "review": "Review",
+    "loading": "Loading…",
+    "loadFailed": "Failed to load."
+  },
+  "block": {
+    "newTask": "New task",
+    "assignProject": "Assign project",
+    "noProject": "No project",
+    "projectFallback": "Project",
+    "titleLabel": "Title",
+    "carriedOver": "Carried over {count}×",
+    "carryOverToNext": "Carry over to next day",
+    "deleteAction": "Delete action",
+    "deletePlan": "Delete plan",
+    "resizeBlock": "Resize block"
+  },
+  "review": {
+    "placeholder": "How did today go?"
+  },
+  "projects": {
+    "label": "Projects",
+    "namePlaceholder": "Project",
+    "nameLabel": "Project name",
+    "delete": "Delete project",
+    "add": "+ Project"
+  },
+  "taskDetail": {
+    "modalLabel": "Task details",
+    "titlePlaceholder": "New task",
+    "titleLabel": "Title",
+    "close": "Close",
+    "notesPlaceholder": "Notes",
+    "notesLabel": "Notes",
+    "categoryLabel": "Category",
+    "categoryInputLabel": "Category",
+    "projectLabel": "Project",
+    "noProject": "No project",
+    "projectFallback": "Project",
+    "originally": "Originally",
+    "movePlannedDay": "Move the first planned day",
+    "done": "Done",
+    "moveDoneDay": "Move the done day",
+    "notDone": "Not done · pick a day",
+    "markDoneDay": "Mark done on a day",
+    "carried": "Carried",
+    "carriedTitle": "Times this task was carried over"
+  },
+  "export": {
+    "title": "Export data",
+    "from": "From",
+    "to": "To",
+    "cancel": "Cancel",
+    "exporting": "Exporting…",
+    "exportCsv": "Export CSV"
+  },
+  "colorPicker": {
+    "label": "Pick colour",
+    "hexLabel": "Hex colour"
+  },
+  "login": {
+    "continueWithGoogle": "Continue with Google",
+    "checkInbox": "Check your inbox. We sent a sign-in link to {email}.",
+    "sendMagicLink": "Send magic link",
+    "sending": "Sending…",
+    "emailPlaceholder": "you@example.com",
+    "or": "or"
+  }
+}

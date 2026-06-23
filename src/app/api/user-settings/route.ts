@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { db } from "@/db";
 import { userSettings } from "@/db/schema";
 import { isAllowedModel } from "@/services/ai/models";
+import { isAllowedLanguage } from "@/lib/languages";
 import { createClient } from "@/services/supabase/server";
 
 /**
@@ -49,7 +50,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { aiModel, aiEnabled } = body;
+  const { aiModel, aiEnabled, language } = body;
 
   // null = reset to default; string = must be an allowed model id
   if (aiModel !== null && aiModel !== undefined) {
@@ -74,18 +75,29 @@ export async function PUT(request: NextRequest) {
     );
   }
 
+  if (language !== undefined && language !== null) {
+    if (typeof language !== "string" || !isAllowedLanguage(language)) {
+      return NextResponse.json(
+        { error: `language "${language}" is not supported` },
+        { status: 400 },
+      );
+    }
+  }
+
   const [upserted] = await db
     .insert(userSettings)
     .values({
       userId: user.id,
       aiModel: (aiModel as string | null) ?? null,
       aiEnabled: (aiEnabled as boolean | undefined) ?? false,
+      language: (language as string | null | undefined) ?? null,
     })
     .onConflictDoUpdate({
       target: userSettings.userId,
       set: {
         ...(aiModel !== undefined && { aiModel: aiModel as string | null }),
         ...(aiEnabled !== undefined && { aiEnabled: aiEnabled as boolean }),
+        ...(language !== undefined && { language: language as string | null }),
         updatedOn: new Date(),
       },
     })

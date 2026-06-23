@@ -5,6 +5,7 @@ import { useState } from "react";
 import { DateProvider } from "@/components/date";
 import { ThemeProvider } from "@/components/theme";
 import { UndoProvider } from "@/components/undo";
+import { I18nProvider } from "@/i18n/provider";
 import { useCarryOverSweep } from "@/hooks/useCarryOverSweep";
 
 /**
@@ -32,8 +33,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <UndoProvider>
           <DateProvider>
-            <CarryOverSweep />
-            {children}
+            <I18nProvider>
+              <CarryOverSweep />
+              {children}
+            </I18nProvider>
           </DateProvider>
         </UndoProvider>
       </QueryClientProvider>

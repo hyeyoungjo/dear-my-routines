@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/services/supabase/client";
+import { useTranslations } from "@/i18n/context";
 
 // Magic-link login stays in the code (ADR-011) but is hidden in the UI for now —
 // single-user only. Flip SHOW_MAGIC_LINK to true to re-enable the email form.
@@ -9,6 +10,7 @@ const SHOW_MAGIC_LINK = false;
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
+  const t = useTranslations("login");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
     "idle",
   );
@@ -64,7 +66,7 @@ export default function LoginPage() {
 
         {status === "sent" ? (
           <p className="mt-8 rounded-md bg-neutral-100 p-4 text-sm text-neutral-700">
-            Check your inbox. We sent a sign-in link to <strong>{email}</strong>.
+            {t("checkInbox", { email })}
           </p>
         ) : (
           <>
@@ -73,7 +75,7 @@ export default function LoginPage() {
               onClick={handleGoogleSignIn}
               className="mt-8 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium transition-colors hover:bg-neutral-50"
             >
-              Continue with Google
+              {t("continueWithGoogle")}
             </button>
 
             {status === "error" && (
@@ -84,7 +86,7 @@ export default function LoginPage() {
               <>
                 <div className="my-4 flex items-center gap-3 text-xs text-neutral-400">
                   <span className="h-px flex-1 bg-neutral-200" />
-                  or
+                  {t("or")}
                   <span className="h-px flex-1 bg-neutral-200" />
                 </div>
 
@@ -94,7 +96,7 @@ export default function LoginPage() {
                     required
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
-                    placeholder="you@example.com"
+                    placeholder={t("emailPlaceholder")}
                     autoComplete="email"
                     className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900"
                   />
@@ -103,7 +105,7 @@ export default function LoginPage() {
                     disabled={status === "sending"}
                     className="rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                   >
-                    {status === "sending" ? "Sending…" : "Send magic link"}
+                    {status === "sending" ? t("sending") : t("sendMagicLink")}
                   </button>
                   {status === "error" && (
                     <p className="text-sm text-red-600">{errorMessage}</p>

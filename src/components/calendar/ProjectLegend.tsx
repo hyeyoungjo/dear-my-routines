@@ -8,6 +8,7 @@ import {
   useRemoveProject,
   useUpdateProject,
 } from "@/hooks/projects";
+import { useTranslations } from "@/i18n/context";
 
 /**
  * Top-of-page project legend (PRD: Project is a non-timed grouping). Projects are
@@ -17,6 +18,7 @@ import {
  * same colour a task inherits from its project. Add / rename / recolour / delete.
  */
 export function ProjectLegend() {
+  const t = useTranslations("projects");
   const { data } = useProjects();
   const addProject = useAddProject();
   const updateProject = useUpdateProject();
@@ -32,7 +34,7 @@ export function ProjectLegend() {
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs font-medium text-muted">Projects</span>
+      <span className="text-xs font-medium text-muted">{t("label")}</span>
 
       {projects.map((p) => {
         const c = p.projectColor ?? projectColor(p.projectId) ?? "#94a3b8";
@@ -57,7 +59,7 @@ export function ProjectLegend() {
 
             <input
               defaultValue={p.title}
-              placeholder="Project"
+              placeholder={t("namePlaceholder")}
               onBlur={(e) => {
                 const t = e.target.value.trim();
                 if (t !== p.title)
@@ -69,14 +71,14 @@ export function ProjectLegend() {
               onKeyDown={(e) => {
                 if (e.key === "Enter") e.currentTarget.blur();
               }}
-              aria-label="Project name"
+              aria-label={t("nameLabel")}
               className="w-24 bg-transparent text-foreground placeholder:text-muted focus:outline-none"
             />
             <button
               type="button"
               onClick={() => removeProject.mutate(p.projectId)}
-              aria-label="Delete project"
-              title="Delete project"
+              aria-label={t("delete")}
+              title={t("delete")}
               className="rounded px-1 text-muted/70 hover:text-red-500"
             >
               ✕
@@ -90,7 +92,7 @@ export function ProjectLegend() {
         onClick={() => addProject.mutate({ title: "" })}
         className="rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-muted transition-colors hover:border-accent hover:text-foreground"
       >
-        ＋ Project
+        {t("add")}
       </button>
     </div>
   );

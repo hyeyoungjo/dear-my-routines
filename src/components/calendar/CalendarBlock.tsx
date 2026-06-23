@@ -5,6 +5,7 @@ import { useProjects } from "@/hooks/projects";
 import { useUpdateTask } from "@/hooks/tasks";
 import { useRemovePlanBlock } from "@/hooks/planBlocks";
 import { useRemoveActionBlock } from "@/hooks/actionBlocks";
+import { useTranslations } from "@/i18n/context";
 
 /** Which list a column reads/writes (ADR-017 PLAN vs. ACT). */
 export type ColumnKind = "plan" | "action";
@@ -100,6 +101,7 @@ export function CalendarBlock({
     isOngoing,
     carryCount,
   } = block;
+  const t = useTranslations("block");
   const updateTask = useUpdateTask();
   const removePlanBlock = useRemovePlanBlock();
   const removeActionBlock = useRemoveActionBlock();
@@ -196,14 +198,14 @@ export function CalendarBlock({
               }
               onClick={(e) => e.stopPropagation()}
               onPointerDown={(e) => e.stopPropagation()}
-              aria-label="Assign project"
-              title="Assign project"
+              aria-label={t("assignProject")}
+              title={t("assignProject")}
               className="absolute inset-0 cursor-pointer opacity-0"
             >
-              <option value="">No project</option>
+              <option value="">{t("noProject")}</option>
               {projects.map((p) => (
                 <option key={p.projectId} value={p.projectId}>
-                  {p.title || "Project"}
+                  {p.title || t("projectFallback")}
                 </option>
               ))}
             </select>
@@ -213,16 +215,16 @@ export function CalendarBlock({
         {/* Title — editable on a real block, static on a ghost (edit on PLAN). */}
         {isGhost ? (
           <span className="min-h-0 flex-1 break-words text-xs font-medium leading-tight text-foreground">
-            {title || <span className="font-normal text-muted">New task</span>}
+            {title || <span className="font-normal text-muted">{t("newTask")}</span>}
           </span>
         ) : (
           <textarea
             defaultValue={title}
-            placeholder="New task"
+            placeholder={t("newTask")}
             onBlur={(e) => commitTitle(e.target.value)}
             onClick={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
-            aria-label="Title"
+            aria-label={t("titleLabel")}
             rows={1}
             // field-sizing:content grows to fit wrapped lines; the block's own
             // overflow-hidden crops it once it exceeds the box.
@@ -238,7 +240,7 @@ export function CalendarBlock({
             className={`shrink-0 text-[10px] tabular-nums ${
               carryCount >= 4 ? "text-amber-600" : "text-muted"
             }`}
-            title={`Carried over ${carryCount}×`}
+            title={t("carriedOver", { count: carryCount })}
           >
             ·{carryCount}
           </span>
@@ -256,17 +258,17 @@ export function CalendarBlock({
           onPointerDown={(e) => e.stopPropagation()}
           aria-label={
             isGhost
-              ? "Carry over to next day"
+              ? t("carryOverToNext")
               : kind === "action"
-                ? "Delete action"
-                : "Delete plan"
+                ? t("deleteAction")
+                : t("deletePlan")
           }
           title={
             isGhost
-              ? "Carry over to next day"
+              ? t("carryOverToNext")
               : kind === "action"
-                ? "Delete action"
-                : "Delete plan"
+                ? t("deleteAction")
+                : t("deletePlan")
           }
           className={`shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100 ${
             isGhost ? "hover:text-amber-600" : "hover:text-red-500"
@@ -285,7 +287,7 @@ export function CalendarBlock({
             e.stopPropagation();
             onDragStart(blockId, kind, "resize", e.clientY);
           }}
-          aria-label="Resize block"
+          aria-label={t("resizeBlock")}
           className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize"
         />
       )}

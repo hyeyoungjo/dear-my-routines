@@ -329,6 +329,8 @@ export const userSettings = pgTable(
     aiModel: text("ai_model"),
     // Whether the user has opted in to AI analysis. Default false — opt-in.
     aiEnabled: boolean("ai_enabled").notNull().default(false),
+    // UI language preference (LanguageId). null = fall back to 'en' default.
+    language: text("language"),
     createdOn: timestamp("created_on", { withTimezone: true })
       .notNull()
       .defaultNow(),

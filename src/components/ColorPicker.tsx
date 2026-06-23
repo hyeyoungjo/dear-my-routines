@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { PROJECT_COLORS } from "@/lib/projectColor";
+import { useTranslations } from "@/i18n/context";
 
 /** Accepts `#rrggbb` or `rrggbb`. */
 const HEX_RE = /^#?[0-9a-fA-F]{6}$/;
@@ -19,6 +20,7 @@ export function ColorPicker({
   value: string;
   onChange: (hex: string) => void;
 }) {
+  const t = useTranslations("colorPicker");
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
 
@@ -36,8 +38,8 @@ export function ColorPicker({
           setDraft(value.replace(/^#/, ""));
           setOpen((o) => !o);
         }}
-        aria-label="Pick colour"
-        title="Pick colour"
+        aria-label={t("label")}
+        title={t("label")}
         className="block size-3.5 rounded-full ring-1 ring-border"
         style={{ backgroundColor: value }}
       />
@@ -84,7 +86,7 @@ export function ColorPicker({
                   if (e.key === "Escape") setOpen(false);
                 }}
                 placeholder="7c5cff"
-                aria-label="Hex colour"
+                aria-label={t("hexLabel")}
                 maxLength={6}
                 className="w-full bg-transparent text-xs tabular-nums text-foreground placeholder:text-muted focus:outline-none"
               />

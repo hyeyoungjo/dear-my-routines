@@ -1,0 +1,83 @@
+{
+  "settings": {
+    "buttonLabel": "설정",
+    "theme": "테마",
+    "themeLight": "라이트",
+    "themeDark": "다크",
+    "aiAnalysis": "AI 분석",
+    "aiModel": "AI 모델",
+    "undoLimit": "실행 취소 한도",
+    "exportData": "데이터 내보내기",
+    "language": "언어"
+  },
+  "calendar": {
+    "plan": "계획",
+    "action": "실행",
+    "review": "리뷰",
+    "loading": "불러오는 중…",
+    "loadFailed": "불러오기 실패."
+  },
+  "block": {
+    "newTask": "새 작업",
+    "assignProject": "프로젝트 지정",
+    "noProject": "프로젝트 없음",
+    "projectFallback": "프로젝트",
+    "titleLabel": "제목",
+    "carriedOver": "{count}회 이월",
+    "carryOverToNext": "다음 날로 이월",
+    "deleteAction": "실행 삭제",
+    "deletePlan": "계획 삭제",
+    "resizeBlock": "블록 크기 조절"
+  },
+  "review": {
+    "placeholder": "오늘 하루 어땠나요?"
+  },
+  "projects": {
+    "label": "프로젝트",
+    "namePlaceholder": "프로젝트",
+    "nameLabel": "프로젝트 이름",
+    "delete": "프로젝트 삭제",
+    "add": "+ 프로젝트"
+  },
+  "taskDetail": {
+    "modalLabel": "작업 상세",
+    "titlePlaceholder": "새 작업",
+    "titleLabel": "제목",
+    "close": "닫기",
+    "notesPlaceholder": "메모",
+    "notesLabel": "메모",
+    "categoryLabel": "카테고리",
+    "categoryInputLabel": "카테고리",
+    "projectLabel": "프로젝트",
+    "noProject": "프로젝트 없음",
+    "projectFallback": "프로젝트",
+    "originally": "원래",
+    "movePlannedDay": "최초 계획일 변경",
+    "done": "완료",
+    "moveDoneDay": "완료일 변경",
+    "notDone": "미완료 · 날짜 선택",
+    "markDoneDay": "완료일 지정",
+    "carried": "이월",
+    "carriedTitle": "이 작업의 이월 횟수"
+  },
+  "export": {
+    "title": "데이터 내보내기",
+    "from": "시작",
+    "to": "종료",
+    "cancel": "취소",
+    "exporting": "내보내는 중…",
+    "exportCsv": "CSV 내보내기"
+  },
+  "colorPicker": {
+    "label": "색상 선택",
+    "hexLabel": "Hex 색상"
+  },
+  "login": {
+    "continueWithGoogle": "Google로 계속하기",
+    "checkInbox": "받은 편지함을 확인하세요. {email}로 로그인 링크를 보냈습니다.",
+    "sendMagicLink": "매직 링크 보내기",
+    "sending": "보내는 중…",
+    "emailPlaceholder": "you@example.com",
+    "or": "또는"
+  }
+}

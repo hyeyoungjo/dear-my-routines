@@ -4,16 +4,14 @@ import { useState } from "react";
 import { THEMES, useTheme, type Theme } from "@/components/theme";
 import { useUndo } from "@/components/undo";
 import { AI_MODELS, DEFAULT_MODEL_ID } from "@/services/ai/models";
+import { LANGUAGES, DEFAULT_LANGUAGE_ID } from "@/lib/languages";
 import { useUserSettings, useUpdateUserSettings } from "@/hooks/userSettings";
 import { ExportModal } from "@/components/ExportModal";
+import { useTranslations } from "@/i18n/context";
 
-const LABELS: Record<Theme, string> = {
-  light: "Light",
-  dark: "Dark",
-};
-
-/** Gear button (top-right) that opens settings: theme, AI model, undo limit. */
+/** Gear button (top-right) that opens settings: theme, AI model, language, undo limit. */
 export function ThemeMenu() {
+  const t = useTranslations("settings");
   const { theme, setTheme } = useTheme();
   const { max, setMax } = useUndo();
   const [open, setOpen] = useState(false);
@@ -23,13 +21,19 @@ export function ThemeMenu() {
 
   const currentModelId = settings?.aiModel ?? DEFAULT_MODEL_ID;
   const aiEnabled = settings?.aiEnabled ?? false;
+  const currentLanguageId = settings?.language ?? DEFAULT_LANGUAGE_ID;
+
+  const LABELS: Record<Theme, string> = {
+    light: t("themeLight"),
+    dark: t("themeDark"),
+  };
 
   return (
     <div className="relative">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        aria-label="Settings"
+        aria-label={t("buttonLabel")}
         className="rounded-md p-1 text-2xl leading-none text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
       >
         ⚙
@@ -39,7 +43,7 @@ export function ThemeMenu() {
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute right-0 z-20 mt-1 w-52 rounded-md border border-border bg-panel p-1 shadow-lg">
             {/* Theme */}
-            <p className="px-2 py-1 text-xs font-medium text-muted">Theme</p>
+            <p className="px-2 py-1 text-xs font-medium text-muted">{t("theme")}</p>
             {THEMES.map((t) => (
               <button
                 key={t}
@@ -65,7 +69,7 @@ export function ThemeMenu() {
               onClick={() => updateSettings.mutate({ aiEnabled: !aiEnabled })}
               className="flex w-full items-center justify-between rounded px-2 py-1.5 text-sm text-foreground hover:bg-accent-soft transition-colors"
             >
-              <span>AI Analysis</span>
+              <span>{t("aiAnalysis")}</span>
               <span
                 className={`inline-flex h-5 w-9 items-center rounded-full transition-colors ${
                   aiEnabled ? "bg-accent" : "bg-border"
@@ -82,7 +86,7 @@ export function ThemeMenu() {
             {/* AI Model — only when AI is enabled */}
             {aiEnabled && (
               <>
-                <p className="px-2 py-1 text-xs font-medium text-muted">AI Model</p>
+                <p className="px-2 py-1 text-xs font-medium text-muted">{t("aiModel")}</p>
                 {AI_MODELS.map((m) => (
               <button
                 key={m.id}
@@ -106,9 +110,32 @@ export function ThemeMenu() {
 
             <div className="my-1 border-t border-border" />
 
+            {/* Language */}
+            <p className="px-2 py-1 text-xs font-medium text-muted">{t("language")}</p>
+            {LANGUAGES.map((l) => (
+              <button
+                key={l.id}
+                type="button"
+                onClick={() => {
+                  updateSettings.mutate({ language: l.id });
+                  setOpen(false);
+                }}
+                className={`flex w-full items-center justify-between rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent-soft ${
+                  currentLanguageId === l.id
+                    ? "font-medium text-accent"
+                    : "text-foreground"
+                }`}
+              >
+                {l.label}
+                {currentLanguageId === l.id && <span>&#10003;</span>}
+              </button>
+            ))}
+
+            <div className="my-1 border-t border-border" />
+
             {/* Undo/redo history depth (Cmd/Ctrl+Z) — persisted in localStorage. */}
             <label className="flex items-center justify-between gap-2 px-2 py-1.5 text-sm text-foreground">
-              <span>Undo limit</span>
+              <span>{t("undoLimit")}</span>
               <input
                 type="number"
                 min={1}
@@ -130,7 +157,7 @@ export function ThemeMenu() {
               }}
               className="flex w-full items-center rounded px-2 py-1.5 text-sm text-foreground transition-colors hover:bg-accent-soft"
             >
-              Export data
+              {t("exportData")}
             </button>
           </div>
         </>

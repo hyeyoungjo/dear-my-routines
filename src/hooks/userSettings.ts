@@ -22,6 +22,7 @@ async function fetchUserSettings(): Promise<UserSettings | null> {
 export type UpdateSettingsInput = {
   aiModel?: string | null;
   aiEnabled?: boolean;
+  language?: string | null;
 };
 
 async function updateUserSettings(
@@ -71,6 +72,7 @@ export function useUpdateUserSettings() {
           userId: "",
           aiModel: input.aiModel ?? null,
           aiEnabled: input.aiEnabled ?? false,
+          language: input.language ?? null,
           createdOn: new Date(),
           updatedOn: new Date(),
         };

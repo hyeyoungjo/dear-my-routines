@@ -35,6 +35,7 @@ import {
 } from "@/hooks/actionBlocks";
 import { useTasks, useCreateTaskWithBlock } from "@/hooks/tasks";
 import { useProjects } from "@/hooks/projects";
+import { useTranslations } from "@/i18n/context";
 
 /** Pixel height of one hour row; the whole grid scales off this. */
 const SLOT_HEIGHT = 48;
@@ -79,6 +80,7 @@ type DragPreview = {
  * failure (CLAUDE.md CRITICAL). All schedule math comes from `core/time`.
  */
 export function CalendarGrid() {
+  const t = useTranslations("calendar");
   const { data: planData, isLoading, isError } = usePlanBlocks();
   const { data: actionData } = useActionBlocks();
   const { data: taskData } = useTasks();
@@ -412,21 +414,21 @@ export function CalendarGrid() {
       {/* Column headers aligned to the body layout below. */}
       <div className="mb-4 flex items-baseline">
         <h2 className="flex-1 text-center text-base font-semibold tracking-tight text-foreground">
-          Plan
+          {t("plan")}
         </h2>
         <div className="w-14 shrink-0" aria-hidden />
         <h2 className="flex-1 text-center text-base font-semibold tracking-tight text-foreground">
-          Action
+          {t("action")}
         </h2>
         <h2 className="flex-1 text-center text-base font-semibold tracking-tight text-foreground">
-          Review
+          {t("review")}
         </h2>
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-muted">Loading…</p>
+        <p className="text-sm text-muted">{t("loading")}</p>
       ) : isError ? (
-        <p className="text-sm text-red-500">Failed to load.</p>
+        <p className="text-sm text-red-500">{t("loadFailed")}</p>
       ) : (
         <div className="flex">
           {/* Left: Plan column */}

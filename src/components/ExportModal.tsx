@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { dayKey } from "@/core/time/day";
 import { useExport } from "@/hooks/useExport";
+import { useTranslations } from "@/i18n/context";
 
 type Props = {
   open: boolean;
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export function ExportModal({ open, onClose }: Props) {
+  const t = useTranslations("export");
   const [from, setFrom] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 30);
@@ -34,11 +36,11 @@ export function ExportModal({ open, onClose }: Props) {
       <div className="fixed inset-0 z-30 bg-black/40" onClick={onClose} />
       <div className="fixed left-1/2 top-1/2 z-40 w-80 -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-panel p-4 shadow-xl">
         <h2 className="mb-3 text-base font-medium text-foreground">
-          Export data
+          {t("title")}
         </h2>
         <div className="space-y-3">
           <label className="flex items-center justify-between gap-2 text-sm text-foreground">
-            <span>From</span>
+            <span>{t("from")}</span>
             <input
               type="date"
               value={from}
@@ -47,7 +49,7 @@ export function ExportModal({ open, onClose }: Props) {
             />
           </label>
           <label className="flex items-center justify-between gap-2 text-sm text-foreground">
-            <span>To</span>
+            <span>{t("to")}</span>
             <input
               type="date"
               value={to}
@@ -63,7 +65,7 @@ export function ExportModal({ open, onClose }: Props) {
             onClick={onClose}
             className="rounded px-3 py-1.5 text-sm text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
           >
-            Cancel
+            {t("cancel")}
           </button>
           <button
             type="button"
@@ -71,7 +73,7 @@ export function ExportModal({ open, onClose }: Props) {
             disabled={isPending}
             className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50"
           >
-            {isPending ? "Exporting…" : "Export CSV"}
+            {isPending ? t("exporting") : t("exportCsv")}
           </button>
         </div>
       </div>

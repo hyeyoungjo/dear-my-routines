@@ -9,6 +9,7 @@ import {
   useUpsertDailyReview,
   type UpsertReviewInput,
 } from "@/hooks/dailyReviews";
+import { useTranslations } from "@/i18n/context";
 
 /** Idle time after the last keystroke before the journal is auto-saved. */
 const DEBOUNCE_MS = 600;
@@ -26,6 +27,7 @@ const DEBOUNCE_MS = 600;
  * disabled — analysis loading is fully decoupled (ADR-007).
  */
 export function ReviewColumn() {
+  const t = useTranslations("review");
   const { selectedDate } = useSelectedDate();
   const date = dayKey(selectedDate);
   const { data } = useDailyReview(date);
@@ -85,7 +87,7 @@ export function ReviewColumn() {
         value={text}
         onChange={handleChange}
         onBlur={flush}
-        placeholder="How did today go?"
+        placeholder={t("placeholder")}
         className="min-h-0 flex-1 w-full resize-none bg-transparent p-3 text-sm leading-relaxed text-foreground placeholder:text-muted focus:outline-none"
       />
 
