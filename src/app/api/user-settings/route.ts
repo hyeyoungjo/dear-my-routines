@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { userSettings } from "@/db/schema";
 import { isAllowedModel } from "@/services/ai/models";
 import { isAllowedLanguage } from "@/lib/languages";
+import { isAllowedFont } from "@/lib/fonts";
 import { createClient } from "@/services/supabase/server";
 
 /**
@@ -50,7 +51,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { aiModel, aiEnabled, language } = body;
+  const { aiModel, aiEnabled, language, font } = body;
 
   // null = reset to default; string = must be an allowed model id
   if (aiModel !== null && aiModel !== undefined) {
@@ -84,6 +85,15 @@ export async function PUT(request: NextRequest) {
     }
   }
 
+  if (font !== undefined && font !== null) {
+    if (typeof font !== "string" || !isAllowedFont(font)) {
+      return NextResponse.json(
+        { error: `font "${font}" is not supported` },
+        { status: 400 },
+      );
+    }
+  }
+
   const [upserted] = await db
     .insert(userSettings)
     .values({
@@ -91,6 +101,7 @@ export async function PUT(request: NextRequest) {
       aiModel: (aiModel as string | null) ?? null,
       aiEnabled: (aiEnabled as boolean | undefined) ?? false,
       language: (language as string | null | undefined) ?? null,
+      font: (font as string | null | undefined) ?? null,
     })
     .onConflictDoUpdate({
       target: userSettings.userId,
@@ -98,6 +109,7 @@ export async function PUT(request: NextRequest) {
         ...(aiModel !== undefined && { aiModel: aiModel as string | null }),
         ...(aiEnabled !== undefined && { aiEnabled: aiEnabled as boolean }),
         ...(language !== undefined && { language: language as string | null }),
+        ...(font !== undefined && { font: font as string | null }),
         updatedOn: new Date(),
       },
     })

@@ -8,7 +8,8 @@
     "aiModel": "AI Model",
     "undoLimit": "Undo limit",
     "exportData": "Export data",
-    "language": "Language"
+    "language": "Language",
+    "font": "Font"
   },
   "calendar": {
     "plan": "Plan",

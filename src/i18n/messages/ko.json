@@ -8,7 +8,8 @@
     "aiModel": "AI 모델",
     "undoLimit": "실행 취소 한도",
     "exportData": "데이터 내보내기",
-    "language": "언어"
+    "language": "언어",
+    "font": "글꼴"
   },
   "calendar": {
     "plan": "계획",
