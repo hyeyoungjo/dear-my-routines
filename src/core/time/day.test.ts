@@ -1,44 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { FlatNode } from "@/core/tree/types";
 import {
   addDays,
   dayKey,
   gridDayOf,
   isSameMonth,
   monthGrid,
-  nodeBelongsToDay,
-  nodesForDay,
   startOfDay,
 } from "./day";
-
-/** A minimal node with everything nullable cleared — override what a test needs. */
-function node(partial: Partial<FlatNode>): FlatNode {
-  return {
-    id: "n",
-    userId: "u",
-    parentId: null,
-    type: "task",
-    title: "",
-    notes: null,
-    links: null,
-    estimateMinutes: null,
-    actualMinutes: null,
-    plannedStart: null,
-    plannedEnd: null,
-    actualStart: null,
-    actualEnd: null,
-    status: "pending",
-    category: null,
-    color: null,
-    isBig3: false,
-    plannedDate: null,
-    carryCount: 0,
-    sortOrder: 0,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    ...partial,
-  } as FlatNode;
-}
 
 describe("dayKey", () => {
   it("formats a local date as YYYY-MM-DD", () => {
@@ -67,52 +35,6 @@ describe("gridDayOf", () => {
   it("counts 06:59 as the previous day, 07:00 as the new one", () => {
     expect(gridDayOf(new Date(2026, 5, 22, 6, 59))).toBe("2026-06-21");
     expect(gridDayOf(new Date(2026, 5, 22, 7, 0))).toBe("2026-06-22");
-  });
-});
-
-describe("nodeBelongsToDay", () => {
-  const day = new Date(2026, 5, 21, 0, 0);
-
-  it("uses plannedStart's grid day when placed", () => {
-    expect(
-      nodeBelongsToDay(node({ plannedStart: new Date(2026, 5, 21, 9, 0) }), day),
-    ).toBe(true);
-    expect(
-      nodeBelongsToDay(node({ plannedStart: new Date(2026, 5, 20, 9, 0) }), day),
-    ).toBe(false);
-  });
-
-  it("anchors a post-midnight block to the previous day's grid", () => {
-    expect(
-      nodeBelongsToDay(node({ plannedStart: new Date(2026, 5, 22, 1, 0) }), day),
-    ).toBe(true);
-  });
-
-  it("falls back to actualStart when there is no plannedStart", () => {
-    expect(
-      nodeBelongsToDay(node({ actualStart: new Date(2026, 5, 21, 15, 0) }), day),
-    ).toBe(true);
-  });
-
-  it("falls back to plannedDate for an unplaced node", () => {
-    expect(nodeBelongsToDay(node({ plannedDate: "2026-06-21" }), day)).toBe(true);
-    expect(nodeBelongsToDay(node({ plannedDate: "2026-06-20" }), day)).toBe(false);
-  });
-
-  it("prefers a span over plannedDate when both exist", () => {
-    expect(
-      nodeBelongsToDay(
-        node({
-          plannedStart: new Date(2026, 5, 20, 9, 0),
-          plannedDate: "2026-06-21",
-        }),
-        day,
-      ),
-    ).toBe(false);
-  });
-
-  it("belongs to no day when it has neither span nor plannedDate", () => {
-    expect(nodeBelongsToDay(node({}), day)).toBe(false);
   });
 });
 
@@ -168,18 +90,5 @@ describe("monthGrid", () => {
     // Jun 1 is a Monday, so the first cell is the previous month.
     expect(isSameMonth(weeks[0][0], target)).toBe(false);
     expect(weeks[0][0].getMonth()).toBe(4); // May
-  });
-});
-
-describe("nodesForDay", () => {
-  it("keeps only the nodes belonging to the date", () => {
-    const day = new Date(2026, 5, 21, 0, 0);
-    const nodes = [
-      node({ id: "a", plannedStart: new Date(2026, 5, 21, 9, 0) }),
-      node({ id: "b", plannedStart: new Date(2026, 5, 22, 9, 0) }),
-      node({ id: "c", plannedDate: "2026-06-21" }),
-      node({ id: "d" }),
-    ];
-    expect(nodesForDay(nodes, day).map((n) => n.id)).toEqual(["a", "c"]);
   });
 });

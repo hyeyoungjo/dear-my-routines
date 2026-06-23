@@ -1,0 +1,56 @@
+{
+  "project": "Dear My Routines",
+  "phase": "7-carry-v2",
+  "steps": [
+    {
+      "step": 0,
+      "name": "blocks-schema",
+      "status": "completed",
+      "started_at": "2026-06-23T02:43:27+0900",
+      "summary": "Added task_blocks table (1:N per-day occurrences of a node, ADR-014) + block_status enum (planned|done|missed), with user_id+RLS ownerPolicies; migration 0003_damp_sunset_bain.sql applied; idempotent scripts/migrate-to-blocks.ts ported 16 timed nodes → 16 blocks (grid_day via gridDayOf 07:00 boundary); nodes time fields left intact (removed in step 5).",
+      "completed_at": "2026-06-23T02:50:20+0900"
+    },
+    {
+      "step": 1,
+      "name": "blocks-core",
+      "status": "completed",
+      "started_at": "2026-06-23T03:40:01+0900",
+      "summary": "Added src/core/time/blocks.ts (+blocks.test.ts, 20 tests) — pure task_blocks logic reusing day.ts/calendar.ts/carry.ts (no duplication). FlatBlock wire type + exports: blockBelongsToDay/blocksForDay (grid-day attribution), blockSpan, shiftBlockPlanned (moves gridDay)/shiftBlockActual (reschedule, status untouched), carryOverBlock (missedPatch + new planned block on toDate), findOverdueBlocks (status==='planned' & gridDay<today, idempotent), and derived plannedDateOf/revisedDateOf/actualDateOf/carryCountOf. clock+duration preserved on all shifts.",
+      "completed_at": "2026-06-23T03:46:21+0900"
+    },
+    {
+      "step": 2,
+      "name": "blocks-api-hooks",
+      "status": "completed",
+      "started_at": "2026-06-23T03:46:21+0900",
+      "summary": "Added task_blocks server API (src/app/api/blocks/route.ts GET+POST, src/app/api/blocks/[id]/route.ts PATCH+DELETE) modeled on nodes routes: auth.getUser() enforced, userId server-injected (never from body, RLS), parseBlockCreateInput/parseBlockPatchInput validate status enum + ISO→Date for spans, nodeId immutable on patch. Added TanStack optimistic hooks src/hooks/blocks.ts (key [\"blocks\"]): useBlocks + useAddBlock/useUpdateBlock/useRemoveBlock sharing useOptimisticBlockMutation (onMutate cache write/onError rollback/onSuccess undo record/onSettled invalidate), fromHistory suppresses re-record; cache holds FlatBlock[] (flat array ops). Coexists with nodes API/hooks.",
+      "completed_at": "2026-06-23T03:49:11+0900"
+    },
+    {
+      "step": 3,
+      "name": "calendar-blocks",
+      "status": "completed",
+      "started_at": "2026-06-23T03:49:11+0900",
+      "summary": "Switched CalendarGrid/CalendarBlock from node time fields to task_blocks (ADR-014): each drawn block is one occurrence (blocksForDay scopes to selected grid day), title/project-colour joined from its node via nodeById. CalBlock now { block, node, span, color, isPlaceholder, comparison, carryCount }; nesting removed (blocks are flat/independent). readBlockSpan reuses core blockSpan (Plan=plan span, Action=actual else plan ghost); geometry (blockTopMinutes/blockPixelHeight/layoutOverlaps using block.sortOrder) reused from core. Drag/resize commit → optimistic useUpdateBlock (movePatch/resizePatch ISO into the column's pair); empty-slot click → useAddNode then useAddBlock (gridDay=dayKey); ghost confirm copies plan→actual; comparison label only when both spans exist; 🔁 carryCount via carryCountOf(blocksByNode). Plan ✕=removeBlock, Action ✕=clear actual; ghost ✕ (carry-over) deferred to step 4.",
+      "completed_at": "2026-06-23T04:03:05+0900"
+    },
+    {
+      "step": 4,
+      "name": "modal-carry-sweep",
+      "status": "completed",
+      "started_at": "2026-06-23T04:03:05+0900",
+      "summary": "Completed carry-v2 on task_blocks (ADR-014). NodeDetailModal now edits one block occurrence independently: planned/actual MiniCalendar pickers save immediately via useUpdateBlock/useUpdateNode (not onBlur-only); picking an actual date when none exists CREATES an actual span from the planned clock and sets status='done' (fixes the empty-patch 찍기 bug); fixed the build by passing block={occurrence} from CalendarBlock. Wired ghost ✕ → onCarryOver: carryOverBlock(block, addDays(selectedDate,1)) marks THIS block missed (useUpdateBlock) and births a new planned block tomorrow (useAddBlock), leaving the missed record in place for review; manual reschedule still leaves status/carryCount untouched. useCarryOverSweep rebuilt block-based: findOverdueBlocks→carryOverBlock(block,today), once-per-mount useRef guard + fromHistory:true (idempotent, no undo). Comparison label already block-scoped (plan+actual both present), so the bogus '2h→9h' cross-occurrence label is gone. All optimistic. build+116 tests+lint green.",
+      "completed_at": "2026-06-23T04:17:17+0900"
+    },
+    {
+      "step": 5,
+      "name": "nodes-cleanup",
+      "status": "completed",
+      "started_at": "2026-06-23T04:17:17+0900",
+      "summary": "Removed nodes' legacy time/status/carry columns (ADR-014 final cut): dropped plannedStart/plannedEnd/actualStart/actualEnd/actualMinutes/status/plannedDate/carryCount + node_status enum via migration 0004_fast_weapon_omega.sql (generated + applied to Supabase). nodes now hold only identity/stats units (title/notes/links, estimateMinutes, category, color, isBig3, tree parentId, sortOrder). Cleaned the dead node-level references the transition orphaned: deleted carry.ts shiftPlannedToDate/shiftActualToDate/carryOverNode/findOverdueUncarried (kept pure shiftSpanOntoGridDay used by blocks.ts) and day.ts nodeBelongsToDay/nodesForDay; trimmed AddNodeInput/optimisticNode (hooks/nodes.ts) and parseCreateInput/parsePatchInput (api/nodes routes) to the surviving fields; removed obsolete carry.test.ts + node-belongs tests in day.test.ts; deleted the completed one-off scripts/migrate-to-blocks.ts. build + 92 tests + lint green.",
+      "completed_at": "2026-06-23T04:24:43+0900"
+    }
+  ],
+  "created_at": "2026-06-23T02:43:27+0900",
+  "completed_at": "2026-06-23T04:24:43+0900"
+}

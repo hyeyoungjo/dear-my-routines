@@ -22,6 +22,41 @@
       "when": 1782070170595,
       "tag": "0002_stiff_spot",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1782150256165,
+      "tag": "0003_damp_sunset_bain",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1782156173948,
+      "tag": "0004_fast_weapon_omega",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1782162430250,
+      "tag": "0005_split_plan_action",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782165885307,
+      "tag": "0006_projects_tasks_split",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1782181291602,
+      "tag": "0007_drop_action_status",
+      "breakpoints": true
     }
   ]
 }

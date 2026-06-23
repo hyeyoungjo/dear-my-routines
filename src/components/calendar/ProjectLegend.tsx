@@ -3,31 +3,31 @@
 import { projectColor } from "@/lib/projectColor";
 import { ColorPicker } from "@/components/ColorPicker";
 import {
-  useAddNode,
-  useNodes,
-  useRemoveNode,
-  useUpdateNode,
-} from "@/hooks/nodes";
+  useAddProject,
+  useProjects,
+  useRemoveProject,
+  useUpdateProject,
+} from "@/hooks/projects";
 
 /**
- * Top-of-page project legend (PRD: Project is a non-timed grouping). Projects
- * live as `type: "project"` nodes but are NOT drawn on the time grid — they're
- * managed here as colour-capsule chips. The colour is `p.color` (user-picked via
- * the round swatch) or a deterministic `projectColor(id)` fallback; the same
- * colour a task inherits from its project. Add / rename / recolour / delete here.
+ * Top-of-page project legend (PRD: Project is a non-timed grouping). Projects are
+ * their own list now (ADR-016 drops the nodes tree) — never drawn on the time
+ * grid, managed here as colour-capsule chips. The colour is `projectColor` (user
+ * pick via the round swatch) or a deterministic `projectColor(id)` fallback; the
+ * same colour a task inherits from its project. Add / rename / recolour / delete.
  */
 export function ProjectLegend() {
-  const { data: nodes } = useNodes();
-  const addNode = useAddNode();
-  const updateNode = useUpdateNode();
-  const removeNode = useRemoveNode();
+  const { data } = useProjects();
+  const addProject = useAddProject();
+  const updateProject = useUpdateProject();
+  const removeProject = useRemoveProject();
 
   // Stable order (creation time) so chips don't jump on update/refetch.
-  const projects = (nodes ?? [])
-    .filter((n) => n.type === "project")
+  const projects = (data ?? [])
+    .slice()
     .sort(
       (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        new Date(a.createdOn).getTime() - new Date(b.createdOn).getTime(),
     );
 
   return (
@@ -35,10 +35,10 @@ export function ProjectLegend() {
       <span className="text-xs font-medium text-muted">Projects</span>
 
       {projects.map((p) => {
-        const c = p.color ?? projectColor(p.id) ?? "#94a3b8";
+        const c = p.projectColor ?? projectColor(p.projectId) ?? "#94a3b8";
         return (
           <div
-            key={p.id}
+            key={p.projectId}
             // Capsule tinted with the project colour; text stays foreground for
             // readability (a faint tint + dark text reads on any hue).
             style={{ backgroundColor: `${c}22`, borderColor: `${c}66` }}
@@ -48,7 +48,10 @@ export function ProjectLegend() {
             <ColorPicker
               value={c}
               onChange={(hex) =>
-                updateNode.mutate({ id: p.id, patch: { color: hex } })
+                updateProject.mutate({
+                  projectId: p.projectId,
+                  patch: { projectColor: hex },
+                })
               }
             />
 
@@ -57,7 +60,11 @@ export function ProjectLegend() {
               placeholder="Project"
               onBlur={(e) => {
                 const t = e.target.value.trim();
-                if (t !== p.title) updateNode.mutate({ id: p.id, patch: { title: t } });
+                if (t !== p.title)
+                  updateProject.mutate({
+                    projectId: p.projectId,
+                    patch: { title: t },
+                  });
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") e.currentTarget.blur();
@@ -67,7 +74,7 @@ export function ProjectLegend() {
             />
             <button
               type="button"
-              onClick={() => removeNode.mutate(p.id)}
+              onClick={() => removeProject.mutate(p.projectId)}
               aria-label="Delete project"
               title="Delete project"
               className="rounded px-1 text-muted/70 hover:text-red-500"
@@ -80,7 +87,7 @@ export function ProjectLegend() {
 
       <button
         type="button"
-        onClick={() => addNode.mutate({ title: "", type: "project" })}
+        onClick={() => addProject.mutate({ title: "" })}
         className="rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-muted transition-colors hover:border-accent hover:text-foreground"
       >
         ＋ Project

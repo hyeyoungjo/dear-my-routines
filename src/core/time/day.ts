@@ -1,4 +1,3 @@
-import type { FlatNode } from "@/core/tree/types";
 import { GRID_START_HOUR } from "./calendar";
 
 /**
@@ -7,10 +6,9 @@ import { GRID_START_HOUR } from "./calendar";
  * 07:00 → 02:00 the next morning (see calendar.ts), so a 00:00–06:59 timestamp
  * is the tail of the previous calendar day, not the head of its own.
  *
- * These pure predicates are how the normalized `nodes` rows (the source of
- * truth) get assembled into the "one day" view the UI navigates — the JSON-ish
- * shape the user sees is a read model over the rows, never a stored blob
- * (ADR-013).
+ * Per-day attribution of work now lives on `task_blocks` (ADR-014); these
+ * helpers are the pure date math (keys, grid-day boundary, month grid) that the
+ * block-scoping in `blocks.ts` and the calendar UI build on.
  */
 
 /** Local calendar key `YYYY-MM-DD` (timezone = the runtime's local zone). */
@@ -39,27 +37,6 @@ export function gridDayOf(ts: Date): string {
     d.setDate(d.getDate() - 1);
   }
   return dayKey(d);
-}
-
-/**
- * Does a node belong to the given day?
- * - Placed on the grid → anchored by its planned (else actual) start's grid day.
- * - Not yet placed → falls back to its `plannedDate` column (the carry-over /
- *   morning-plan date, ADR-009), which is already a `YYYY-MM-DD` string.
- * - Neither → belongs to no day.
- */
-export function nodeBelongsToDay(node: FlatNode, date: Date): boolean {
-  const key = dayKey(date);
-  const span = node.plannedStart ?? node.actualStart;
-  // Spans may arrive as ISO strings over the wire; normalize before reading.
-  if (span) return gridDayOf(new Date(span)) === key;
-  if (node.plannedDate) return node.plannedDate === key;
-  return false;
-}
-
-/** The subset of nodes that belong to `date` (see `nodeBelongsToDay`). */
-export function nodesForDay(nodes: FlatNode[], date: Date): FlatNode[] {
-  return nodes.filter((node) => nodeBelongsToDay(node, date));
 }
 
 /** Local midnight of `date` — the canonical anchor for a selected day. */

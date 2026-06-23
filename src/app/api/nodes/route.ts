@@ -5,13 +5,6 @@ import { nodes, type NewNode } from "@/db/schema";
 import { createClient } from "@/services/supabase/server";
 
 const NODE_TYPES = ["area", "project", "task", "subtask"] as const;
-const NODE_STATUSES = [
-  "pending",
-  "in_progress",
-  "done",
-  "carried",
-  "dropped",
-] as const;
 
 /**
  * Pick only the fields a client may set when creating a node, validating the
@@ -45,31 +38,8 @@ function parseCreateInput(
   if (typeof body.estimateMinutes === "number") {
     values.estimateMinutes = body.estimateMinutes;
   }
-  if (typeof body.actualMinutes === "number") {
-    values.actualMinutes = body.actualMinutes;
-  }
-  if (
-    typeof body.status === "string" &&
-    NODE_STATUSES.includes(body.status as never)
-  ) {
-    values.status = body.status as NewNode["status"];
-  }
   if (typeof body.category === "string") values.category = body.category;
   if (typeof body.isBig3 === "boolean") values.isBig3 = body.isBig3;
-  if (typeof body.plannedDate === "string") values.plannedDate = body.plannedDate;
-  // Calendar time blocks arrive as ISO strings; Drizzle timestamps want Dates.
-  if (typeof body.plannedStart === "string") {
-    values.plannedStart = new Date(body.plannedStart);
-  }
-  if (typeof body.plannedEnd === "string") {
-    values.plannedEnd = new Date(body.plannedEnd);
-  }
-  if (typeof body.actualStart === "string") {
-    values.actualStart = new Date(body.actualStart);
-  }
-  if (typeof body.actualEnd === "string") {
-    values.actualEnd = new Date(body.actualEnd);
-  }
   if (typeof body.sortOrder === "number") values.sortOrder = body.sortOrder;
 
   return values;

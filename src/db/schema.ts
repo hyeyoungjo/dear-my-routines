@@ -59,12 +59,22 @@ export const nodeType = pgEnum("node_type", [
   "subtask",
 ]);
 
-export const nodeStatus = pgEnum("node_status", [
-  "pending",
-  "in_progress",
+// A task_block's lifecycle on a single grid day (ADR-014). `missed` is the
+// carry-over signal: an unfinished planned block stays `missed` and a *new*
+// block is born on the next day (same node, time kept).
+export const blockStatus = pgEnum("block_status", [
+  "planned",
   "done",
-  "carried",
-  "dropped",
+  "missed",
+]);
+
+// A plan_block's lifecycle (ADR-015). Plan and action are now separate lists;
+// "done" no longer lives here — completion is expressed by an action_block
+// existing. A carried-over plan stays `missed` (kept as review evidence) while
+// a fresh `planned` block is born on the next day.
+export const planBlockStatus = pgEnum("plan_block_status", [
+  "planned",
+  "missed",
 ]);
 
 // --- nodes: flexible Area > Project > Task > Subtask tree (ADR-009) --------
@@ -82,23 +92,15 @@ export const nodes = pgTable(
     title: text("title").notNull(),
     notes: text("notes"),
     links: text("links").array(),
+    // Estimated minutes — the task's *prediction*, a stats unit (ADR-014).
+    // Actual time and per-day placement now live on task_blocks, not here.
     estimateMinutes: integer("estimate_minutes"),
-    actualMinutes: integer("actual_minutes"),
-    // Calendar time blocks (all nullable). When unset, estimateMinutes is the
-    // fallback for tasks not yet placed on the calendar grid.
-    plannedStart: timestamp("planned_start", { withTimezone: true }),
-    plannedEnd: timestamp("planned_end", { withTimezone: true }),
-    actualStart: timestamp("actual_start", { withTimezone: true }),
-    actualEnd: timestamp("actual_end", { withTimezone: true }),
-    status: nodeStatus("status").notNull().default("pending"),
     category: text("category"),
     // Optional explicit colour (hex) — used for a project's legend chip and the
     // colour its tasks inherit. Falls back to a deterministic id-based colour
     // when unset (see lib/projectColor).
     color: text("color"),
     isBig3: boolean("is_big3").notNull().default(false),
-    plannedDate: date("planned_date"),
-    carryCount: integer("carry_count").notNull().default(0),
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -108,6 +110,166 @@ export const nodes = pgTable(
       .defaultNow(),
   },
   (t) => ownerPolicies("nodes", t.userId),
+);
+
+// --- task_blocks: per-day plan+actual placement of a task (ADR-014) -------
+
+/**
+ * A task's *occurrence* on one grid day. `nodes` holds task identity and the
+ * stats unit (title/category/estimate/tree); a `task_block` is one date's
+ * planned + actual placement of that task, 1:N from a node.
+ *
+ * Carry-over is expressed here, not on the node: an unfinished planned block
+ * stays `missed` and a fresh block is created on the next grid day (same
+ * `nodeId`, times kept). `planned`/`revised`/`actual` dates and `carryCount`
+ * are *derived* from a node's blocks, never stored as columns.
+ */
+export const taskBlocks = pgTable(
+  "task_blocks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    nodeId: uuid("node_id")
+      .notNull()
+      .references(() => nodes.id, { onDelete: "cascade" }),
+    // The grid day this block belongs to (07:00 boundary, see core/time/day).
+    gridDay: date("grid_day").notNull(),
+    plannedStart: timestamp("planned_start", { withTimezone: true }),
+    plannedEnd: timestamp("planned_end", { withTimezone: true }),
+    actualStart: timestamp("actual_start", { withTimezone: true }),
+    actualEnd: timestamp("actual_end", { withTimezone: true }),
+    status: blockStatus("status").notNull().default("planned"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ownerPolicies("task_blocks", t.userId),
+);
+
+// --- projects: top level of the fixed two-level model (ADR-016) ------------
+
+/**
+ * A project — the only grouping level above a task (ADR-016 drops the flexible
+ * nodes tree). Holds a name + colour its tasks inherit. A project's "current
+ * status" is derived from its tasks' plans/actions, never stored.
+ */
+export const projects = pgTable(
+  "projects",
+  {
+    projectId: uuid("project_id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    title: text("title").notNull(),
+    // Optional explicit colour (hex); falls back to a deterministic id-based
+    // colour when unset (see lib/projectColor).
+    projectColor: text("project_color"),
+    createdOn: timestamp("created_on", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedOn: timestamp("updated_on", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ownerPolicies("projects", t.userId),
+);
+
+// --- tasks: the identity + stats unit (ADR-016) ---------------------------
+
+/**
+ * A task — identity and the stats unit. Per-day placement lives on plan_blocks
+ * (intent) and action_blocks (reality), 1:N. `projectId` is nullable so a task
+ * can be unassigned ("No project"); deleting a project just unassigns its tasks.
+ * `category` stays for PRD category stats; estimate/isBig3/links/sortOrder are
+ * dropped (ADR-016 minimal spec). Current status is derived, never stored.
+ */
+export const tasks = pgTable(
+  "tasks",
+  {
+    taskId: uuid("task_id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    projectId: uuid("project_id").references(() => projects.projectId, {
+      onDelete: "set null",
+    }),
+    title: text("title").notNull(),
+    notes: text("notes"),
+    category: text("category"),
+    createdOn: timestamp("created_on", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedOn: timestamp("updated_on", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ownerPolicies("tasks", t.userId),
+);
+
+// --- plan_blocks: per-day *intention* of a task (ADR-015/016) --------------
+
+/**
+ * One day's plan for a task — "I intend to do this, here, then". Identity and
+ * the stats unit live on `tasks`; a task's plans are 1:N plan_blocks. Carry-over
+ * is expressed here: an unfinished plan stays `missed` (kept as review evidence)
+ * and a fresh `planned` block is created on the next grid day (same task, time
+ * kept). Plans are always placed as boxes, so `start_at`/`end_at` are required.
+ *
+ * Action lives in `action_blocks`, so a single row never holds plan + actual
+ * together (no forced "2h→9h" label).
+ */
+export const planBlocks = pgTable(
+  "plan_blocks",
+  {
+    planBlockId: uuid("plan_block_id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    taskId: uuid("task_id")
+      .notNull()
+      .references(() => tasks.taskId, { onDelete: "cascade" }),
+    // The grid day this plan belongs to (07:00 boundary, see core/time/day).
+    date: date("date").notNull(),
+    startAt: timestamp("start_at", { withTimezone: true }).notNull(),
+    endAt: timestamp("end_at", { withTimezone: true }).notNull(),
+    status: planBlockStatus("status").notNull().default("planned"),
+    createdOn: timestamp("created_on", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedOn: timestamp("updated_on", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ownerPolicies("plan_blocks", t.userId),
+);
+
+// --- action_blocks: per-day *actual execution* of a task (ADR-015) ---------
+
+/**
+ * One span of actually doing a task — reality, not intention (ADR-015/016). A
+ * task done across two days is two rows. Its *kind* (kept / revised / added vs
+ * the plan) and whether it is *doing* (now within its span) are derived, never
+ * stored (see core/time). Stats join plan_blocks + action_blocks by `task_id`;
+ * the estimate-vs-actual comparison is computed there, never on a calendar block.
+ */
+export const actionBlocks = pgTable(
+  "action_blocks",
+  {
+    actionBlockId: uuid("action_block_id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    taskId: uuid("task_id")
+      .notNull()
+      .references(() => tasks.taskId, { onDelete: "cascade" }),
+    date: date("date").notNull(),
+    startAt: timestamp("start_at", { withTimezone: true }).notNull(),
+    // Nullable: a still-running span has no end time yet (future timer).
+    endAt: timestamp("end_at", { withTimezone: true }),
+    createdOn: timestamp("created_on", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedOn: timestamp("updated_on", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ownerPolicies("action_blocks", t.userId),
 );
 
 // --- time_logs: actual measured spans, optionally per node ----------------
@@ -167,6 +329,21 @@ export const categoryStats = pgTable(
 
 export type Node = InferSelectModel<typeof nodes>;
 export type NewNode = InferInsertModel<typeof nodes>;
+
+export type Project = InferSelectModel<typeof projects>;
+export type NewProject = InferInsertModel<typeof projects>;
+
+export type Task = InferSelectModel<typeof tasks>;
+export type NewTask = InferInsertModel<typeof tasks>;
+
+export type TaskBlock = InferSelectModel<typeof taskBlocks>;
+export type NewTaskBlock = InferInsertModel<typeof taskBlocks>;
+
+export type PlanBlock = InferSelectModel<typeof planBlocks>;
+export type NewPlanBlock = InferInsertModel<typeof planBlocks>;
+
+export type ActionBlock = InferSelectModel<typeof actionBlocks>;
+export type NewActionBlock = InferInsertModel<typeof actionBlocks>;
 
 export type TimeLog = InferSelectModel<typeof timeLogs>;
 export type NewTimeLog = InferInsertModel<typeof timeLogs>;
