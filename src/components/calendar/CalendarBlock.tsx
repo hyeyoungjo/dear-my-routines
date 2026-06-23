@@ -1,129 +1,129 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { formatHours, type Span } from "@/core/time/calendar";
-import type { FlatBlock } from "@/core/time/blocks";
-import type { FlatNode } from "@/core/tree/types";
-import { useNodes, useUpdateNode } from "@/hooks/nodes";
-import { useRemoveBlock, useUpdateBlock } from "@/hooks/blocks";
-import { NodeDetailModal } from "@/components/calendar/NodeDetailModal";
+import type { Span } from "@/core/time/calendar";
+import { useProjects } from "@/hooks/projects";
+import { useUpdateTask } from "@/hooks/tasks";
+import { useRemovePlanBlock } from "@/hooks/planBlocks";
+import { useRemoveActionBlock } from "@/hooks/actionBlocks";
 
-/** Which time-block pair a column reads/writes (ADR-004 Plan vs. Act). */
+/** Which list a column reads/writes (ADR-017 PLAN vs. ACT). */
 export type ColumnKind = "plan" | "action";
 
 /** Move shifts the whole block in time; resize drags only its bottom edge. */
 export type DragMode = "move" | "resize";
 
 /**
- * One task occurrence (a `task_block`, ADR-014) laid out for a calendar column.
- * `block` is the occurrence being drawn (the drag/resize/delete target); `node`
- * is its owning task, joined in for title and project colour. `span` is its
- * effective time span; `color` is its project's colour (null = unassigned →
- * white block). `carryCount` is derived from the node's blocks (count of missed
- * occurrences) — shown as the quiet 🔁 badge (ADR-009).
+ * One block drawn on a calendar column (ADR-016/017). A PLAN-column block is a
+ * `plan_block`; an ACT-column block is either a real `action_block` or a *ghost*
+ * — a faint projection of an unacted plan, clicked to spawn an action at that
+ * time. `blockId` is the row this block stands for (the drag/resize/delete
+ * target): a `planBlockId` for plan/ghost, an `actionBlockId` for a real action.
+ * `taskId` carries the identity (title edits + project assignment go to the
+ * task); `color` is the task's project colour (null = unassigned → white block).
+ * `isOngoing` is the *doing* highlight (now within an action span, derived).
+ * `carryCount` is the task's missed-plan count, shown as the quiet `·N` badge.
  */
 export type CalBlock = {
-  block: FlatBlock;
-  node: FlatNode;
+  kind: ColumnKind;
+  blockId: string;
+  taskId: string;
+  title: string;
   span: Span;
   color: string | null;
-  /** Action-column ghost: drawn from the plan span, no actual recorded yet. */
-  isPlaceholder?: boolean;
-  /** Own action duration vs. its plan, for the overrun label. */
-  comparison?: { plannedMinutes: number; actualMinutes: number };
-  /** How many times the owning task has been carried (missed blocks). */
+  projectId: string | null;
+  /** ACT-column ghost: drawn from a plan span, no action recorded yet. */
+  isGhost?: boolean;
+  /** PLAN-column plan carried away (status `missed`) — drawn dashed. */
+  isMissed?: boolean;
+  /** Action spanning now → the in-progress highlight (ADR-017). */
+  isOngoing?: boolean;
+  /** How many times the owning task was carried (count of missed plans). */
   carryCount: number;
 };
 
 /**
- * A task occurrence drawn as an absolutely-positioned block on a calendar column.
- * The block is tinted with its project colour (white when unassigned), and the
- * title **wraps inside it** — no header band. A small control row (project colour
- * → assign menu, plan-vs-actual delta, delete) sits on top and is the drag
- * handle; the bottom edge drags to resize. The schedule math lives in
- * `core/time`; the title/colour belong to the task `node`, the time span to the
- * `task_block` (ADR-014), so title edits go through `useUpdateNode` while
- * span/delete edits go through the optimistic `useUpdateBlock`/`useRemoveBlock`.
+ * A block drawn as an absolutely-positioned box on a calendar column. Tinted with
+ * its project colour (white when unassigned); the title **wraps inside it** — no
+ * header band. A small control row (project swatch → assign menu, delete) sits on
+ * top and is the drag handle; the bottom edge drags to resize. Title edits and
+ * project assignment belong to the task (`useUpdateTask`); span moves go through
+ * the optimistic plan/action update hooks (owned by the grid). Delete: a PLAN ✕
+ * drops the plan; a real ACT ✕ drops only the action (its plan survives and
+ * re-appears as a ghost). A *ghost* ✕ is not a delete — it carries the plan to the
+ * next day (`onCarryOver`): "I won't get to this today".
  *
- * Dragging is plain pointer events (no dnd-kit): pressing the control row starts
- * a move, the bottom edge starts a resize, and the grid tracks the pointer on
- * `window` (so the layout can re-flow freely as overlaps change — no library
- * fighting our re-render). While moving, the grid re-positions this block
- * vertically via its `style` (snapped time) and we follow the cursor
- * horizontally via `dragDeltaX` so the column choice reads live before drop.
+ * A *ghost* has no drag handle and no inline title — clicking its body spawns the
+ * action (the grid's `onConfirm`), while its ✕ carries the plan forward. The title
+ * is edited on the PLAN side instead. Dragging is plain pointer events (no dnd-kit,
+ * which fought
+ * our live re-layout): the control row starts a move, the bottom edge a resize,
+ * and the grid tracks the pointer on `window`. Only vertical (time) movement is
+ * meaningful — overlapping blocks self-arrange by start time (no manual reorder).
  */
 export function CalendarBlock({
   block,
-  column,
   style,
   onConfirm,
   onCarryOver,
   onDragStart,
-  dragDeltaX,
+  isDragging,
 }: {
   block: CalBlock;
-  column: ColumnKind;
   /** Absolute pixel position/size of this block within the grid column. */
   style: React.CSSProperties;
-  /** Click-to-confirm for a ghost (undefined for real blocks). */
+  /** Click-to-create for a ghost (undefined for real blocks). */
   onConfirm?: () => void;
-  /** Carry this ghost forward (missed here + new planned block tomorrow). */
+  /** Carry this ghost's plan to the next day (manual carry-over, ghost only). */
   onCarryOver?: () => void;
   /** Begin a pointer drag (move/resize) — the grid owns the drag state. */
   onDragStart: (
     blockId: string,
-    column: ColumnKind,
+    kind: ColumnKind,
     mode: DragMode,
-    clientX: number,
     clientY: number,
   ) => void;
-  /** Live horizontal cursor delta while this block is being moved, else null. */
-  dragDeltaX: number | null;
+  /** True while this block is the active drag target (drives the highlight). */
+  isDragging: boolean;
 }) {
-  const { block: occurrence, node, color, comparison, isPlaceholder, carryCount } =
-    block;
-  const updateNode = useUpdateNode();
-  const updateBlock = useUpdateBlock();
-  const removeBlock = useRemoveBlock();
+  const {
+    kind,
+    blockId,
+    taskId,
+    title,
+    color,
+    projectId,
+    isGhost,
+    isMissed,
+    isOngoing,
+    carryCount,
+  } = block;
+  const updateTask = useUpdateTask();
+  const removePlanBlock = useRemovePlanBlock();
+  const removeActionBlock = useRemoveActionBlock();
 
-  // Projects for the assign menu (assigning sets the node's parentId → inherits
-  // colour). Project membership is a property of the task, not the occurrence.
-  const { data: allNodes } = useNodes();
-  const projects = (allNodes ?? [])
-    .filter((n) => n.type === "project")
+  // Projects for the assign menu — assigning sets the task's projectId (and so
+  // the colour it inherits). Membership is a property of the task, not the block.
+  const { data: projectData } = useProjects();
+  const projects = (projectData ?? [])
+    .slice()
     .sort(
       (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        new Date(a.createdOn).getTime() - new Date(b.createdOn).getTime(),
     );
 
-  // Double-clicking the block opens its detail editor (manual reschedule). Kept
-  // as light local state — the modal escapes this absolutely-positioned block via
-  // its own `fixed` layer.
-  const [detailOpen, setDetailOpen] = useState(false);
-
-  const isDragging = dragDeltaX !== null;
-  // Clamp the horizontal drag to the block's own column so it stops at the edge
-  // (like a wall) instead of sliding into the other column.
-  const blockRef = useRef<HTMLDivElement>(null);
-  let clampedDeltaX = dragDeltaX ?? 0;
-  if (isDragging) {
-    const el = blockRef.current;
-    if (el) {
-      const parentW =
-        (el.offsetParent as HTMLElement | null)?.clientWidth ?? el.offsetWidth;
-      clampedDeltaX = Math.max(
-        -el.offsetLeft,
-        Math.min(clampedDeltaX, parentW - el.offsetLeft - el.offsetWidth),
-      );
-    }
-  }
-
   const commitTitle = (value: string) => {
-    const title = value.trim();
-    if (title !== node.title) updateNode.mutate({ id: node.id, patch: { title } });
+    const next = value.trim();
+    if (next !== title) updateTask.mutate({ taskId, patch: { title: next } });
   };
-  const overran =
-    comparison != null && comparison.actualMinutes > comparison.plannedMinutes;
+
+  // A real block's ✕ deletes its own row: PLAN ✕ removes the plan, ACT ✕ removes
+  // only the action (its plan survives → re-appears as a ghost). A *ghost* ✕ is
+  // not a delete — it carries the plan to the next day (onCarryOver): "I won't get
+  // to this today", so the work is rescheduled, not lost (ADR-017).
+  const remove = () => {
+    if (kind === "plan") removePlanBlock.mutate(blockId);
+    else removeActionBlock.mutate(blockId);
+  };
 
   // Tinted with the project colour; white when no project is assigned.
   const tintStyle = color
@@ -131,47 +131,37 @@ export function CalendarBlock({
     : undefined;
 
   return (
-    <>
     <div
-      ref={blockRef}
-      // Stop the click from reaching the grid (which would create a new block);
-      // on a ghost, a plain click confirms it (onConfirm guards against drags).
+      // A click on a ghost confirms it (spawns the action); a real block swallows
+      // the click so it never reaches the grid (which would create a new block).
       onClick={(e) => {
         e.stopPropagation();
         onConfirm?.();
       }}
-      // Double-click anywhere on the block body opens its detail editor. The
-      // title textarea stops this (so word-select editing isn't intercepted);
-      // resize/✕ keep working as their own single-click/drag handlers.
-      onDoubleClick={(e) => {
-        e.stopPropagation();
-        setDetailOpen(true);
-      }}
-      style={{
-        ...style,
-        ...tintStyle,
-        // Vertical movement comes from the grid's `style` (snapped time); we
-        // follow the cursor horizontally here, clamped to the column edges.
-        transform: isDragging ? `translateX(${clampedDeltaX}px)` : undefined,
-      }}
+      style={{ ...style, ...tintStyle }}
       className={`group absolute flex select-none flex-col gap-0.5 overflow-hidden rounded-md border p-1 shadow-sm transition-shadow ${
         color ? "" : "border-accent/50 bg-accent-soft"
       } ${
-        isDragging
-          ? "z-10 border-accent/60 shadow-md ring-1 ring-accent/40"
-          : color
-            ? ""
-            : "border-accent/50"
-      } ${isPlaceholder ? "border-dashed opacity-60" : ""}`}
+        isDragging ? "z-10 border-accent/60 shadow-md ring-1 ring-accent/40" : ""
+      } ${isOngoing ? "ring-2 ring-accent/60" : ""} ${
+        isGhost
+          ? "border-dashed opacity-60"
+          : isMissed
+            ? "border-dashed opacity-70"
+            : ""
+      }`}
     >
       {/* Control row — also the drag handle (press and drag to move in time). */}
       <div
         onPointerDown={(e) => {
+          if (isGhost) return; // ghost: click-to-create only, never dragged
           if (e.button !== 0) return;
           e.preventDefault();
-          onDragStart(occurrence.id, column, "move", e.clientX, e.clientY);
+          onDragStart(blockId, kind, "move", e.clientY);
         }}
-        className="flex flex-1 cursor-grab items-start gap-1 active:cursor-grabbing"
+        className={`flex flex-1 items-start gap-1 ${
+          isGhost ? "" : "cursor-grab active:cursor-grabbing"
+        }`}
       >
         {/* Project colour swatch with a transparent native picker → assign menu. */}
         <span className="relative flex size-3 shrink-0 items-center justify-center">
@@ -182,133 +172,110 @@ export function CalendarBlock({
               boxShadow: color ? undefined : "inset 0 0 0 1px var(--border)",
             }}
           />
-          <select
-            value={node.parentId ?? ""}
-            onChange={(e) =>
-              updateNode.mutate({
-                id: node.id,
-                patch: { parentId: e.target.value || null },
-              })
-            }
-            onClick={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-            aria-label="Assign project"
-            title="Assign project"
-            className="absolute inset-0 cursor-pointer opacity-0"
-          >
-            <option value="">No project</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.title || "Project"}
-              </option>
-            ))}
-          </select>
+          {!isGhost && (
+            <select
+              value={projectId ?? ""}
+              onChange={(e) =>
+                updateTask.mutate({
+                  taskId,
+                  patch: { projectId: e.target.value || null },
+                })
+              }
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              aria-label="Assign project"
+              title="Assign project"
+              className="absolute inset-0 cursor-pointer opacity-0"
+            >
+              <option value="">No project</option>
+              {projects.map((p) => (
+                <option key={p.projectId} value={p.projectId}>
+                  {p.title || "Project"}
+                </option>
+              ))}
+            </select>
+          )}
         </span>
 
-        {/* Title — starts on the same row as the colour swatch; wraps as it grows. */}
-        <textarea
-          defaultValue={node.title}
-          placeholder="New task"
-          onBlur={(e) => commitTitle(e.target.value)}
-          onPointerDown={(e) => e.stopPropagation()}
-          // Let a double-click select a word in place instead of opening the
-          // detail modal — the block's onDoubleClick stays out of the title.
-          onDoubleClick={(e) => e.stopPropagation()}
-          aria-label="Title"
-          rows={1}
-          // field-sizing:content grows the textarea to fit wrapped lines; the
-          // block's own overflow-hidden crops it once it exceeds the box.
-          className="min-h-0 flex-1 resize-none break-words [field-sizing:content] bg-transparent text-xs font-medium leading-tight text-foreground placeholder:font-normal placeholder:text-muted focus:outline-none"
-        />
-
-        {carryCount > 0 && (
-          <span
-            className="shrink-0 text-[10px] tabular-nums text-muted"
-            title={`Carried over ${carryCount}×`}
-          >
-            🔁{carryCount}
+        {/* Title — editable on a real block, static on a ghost (edit on PLAN). */}
+        {isGhost ? (
+          <span className="min-h-0 flex-1 break-words text-xs font-medium leading-tight text-foreground">
+            {title || <span className="font-normal text-muted">New task</span>}
           </span>
+        ) : (
+          <textarea
+            defaultValue={title}
+            placeholder="New task"
+            onBlur={(e) => commitTitle(e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            aria-label="Title"
+            rows={1}
+            // field-sizing:content grows to fit wrapped lines; the block's own
+            // overflow-hidden crops it once it exceeds the box.
+            className="min-h-0 flex-1 resize-none break-words [field-sizing:content] bg-transparent text-xs font-medium leading-tight text-foreground placeholder:font-normal placeholder:text-muted focus:outline-none"
+          />
         )}
 
-        {comparison && (
+        {/* carryCount badge: hidden at 0–1, muted `·N` at 2–3, amber at 4+
+            (ADR-017 — a quiet subproject signal that only grows loud when it
+            has been carried too many times). */}
+        {carryCount >= 2 && (
           <span
             className={`shrink-0 text-[10px] tabular-nums ${
-              overran ? "text-amber-600" : "text-muted"
+              carryCount >= 4 ? "text-amber-600" : "text-muted"
             }`}
+            title={`Carried over ${carryCount}×`}
           >
-            {formatHours(comparison.plannedMinutes)} →{" "}
-            {formatHours(comparison.actualMinutes)}
-            {overran && " ⚠"}
+            ·{carryCount}
           </span>
         )}
 
-        {/* A ghost (planned, no actual yet): its ✕ CARRIES the occurrence forward
-            (ADR-014) — this block stays `missed` in place for review and a fresh
-            planned block is born tomorrow (onCarryOver). A real block's ✕ instead
-            deletes the occurrence (Plan) or clears only its actual span (Action),
-            never wiping the plan side. */}
-        {isPlaceholder
-          ? onCarryOver && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  // Don't also confirm the ghost (the body click's onConfirm).
-                  e.stopPropagation();
-                  onCarryOver();
-                }}
-                onPointerDown={(e) => e.stopPropagation()}
-                aria-label="Carry over to next day"
-                title="Carry over to next day"
-                className="shrink-0 text-muted opacity-0 transition-opacity hover:text-amber-600 group-hover:opacity-100"
-              >
-                ✕
-              </button>
-            )
-          : (
-              <button
-                type="button"
-                onClick={() => {
-                  // Deleting from Action must never wipe the plan: when the block
-                  // is also planned, clear only its actual span (the block's Plan
-                  // side survives). A plan block is removed outright (this occurrence).
-                  if (column === "action" && occurrence.plannedStart != null) {
-                    updateBlock.mutate({
-                      id: occurrence.id,
-                      patch: { actualStart: null, actualEnd: null },
-                    });
-                  } else {
-                    removeBlock.mutate(occurrence.id);
-                  }
-                }}
-                onPointerDown={(e) => e.stopPropagation()}
-                aria-label={column === "action" ? "Clear actual" : "Delete"}
-                title={column === "action" ? "Clear actual" : "Delete"}
-                className="shrink-0 text-muted opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
-              >
-                ✕
-              </button>
-            )}
+        {/* ✕ — a ghost carries its plan to the next day (manual carry-over);
+            a real block deletes its own row (ADR-017). */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (isGhost) onCarryOver?.();
+            else remove();
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+          aria-label={
+            isGhost
+              ? "Carry over to next day"
+              : kind === "action"
+                ? "Delete action"
+                : "Delete plan"
+          }
+          title={
+            isGhost
+              ? "Carry over to next day"
+              : kind === "action"
+                ? "Delete action"
+                : "Delete plan"
+          }
+          className={`shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100 ${
+            isGhost ? "hover:text-amber-600" : "hover:text-red-500"
+          }`}
+        >
+          ✕
+        </button>
       </div>
 
-      {/* Bottom edge — drag to resize the block's duration. */}
-      <div
-        onPointerDown={(e) => {
-          if (e.button !== 0) return;
-          e.preventDefault();
-          e.stopPropagation();
-          onDragStart(occurrence.id, column, "resize", e.clientX, e.clientY);
-        }}
-        aria-label="Resize block"
-        className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize"
-      />
+      {/* Bottom edge — drag to resize the block's duration (real blocks only). */}
+      {!isGhost && (
+        <div
+          onPointerDown={(e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            e.stopPropagation();
+            onDragStart(blockId, kind, "resize", e.clientY);
+          }}
+          aria-label="Resize block"
+          className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize"
+        />
+      )}
     </div>
-    {detailOpen && (
-      <NodeDetailModal
-        block={occurrence}
-        node={node}
-        onClose={() => setDetailOpen(false)}
-      />
-    )}
-    </>
   );
 }

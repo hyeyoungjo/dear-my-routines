@@ -5,7 +5,6 @@ import {
   GRID_TOTAL_MINUTES,
   blockPixelHeight,
   blockTopMinutes,
-  durationMinutes,
   gridSlots,
   layoutOverlaps,
   moveBlock,
@@ -15,28 +14,25 @@ import {
   snapToSlot,
   type Span,
 } from "@/core/time/calendar";
-import {
-  blockSpan,
-  blocksForDay,
-  carryCountOf,
-  carryOverBlock,
-  type FlatBlock,
-} from "@/core/time/blocks";
+import { carryCountOf, carryOverPlan, planSpan, plansForDay } from "@/core/time/plan";
+import { actionSpan, actionsForDay, isOngoing } from "@/core/time/action";
 import { addDays, dayKey } from "@/core/time/day";
-import { ancestorOfType } from "@/core/tree/tree";
 import { projectColor } from "@/lib/projectColor";
 import {
   CalendarBlock,
   type CalBlock,
   type ColumnKind,
+  type DragMode,
 } from "@/components/calendar/CalendarBlock";
 import { useSelectedDate } from "@/components/date";
+import { usePlanBlocks, useAddPlanBlock, useUpdatePlanBlock } from "@/hooks/planBlocks";
 import {
-  useAddBlock,
-  useBlocks,
-  useUpdateBlock,
-} from "@/hooks/blocks";
-import { useAddNode, useNodes } from "@/hooks/nodes";
+  useActionBlocks,
+  useAddActionBlock,
+  useUpdateActionBlock,
+} from "@/hooks/actionBlocks";
+import { useTasks, useCreateTaskWithBlock } from "@/hooks/tasks";
+import { useProjects } from "@/hooks/projects";
 
 /** Pixel height of one hour row; the whole grid scales off this. */
 const SLOT_HEIGHT = 48;
@@ -44,92 +40,53 @@ const PX_PER_MINUTE = SLOT_HEIGHT / 60;
 /** Default length of a freshly-created block (one hour). */
 const DEFAULT_BLOCK_MINUTES = 60;
 
-type DragMode = "move" | "resize";
 /**
- * Live state of a pointer drag. `startX/startY` are the pointer position at
- * press; `deltaMinutes` is the snapped vertical move (drives the preview span),
- * `deltaX` the raw horizontal move (drives the live column choice). The drag
- * target is a `task_block` occurrence, keyed by `blockId` (ADR-014).
+ * Live state of a vertical pointer drag. `startY` is the pointer y at press;
+ * `deltaMinutes` is the snapped vertical move (drives the preview span). The
+ * target is one block in `kind`'s column, keyed by `blockId` (a planBlockId for
+ * PLAN, an actionBlockId for ACT). There is no horizontal axis — overlapping
+ * blocks self-arrange by start time, so a drag only moves a block in time.
  */
 type DragPreview = {
-  column: ColumnKind;
+  kind: ColumnKind;
   blockId: string;
   mode: DragMode;
-  startX: number;
   startY: number;
-  /** Pointer x inside the column at press, so dropX = startColX + deltaX. */
-  startColX: number;
-  /** The dragged block's slot at press — held fixed so its left/width stay put
-   *  while the transform follows the cursor (neighbours reflow around it). */
-  startCol: number;
-  startCols: number;
   deltaMinutes: number;
-  deltaX: number;
 };
 
 /**
- * The span a block occupies in a column: the planned pair for Plan, the actual
- * pair for Action — falling back to the plan span as a faint "ghost" when no
- * actual is recorded yet (the ghost is confirmed/dragged into the actual fields,
- * see commitDrag/onConfirm). All edges read from the block's own fields
- * (ADR-014); the calendar no longer touches the node's legacy time columns.
- */
-function readBlockSpan(block: FlatBlock, kind: ColumnKind): Span | null {
-  if (kind === "plan") return blockSpan(block, "plan");
-  return blockSpan(block, "actual") ?? blockSpan(block, "plan");
-}
-
-/** Patch that writes a whole span (move) into the column's field pair. */
-function movePatch(kind: ColumnKind, span: Span): Partial<FlatBlock> {
-  return kind === "plan"
-    ? {
-        plannedStart: span.start.toISOString(),
-        plannedEnd: span.end.toISOString(),
-      }
-    : {
-        actualStart: span.start.toISOString(),
-        actualEnd: span.end.toISOString(),
-      };
-}
-
-/** Patch that writes only the end (resize) into the column's field pair. */
-function resizePatch(kind: ColumnKind, span: Span): Partial<FlatBlock> {
-  return kind === "plan"
-    ? { plannedEnd: span.end.toISOString() }
-    : { actualEnd: span.end.toISOString() };
-}
-
-/**
- * Two-column day view (07:00 → 02:00, PRD "예상 vs. 실제"): a Plan column
- * (block planned span) on the left and an Action column (block actual span) on
- * the right, sharing one time axis down the middle so the same wall-clock time
- * sits at the same height in both. Each drawn block is one `task_block`
- * occurrence (ADR-014) — a task can have several across days; only those
- * belonging to the selected grid day are shown (`blocksForDay`). The task's
- * title and project colour are joined in from its `node`.
+ * Two-column day view (07:00 → 02:00, PRD "예상 vs. 실제"): a PLAN column of
+ * `plan_blocks` (intent) on the left and an ACT column of `action_blocks`
+ * (reality) on the right, sharing one time axis so the same wall-clock time sits
+ * at the same height in both (ADR-017). Plan and action are separate lists joined
+ * by `taskId` — no single row holds a planned+actual pair, so the old "2h→9h"
+ * comparison label is gone by construction.
  *
- * Clicking an empty slot creates a one-hour task there (a new node + its first
- * block, optimistically); a plan block also shows a ghost in the Action column
- * that, once confirmed or dragged, lines the task up across both columns so its
- * estimate-vs-actual delta is visible (only when both spans exist, ADR-014).
+ * An unacted plan is also projected into the ACT column as a faint **ghost**;
+ * clicking it spawns an `action_block` at the plan's time (then freely
+ * dragged/resized). Clicking an empty slot creates a one-hour task there (a new
+ * task + its first plan/action, optimistically). The block currently spanning now
+ * gets the in-progress highlight (`isOngoing`, derived).
  *
- * Blocks can be dragged to move and edge-dragged to resize via plain pointer
- * events (no drag library — it fought our live re-layout and jittered). A press
- * on a block records the start point; the grid tracks the pointer on `window`,
- * converting the vertical delta to a snapped minute delta (previewed live) and
- * the horizontal delta to a column choice. On release both are committed through
- * the optimistic `useUpdateBlock` hook into that block's own span, so the change
- * shows instantly and rolls back on failure (CLAUDE.md CRITICAL). All schedule
- * math comes from the pure `core/time` helpers — this component only turns
- * minutes into pixels and back, and picks which field pair a column owns.
+ * Blocks drag to move and edge-drag to resize via plain pointer events (no drag
+ * library — it fought our live re-layout). A press records the start y; the grid
+ * tracks the pointer on `window`, converting the vertical delta to a snapped
+ * minute delta (previewed live). On release it commits through the optimistic
+ * plan/action update hooks, so the change shows instantly and rolls back on
+ * failure (CLAUDE.md CRITICAL). All schedule math comes from `core/time`.
  */
 export function CalendarGrid() {
-  const { data: blockData, isLoading, isError } = useBlocks();
-  const { data: nodeData } = useNodes();
+  const { data: planData, isLoading, isError } = usePlanBlocks();
+  const { data: actionData } = useActionBlocks();
+  const { data: taskData } = useTasks();
+  const { data: projectData } = useProjects();
   const { selectedDate } = useSelectedDate();
-  const addNode = useAddNode();
-  const addBlock = useAddBlock();
-  const updateBlock = useUpdateBlock();
+  const createTaskWithBlock = useCreateTaskWithBlock();
+  const addPlanBlock = useAddPlanBlock();
+  const addActionBlock = useAddActionBlock();
+  const updatePlanBlock = useUpdatePlanBlock();
+  const updateActionBlock = useUpdateActionBlock();
   const planBodyRef = useRef<HTMLDivElement>(null);
   const actionBodyRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<DragPreview | null>(null);
@@ -143,59 +100,81 @@ export function CalendarGrid() {
 
   const slots = gridSlots();
   const bodyHeight = GRID_TOTAL_MINUTES * PX_PER_MINUTE;
-  const allBlocks = blockData ?? [];
-  const allNodes = nodeData ?? [];
+  const now = new Date();
+  const allPlans = planData ?? [];
+  const allActions = actionData ?? [];
+  const allTasks = taskData ?? [];
+  const allProjects = projectData ?? [];
 
-  // Index nodes by id (title/colour join) and group blocks by node (carryCount).
-  const nodeById = new Map(allNodes.map((n) => [n.id, n]));
-  const blocksByNode = new Map<string, FlatBlock[]>();
-  for (const b of allBlocks) {
-    const list = blocksByNode.get(b.nodeId) ?? [];
-    list.push(b);
-    blocksByNode.set(b.nodeId, list);
+  // Index tasks/projects for the title + colour join, and group plans by task so
+  // carryCount (count of missed plans) is one lookup per block.
+  const taskById = new Map(allTasks.map((t) => [t.taskId, t]));
+  const projectById = new Map(allProjects.map((p) => [p.projectId, p]));
+  const plansByTask = new Map<string, typeof allPlans>();
+  for (const p of allPlans) {
+    const list = plansByTask.get(p.taskId) ?? [];
+    list.push(p);
+    plansByTask.set(p.taskId, list);
   }
+
+  /** The task's project colour (explicit, else deterministic id fallback). */
+  const colorOf = (projectId: string | null): string | null => {
+    if (!projectId) return projectColor(null);
+    const project = projectById.get(projectId);
+    return project?.projectColor ?? projectColor(projectId);
+  };
 
   const createAt = (offsetMinutes: number, kind: ColumnKind) => {
     const start = slotDate(selectedDate, offsetMinutes);
     const end = slotDate(selectedDate, offsetMinutes + DEFAULT_BLOCK_MINUTES);
-    // A new task is a node (identity) plus its first block (this day's placement).
-    // The node id is server-assigned, so the block is created in the node's
-    // onSuccess; both writes are optimistic, so the screen stays responsive.
-    addNode.mutate(
-      { title: "", type: "task" },
-      {
-        onSuccess: (node) =>
-          addBlock.mutate({
-            nodeId: node.id,
-            gridDay: dayKey(selectedDate),
-            ...(kind === "plan"
-              ? {
-                  plannedStart: start.toISOString(),
-                  plannedEnd: end.toISOString(),
-                }
-              : {
-                  actualStart: start.toISOString(),
-                  actualEnd: end.toISOString(),
-                }),
-          }),
-      },
-    );
+    const span = {
+      date: dayKey(selectedDate),
+      startAt: start.toISOString(),
+      endAt: end.toISOString(),
+    };
+    // A new task + its first block under ONE client-minted taskId, created
+    // together (one optimistic write, one transactional round-trip). Because the
+    // client owns the id, the block renders this frame — no waiting for a
+    // server-assigned task id (ADR-007, CLAUDE.md CRITICAL).
+    createTaskWithBlock.mutate({
+      taskId: crypto.randomUUID(),
+      title: "",
+      ...(kind === "plan" ? { plan: span } : { action: span }),
+    });
   };
 
   /**
-   * Carry a ghost (a planned occurrence not yet acted on) forward (ADR-014): mark
-   * THIS block `missed` so it stays here as the "planned but undone" record, and
-   * create a fresh planned block on the next day (clock + duration kept). This is
-   * a deliberate carry, distinct from a manual reschedule — only here do we touch
-   * status/carryCount. Both writes are optimistic, so the columns update at once.
+   * Confirm a ghost: spawn an action at the plan's exact time (ADR-017). No
+   * justDragged guard here — a ghost can't be dragged (its pointerDown is a
+   * no-op), so a click on it is never a drag's trailing click; it's always a real
+   * confirm. (Guarding here was a bug: after dragging ANY block, justDragged
+   * stayed true until an empty-slot click, silently swallowing ghost clicks.)
    */
-  const carryOver = (block: FlatBlock) => {
-    const { missedPatch, nextBlock } = carryOverBlock(
-      block,
+  const confirmGhost = (block: CalBlock) => {
+    addActionBlock.mutate({
+      taskId: block.taskId,
+      date: dayKey(selectedDate),
+      startAt: block.span.start.toISOString(),
+      endAt: block.span.end.toISOString(),
+    });
+  };
+
+  /**
+   * Carry a ghost's plan to the next day (manual carry-over, ADR-017): "I won't
+   * get to this today". Mark THIS plan `missed` (kept as review evidence, bumps
+   * carryCount) and birth a fresh `planned` plan tomorrow with the clock +
+   * duration kept (`carryOverPlan`) — the same mechanism the day-boundary sweep
+   * uses, just triggered by hand. Both writes are optimistic.
+   */
+  const carryGhost = (block: CalBlock) => {
+    const plan = allPlans.find((p) => p.planBlockId === block.blockId);
+    if (!plan) return;
+    const { missedPatch, nextPlan } = carryOverPlan(
+      plan,
       addDays(selectedDate, 1),
     );
-    updateBlock.mutate({ id: block.id, patch: missedPatch });
-    addBlock.mutate(nextBlock);
+    updatePlanBlock.mutate({ planBlockId: plan.planBlockId, patch: missedPatch });
+    addPlanBlock.mutate(nextPlan);
   };
 
   const handleBodyClick = (
@@ -213,112 +192,65 @@ export function CalendarGrid() {
     createAt(snapToSlot(y / PX_PER_MINUTE), kind);
   };
 
-  /** A block was pressed — begin tracking a move/resize from the pointer. */
+  /** A block was pressed — begin tracking a vertical move/resize. */
   const handleDragStart = (
     blockId: string,
-    column: ColumnKind,
+    kind: ColumnKind,
     mode: DragMode,
-    clientX: number,
     clientY: number,
   ) => {
-    const body = (column === "plan" ? planBodyRef : actionBodyRef).current;
-    const colWidth = body?.offsetWidth ?? 0;
-    // Freeze the dragged block's current slot so its left/width hold steady while
-    // the transform glides it under the cursor; neighbours reflow around it.
-    const startBlocks = buildColumnBlocks(column);
-    const layoutItems = startBlocks.map((b) => ({
-      span: b.span,
-      node: { sortOrder: b.block.sortOrder },
-    }));
-    const idx = startBlocks.findIndex((b) => b.block.id === blockId);
-    const startSlot =
-      idx >= 0 ? layoutOverlaps(layoutItems).get(layoutItems[idx]) : undefined;
-    const col = startSlot?.col ?? 0;
-    const cols = startSlot?.cols ?? 1;
-    setDrag({
-      blockId,
-      column,
-      mode,
-      startX: clientX,
-      startY: clientY,
-      // Column is chosen by the block's CENTRE, not the grab point: the centre's
-      // x in the column is (col + 0.5)/cols * width; deltaX shifts it while dragging.
-      startColX: ((col + 0.5) / cols) * colWidth,
-      startCol: col,
-      startCols: cols,
-      deltaMinutes: 0,
-      deltaX: 0,
-    });
+    setDrag({ kind, blockId, mode, startY: clientY, deltaMinutes: 0 });
   };
 
-  /** Commit a finished drag `d`: vertical span move/resize + horizontal column. */
+  /** Commit a finished drag `d`: a vertical span move (both edges) or resize. */
   const commitDrag = (d: DragPreview | null) => {
-    if (!d) return;
-    const { blockId, column, mode, deltaMinutes } = d;
-    const block = allBlocks.find((b) => b.id === blockId);
-    if (!block) return;
-    const base = readBlockSpan(block, column);
+    if (!d || d.deltaMinutes === 0) return;
+    const base = baseSpanOf(d.kind, d.blockId);
     if (!base) return;
-
-    // Horizontal drag (move only) → column order via sortOrder. Done before the
-    // vertical-zero early return so a pure sideways drag still re-columns.
-    if (mode === "move") {
-      // Manual order: the column-x where the user dropped IS the sortOrder
-      // (layoutOverlaps lays blocks left→right by it) — not an auto/relative bump.
-      const dropX = Math.round(d.startColX + d.deltaX);
-      if (dropX !== Math.round(d.startColX)) {
-        updateBlock.mutate({ id: block.id, patch: { sortOrder: dropX } });
-      }
-    }
-
-    // No vertical change → the sortOrder above (if any) already handled it.
-    if (deltaMinutes === 0) return;
-
-    // Each block is independent (ADR-014) — move shifts both edges, resize the
-    // end. The patch writes into this column's own field pair (so dragging a
-    // ghost in the Action column turns it into a real actual span). Optimistic
-    // via useUpdateBlock, so the screen never waits (ADR-007).
     const span =
-      mode === "move"
-        ? moveBlock(base.start, base.end, deltaMinutes)
-        : resizeBlockEnd(base.start, base.end, deltaMinutes);
-    updateBlock.mutate({
-      id: block.id,
-      patch: mode === "move" ? movePatch(column, span) : resizePatch(column, span),
-    });
+      d.mode === "move"
+        ? moveBlock(base.start, base.end, d.deltaMinutes)
+        : resizeBlockEnd(base.start, base.end, d.deltaMinutes);
+    const patch =
+      d.mode === "move"
+        ? { startAt: span.start.toISOString(), endAt: span.end.toISOString() }
+        : { endAt: span.end.toISOString() };
+    // Optimistic — the screen never waits (ADR-007). Each list owns its own row.
+    if (d.kind === "plan") {
+      updatePlanBlock.mutate({ planBlockId: d.blockId, patch });
+    } else {
+      updateActionBlock.mutate({ actionBlockId: d.blockId, patch });
+    }
+  };
+
+  /** The unedited span of a draggable block (real plan/action only). */
+  const baseSpanOf = (kind: ColumnKind, blockId: string): Span | null => {
+    if (kind === "plan") {
+      const plan = allPlans.find((p) => p.planBlockId === blockId);
+      return plan ? planSpan(plan) : null;
+    }
+    const action = allActions.find((a) => a.actionBlockId === blockId);
+    return action ? actionSpan(action) : null;
   };
 
   // While a drag is active, track the pointer on `window` (so it keeps following
   // even if the cursor leaves the block) and commit on release. Registered once
-  // per drag — keyed by the stable session fields, not the live deltas — so the
-  // listeners aren't re-subscribed on every move.
+  // per drag — keyed by the stable session fields, not the live delta.
   useEffect(() => {
     if (!drag) return;
     const onMove = (e: PointerEvent) => {
       setDrag((prev) => {
         if (!prev) return prev;
-        const deltaMinutes = snapMinutes((e.clientY - prev.startY) / PX_PER_MINUTE);
-        // Clamp horizontal to the block's own column so a plan block can't drift
-        // into the action column (and vice versa) — the two columns are distinct.
-        const body = (prev.column === "plan" ? planBodyRef : actionBodyRef).current;
-        let deltaX = e.clientX - prev.startX;
-        if (body) {
-          const rect = body.getBoundingClientRect();
-          deltaX =
-            Math.max(rect.left, Math.min(e.clientX, rect.right)) - prev.startX;
-        }
-        // Skip the re-render unless the snapped position or column actually moved.
-        if (prev.deltaMinutes === deltaMinutes && prev.deltaX === deltaX) {
-          return prev;
-        }
-        return { ...prev, deltaMinutes, deltaX };
+        const deltaMinutes = snapMinutes(
+          (e.clientY - prev.startY) / PX_PER_MINUTE,
+        );
+        if (prev.deltaMinutes === deltaMinutes) return prev;
+        return { ...prev, deltaMinutes };
       });
     };
     const onUp = () => {
       const d = dragRef.current;
-      if (d && (d.deltaMinutes !== 0 || Math.abs(d.deltaX) > 3)) {
-        justDraggedRef.current = true;
-      }
+      if (d && d.deltaMinutes !== 0) justDraggedRef.current = true;
       commitDrag(d);
       setDrag(null);
     };
@@ -332,54 +264,87 @@ export function CalendarGrid() {
     };
     // Re-subscribe only when a new drag session starts/ends, not on each delta.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drag?.blockId, drag?.mode, drag?.column]);
+  }, [drag?.blockId, drag?.mode, drag?.kind]);
+
+  /** Apply the live drag/resize preview to a block's base span (same pure math
+   *  the commit uses), else the base span unchanged. */
+  const withPreview = (kind: ColumnKind, blockId: string, base: Span): Span => {
+    if (!drag || drag.kind !== kind || drag.blockId !== blockId) return base;
+    return drag.mode === "move"
+      ? moveBlock(base.start, base.end, drag.deltaMinutes)
+      : resizeBlockEnd(base.start, base.end, drag.deltaMinutes);
+  };
+
+  /** Title/colour/carryCount join for a task, or null for an orphan block. */
+  const decorate = (taskId: string) => {
+    const task = taskById.get(taskId);
+    if (!task) return null;
+    return {
+      title: task.title,
+      projectId: task.projectId,
+      color: colorOf(task.projectId),
+      carryCount: carryCountOf(plansByTask.get(taskId) ?? []),
+    };
+  };
 
   /**
    * Build the flat list of blocks visible in a column for the selected grid day.
-   * A block is visible when it has a span here (`readBlockSpan`); its owning node
-   * supplies the title/colour join (orphan blocks with no node are skipped). The
-   * live drag/resize preview is applied to the dragged block via the same pure
-   * math the commit uses. Blocks are independent occurrences (ADR-014) — no
-   * nesting; all schedule math stays in `core/`.
+   * PLAN draws every plan; ACT draws every real action plus a ghost for each
+   * unacted plan (a plan whose task has no action that day). Orphan blocks (task
+   * missing) are skipped. The live drag preview is applied via `withPreview`.
    */
   const buildColumnBlocks = (kind: ColumnKind): CalBlock[] => {
     const result: CalBlock[] = [];
-    for (const block of blocksForDay(allBlocks, selectedDate)) {
-      const base = readBlockSpan(block, kind);
-      if (!base) continue;
-      const node = nodeById.get(block.nodeId);
-      if (!node) continue; // orphan block — nothing to title/colour it with.
+    if (kind === "plan") {
+      // PLAN shows every plan that day — `planned` (solid) AND `missed` (dashed,
+      // the "meant to, didn't" record kept for review). Both belong here.
+      for (const plan of plansForDay(allPlans, selectedDate)) {
+        const d = decorate(plan.taskId);
+        if (!d) continue;
+        result.push({
+          kind: "plan",
+          blockId: plan.planBlockId,
+          taskId: plan.taskId,
+          span: withPreview("plan", plan.planBlockId, planSpan(plan)),
+          isMissed: plan.status === "missed",
+          ...d,
+        });
+      }
+      return result;
+    }
 
-      // Own span, with the live drag/resize preview applied via the same pure
-      // math the commit uses.
-      const own =
-        drag?.column === kind && drag.blockId === block.id
-          ? drag.mode === "move"
-            ? moveBlock(base.start, base.end, drag.deltaMinutes)
-            : resizeBlockEnd(base.start, base.end, drag.deltaMinutes)
-          : base;
-
-      const project = ancestorOfType(allNodes, node.id, "project");
-      // A ghost: shown in the Action column from the plan span, no actual yet.
-      const isPlaceholder = kind === "action" && block.actualStart == null;
-      const planSpan = kind === "action" ? blockSpan(block, "plan") : null;
-
+    const dayActions = actionsForDay(allActions, selectedDate);
+    const actedTaskIds = new Set(dayActions.map((a) => a.taskId));
+    for (const action of dayActions) {
+      const base = actionSpan(action);
+      if (!base) continue; // running (no end) — nothing to draw yet
+      const d = decorate(action.taskId);
+      if (!d) continue;
       result.push({
-        block,
-        node,
-        span: own,
-        color: project?.color ?? projectColor(project?.id ?? null),
-        isPlaceholder,
-        // Estimate-vs-actual delta only when this block has BOTH a plan and a
-        // real actual (ADR-014) — never for a ghost (actual not yet recorded).
-        comparison:
-          planSpan && !isPlaceholder
-            ? {
-                plannedMinutes: durationMinutes(planSpan.start, planSpan.end),
-                actualMinutes: durationMinutes(own.start, own.end),
-              }
-            : undefined,
-        carryCount: carryCountOf(blocksByNode.get(block.nodeId) ?? []),
+        kind: "action",
+        blockId: action.actionBlockId,
+        taskId: action.taskId,
+        span: withPreview("action", action.actionBlockId, base),
+        isOngoing: isOngoing(action, now),
+        ...d,
+      });
+    }
+    // Ghosts: an unacted plan (its task has no action that day) projected faintly.
+    // Ghosts project only `planned` plans (no action yet). A `missed` plan was
+    // carried away — it leaves the ACT view and lives on as a dashed PLAN record,
+    // so a ghost ✕ (carry-over → missed) makes the ghost disappear here at once.
+    for (const plan of plansForDay(allPlans, selectedDate)) {
+      if (plan.status !== "planned") continue;
+      if (actedTaskIds.has(plan.taskId)) continue;
+      const d = decorate(plan.taskId);
+      if (!d) continue;
+      result.push({
+        kind: "action",
+        blockId: plan.planBlockId,
+        taskId: plan.taskId,
+        span: planSpan(plan),
+        isGhost: true,
+        ...d,
       });
     }
     return result;
@@ -403,70 +368,27 @@ export function CalendarGrid() {
 
       {(() => {
         // Side-by-side layout from live (preview) spans, so widths adapt in real
-        // time as overlaps change. During a horizontal move, the dragged block
-        // gets a PROVISIONAL sortOrder = its drop position (startColX + deltaX),
-        // so neighbours reflow live and the drop lands where it previews (no
-        // post-drop flicker — the preview already equals the committed order).
+        // time as overlaps change. Order is by start time only (no sortOrder) —
+        // overlapping blocks self-arrange, no manual reorder.
         const colBlocks = buildColumnBlocks(kind);
-        const movingHere = drag?.column === kind && drag.mode === "move";
-        // layoutOverlaps orders blocks by sortOrder; the dragged block uses its
-        // live drop position so neighbours reflow around it (a plain object — the
-        // pure helper only needs { span, node: { sortOrder } }).
         const layoutItems = colBlocks.map((b) => ({
           span: b.span,
-          node: {
-            sortOrder:
-              movingHere && b.block.id === drag.blockId
-                ? Math.round(drag.startColX + drag.deltaX)
-                : b.block.sortOrder,
-          },
+          node: { sortOrder: 0 },
         }));
         const laid = layoutOverlaps(layoutItems);
         return colBlocks.map((block, i) => {
-          const isDraggedHere =
-            drag != null &&
-            drag.column === kind &&
-            drag.blockId === block.block.id;
-          const isMovingThis = isDraggedHere && drag.mode === "move";
-          // Neighbours take their live (provisional) slot so they reflow. The
-          // moved block keeps its START slot and glides via transform(deltaX) —
-          // following the cursor smoothly instead of snapping column to column.
-          const slot = isMovingThis
-            ? { col: drag.startCol, cols: drag.startCols }
-            : (laid.get(layoutItems[i]) ?? { col: 0, cols: 1 });
+          const slot = laid.get(layoutItems[i]) ?? { col: 0, cols: 1 };
           const widthPct = 100 / slot.cols;
+          const isDragging =
+            drag != null && drag.kind === kind && drag.blockId === block.blockId;
           return (
             <CalendarBlock
-              key={block.block.id}
+              key={`${block.isGhost ? "g" : ""}${block.blockId}`}
               block={block}
-              column={kind}
-              // Clicking a ghost (no drag) confirms it: copy the plan span into
-              // the actual fields so it turns into a real Action block.
-              onConfirm={
-                block.isPlaceholder
-                  ? () => {
-                      if (justDraggedRef.current) return;
-                      updateBlock.mutate({
-                        id: block.block.id,
-                        patch: {
-                          actualStart: block.block.plannedStart,
-                          actualEnd: block.block.plannedEnd,
-                        },
-                      });
-                    }
-                  : undefined
-              }
-              // Ghost ✕ carries this occurrence forward (missed here + new block
-              // tomorrow); real blocks have no carry control.
-              onCarryOver={
-                block.isPlaceholder ? () => carryOver(block.block) : undefined
-              }
+              onConfirm={block.isGhost ? () => confirmGhost(block) : undefined}
+              onCarryOver={block.isGhost ? () => carryGhost(block) : undefined}
               onDragStart={handleDragStart}
-              // Moved block follows the cursor via transform(deltaX); resize just
-              // gets the dragging highlight (0); others none.
-              dragDeltaX={
-                isDraggedHere ? (drag.mode === "move" ? drag.deltaX : 0) : null
-              }
+              isDragging={isDragging}
               style={{
                 top: blockTopMinutes(block.span.start) * PX_PER_MINUTE,
                 height: blockPixelHeight(block, PX_PER_MINUTE),

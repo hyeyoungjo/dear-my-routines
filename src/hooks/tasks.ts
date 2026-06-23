@@ -2,6 +2,10 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Task } from "@/db/schema";
+import type { PlanBlock } from "@/core/time/plan";
+import type { ActionBlock } from "@/core/time/action";
+import { planBlocksKey } from "./planBlocks";
+import { actionBlocksKey } from "./actionBlocks";
 
 /**
  * TanStack Query hooks for `tasks` (ADR-016) — the identity + stats unit. The
@@ -22,9 +26,10 @@ async function fetchTasks(): Promise<Task[]> {
   return res.json();
 }
 
-/** Fields a client may supply when creating a task (server injects userId). */
+/** Fields a client may supply when creating a task (server injects userId). The
+ *  client may mint `taskId` so a task and its first block share it immediately. */
 export type AddTaskInput = Pick<Task, "title"> &
-  Partial<Pick<Task, "projectId" | "notes" | "category">>;
+  Partial<Pick<Task, "taskId" | "projectId" | "notes" | "category">>;
 
 async function createTask(input: AddTaskInput): Promise<Task> {
   const res = await fetch("/api/tasks", {
@@ -94,7 +99,7 @@ function useOptimisticTaskMutation<TVars, TData>(
 function optimisticTask(input: AddTaskInput): Task {
   const now = new Date();
   return {
-    taskId: crypto.randomUUID(),
+    taskId: input.taskId ?? crypto.randomUUID(),
     userId: "", // unknown on the client; the server is the source of truth.
     projectId: input.projectId ?? null,
     title: input.title,
@@ -130,4 +135,114 @@ export function useRemoveTask() {
     deleteTask,
     (tasks, taskId) => tasks.filter((t) => t.taskId !== taskId),
   );
+}
+
+// --- Create a task together with its first block --------------------------
+
+/** A block span the client sends with a task create (ISO strings + grid day). */
+type BlockSpanInput = { date: string; startAt: string; endAt: string };
+
+export type CreateTaskWithBlockInput = {
+  taskId: string;
+  title: string;
+  plan?: BlockSpanInput;
+  action?: BlockSpanInput;
+};
+
+type CreateWithBlockResult = {
+  task: Task;
+  planBlock: PlanBlock | null;
+  actionBlock: ActionBlock | null;
+};
+
+async function createTaskWithBlock(
+  input: CreateTaskWithBlockInput,
+): Promise<CreateWithBlockResult> {
+  const res = await fetch("/api/tasks", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(`Failed to create task (${res.status})`);
+  return res.json();
+}
+
+type WithBlockContext = {
+  tasks: Task[] | undefined;
+  plans: PlanBlock[] | undefined;
+  actions: ActionBlock[] | undefined;
+};
+
+/**
+ * Create a task AND its first plan/action block in ONE optimistic write and ONE
+ * server round-trip (a transaction, FK-safe — ADR-007). The client mints the
+ * `taskId` so the task and block share it from the first frame: the block renders
+ * the instant the user clicks an empty slot, instead of waiting a round-trip for
+ * the task's server id (the old onSuccess-chained create lagged that long). All
+ * three caches (tasks + plan + action) roll back together on error.
+ */
+export function useCreateTaskWithBlock() {
+  const queryClient = useQueryClient();
+  return useMutation<
+    CreateWithBlockResult,
+    Error,
+    CreateTaskWithBlockInput,
+    WithBlockContext
+  >({
+    mutationFn: createTaskWithBlock,
+    onMutate: async (input) => {
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: tasksKey }),
+        queryClient.cancelQueries({ queryKey: planBlocksKey }),
+        queryClient.cancelQueries({ queryKey: actionBlocksKey }),
+      ]);
+      const previous: WithBlockContext = {
+        tasks: queryClient.getQueryData<Task[]>(tasksKey),
+        plans: queryClient.getQueryData<PlanBlock[]>(planBlocksKey),
+        actions: queryClient.getQueryData<ActionBlock[]>(actionBlocksKey),
+      };
+      queryClient.setQueryData<Task[]>(tasksKey, (old) => [
+        ...(old ?? []),
+        optimisticTask({ taskId: input.taskId, title: input.title }),
+      ]);
+      const { plan, action } = input;
+      if (plan) {
+        queryClient.setQueryData<PlanBlock[]>(planBlocksKey, (old) => [
+          ...(old ?? []),
+          {
+            planBlockId: crypto.randomUUID(),
+            taskId: input.taskId,
+            date: plan.date,
+            startAt: plan.startAt,
+            endAt: plan.endAt,
+            status: "planned",
+          },
+        ]);
+      }
+      if (action) {
+        queryClient.setQueryData<ActionBlock[]>(actionBlocksKey, (old) => [
+          ...(old ?? []),
+          {
+            actionBlockId: crypto.randomUUID(),
+            taskId: input.taskId,
+            date: action.date,
+            startAt: action.startAt,
+            endAt: action.endAt,
+          },
+        ]);
+      }
+      return previous;
+    },
+    onError: (_err, _input, context) => {
+      if (!context) return;
+      queryClient.setQueryData(tasksKey, context.tasks);
+      queryClient.setQueryData(planBlocksKey, context.plans);
+      queryClient.setQueryData(actionBlocksKey, context.actions);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: tasksKey });
+      queryClient.invalidateQueries({ queryKey: planBlocksKey });
+      queryClient.invalidateQueries({ queryKey: actionBlocksKey });
+    },
+  });
 }

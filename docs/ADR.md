@@ -220,7 +220,11 @@ status 어휘가 list마다 제각각(`planned/missed` 중복, `in-progress`만 
 - PLAN열=plan_blocks, ACT열=action_blocks. 옛 **비교 라벨(`2h→9h`) 제거**(두 열 분리).
 - **ghost**(ACT열의 흐릿한 plan 투영) 유지: 클릭=그 **계획 시간대로 action 생성**, 이후 드래그/
   리사이즈로 자유 편집. "계획=실제 박제" 걱정은 *동기 있는 1인 유저*라 안 막는다(YAGNI, 단순함 우선).
-- **✕ = 항상 삭제**. **수동 이월 버튼 없음** — 못함은 자동 sweep(`carryOverPlan`), 재계획은 드래그.
+- **✕ 의미**: PLAN ✕=그 plan 삭제, 실제 ACT ✕=그 action만 삭제(plan은 남아 다시 ghost),
+  **ghost ✕=그 plan을 다음날로 수동 이월**(`carryOverPlan` — missed로 남기고 내일 새 planned,
+  carryCount +1). 즉 ghost ✕는 "오늘 못함"을 손으로 내일 보내는 것(삭제 아님). 그냥 두면 자동
+  sweep이 처리, 재계획(다른 날·시간)은 드래그. (당초 "수동 이월 버튼 없음"을 철회 — ACT열에서
+  바로 미루는 흐름이 자연스러워 ghost ✕로 부활.)
 - **carryCount 표시**: 0~1=숨김, 2~3=muted `·N`, 4+=amber(은근한 subproject 신호).
 - **in-progress 하이라이트**: now가 걸친 ACT 블록 강조(시각으로 파생).
 **이유**: 저장 상태를 최소화(plan만)하고 나머지를 파생하면 동기화 부담이 사라지고(ADR-013 정합),
