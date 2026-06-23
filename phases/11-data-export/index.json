@@ -1,0 +1,10 @@
+{
+  "project": "Dear My Routines",
+  "phase": "11-data-export",
+  "steps": [
+    { "step": 0, "name": "category-schema", "status": "pending" },
+    { "step": 1, "name": "export-core", "status": "pending" },
+    { "step": 2, "name": "export-api", "status": "pending" },
+    { "step": 3, "name": "export-ui", "status": "pending" }
+  ]
+}

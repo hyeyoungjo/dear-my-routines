@@ -50,6 +50,14 @@
       "dir": "9-ai-review",
       "status": "error",
       "failed_at": "2026-06-24T00:20:08+0900"
+    },
+    {
+      "dir": "10-access-control",
+      "status": "pending"
+    },
+    {
+      "dir": "11-data-export",
+      "status": "pending"
     }
   ]
 }
