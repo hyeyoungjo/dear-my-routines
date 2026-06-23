@@ -36,7 +36,8 @@
     {
       "step": 5,
       "name": "review-ai-ui",
-      "status": "pending"
+      "status": "completed",
+      "summary": "src/core/ai/schema.ts(DailyAnalysis 타입+isDailyAnalysis 가드, zod 없이). useAnalyzeDay 훅 추가(dailyReviews.ts). ReviewColumn.tsx에 Analyze today 버튼+결과 표시(summary·observations·encouragement·generatedAt). analyze route stub(503). 빌드·테스트 95개 통과."
     }
   ],
   "created_at": "2026-06-23T23:48:50+0900"
