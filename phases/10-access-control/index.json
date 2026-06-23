@@ -7,7 +7,8 @@
       "name": "allowlist-schema",
       "status": "completed",
       "started_at": "2026-06-24T02:15:28+0900",
-      "summary": "allowed_emails 테이블 추가(schema.ts + 마이그레이션 0011): email 기준 self-read RLS만, INSERT/UPDATE/DELETE 정책 없음, AllowedEmail 타입 export"
+      "summary": "allowed_emails 테이블 추가(schema.ts + 마이그레이션 0011): email 기준 self-read RLS만, INSERT/UPDATE/DELETE 정책 없음, AllowedEmail 타입 export",
+      "completed_at": "2026-06-24T02:17:05+0900"
     },
     {
       "step": 1,
