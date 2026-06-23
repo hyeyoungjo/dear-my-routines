@@ -24,6 +24,7 @@ import {
   type ColumnKind,
   type DragMode,
 } from "@/components/calendar/CalendarBlock";
+import { TaskDetailModal } from "@/components/calendar/TaskDetailModal";
 import { useSelectedDate } from "@/components/date";
 import { usePlanBlocks, useAddPlanBlock, useUpdatePlanBlock } from "@/hooks/planBlocks";
 import {
@@ -90,6 +91,8 @@ export function CalendarGrid() {
   const planBodyRef = useRef<HTMLDivElement>(null);
   const actionBodyRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<DragPreview | null>(null);
+  // The task whose detail modal is open (clicking a block's ⤢), null = closed.
+  const [detailTaskId, setDetailTaskId] = useState<string | null>(null);
   // Mirror the latest drag so the window pointerup handler (registered once per
   // drag) can read the final deltas without re-subscribing on every move.
   const dragRef = useRef<DragPreview | null>(null);
@@ -387,6 +390,7 @@ export function CalendarGrid() {
               block={block}
               onConfirm={block.isGhost ? () => confirmGhost(block) : undefined}
               onCarryOver={block.isGhost ? () => carryGhost(block) : undefined}
+              onOpenDetail={() => setDetailTaskId(block.taskId)}
               onDragStart={handleDragStart}
               isDragging={isDragging}
               style={{
@@ -440,6 +444,13 @@ export function CalendarGrid() {
           {/* Right: Action column */}
           {renderColumn("action")}
         </div>
+      )}
+
+      {detailTaskId && (
+        <TaskDetailModal
+          taskId={detailTaskId}
+          onClose={() => setDetailTaskId(null)}
+        />
       )}
     </section>
   );

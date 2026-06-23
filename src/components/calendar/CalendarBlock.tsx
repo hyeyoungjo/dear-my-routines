@@ -65,6 +65,7 @@ export function CalendarBlock({
   style,
   onConfirm,
   onCarryOver,
+  onOpenDetail,
   onDragStart,
   isDragging,
 }: {
@@ -75,6 +76,8 @@ export function CalendarBlock({
   onConfirm?: () => void;
   /** Carry this ghost's plan to the next day (manual carry-over, ghost only). */
   onCarryOver?: () => void;
+  /** Open the owning task's detail modal (title/notes/plans/actions). */
+  onOpenDetail?: () => void;
   /** Begin a pointer drag (move/resize) — the grid owns the drag state. */
   onDragStart: (
     blockId: string,
@@ -137,6 +140,16 @@ export function CalendarBlock({
       onClick={(e) => {
         e.stopPropagation();
         onConfirm?.();
+      }}
+      // Double-click a real block to open its task detail modal. A ghost is
+      // skipped: its single-click already spawns an action, so a double-click
+      // would fire that first — the detail modal opens on the resulting real
+      // block instead. The title/select/✕ keep their own handlers; a double-click
+      // anywhere else on the box (incl. the title text) opens details.
+      onDoubleClick={(e) => {
+        if (isGhost) return;
+        e.stopPropagation();
+        onOpenDetail?.();
       }}
       style={{ ...style, ...tintStyle }}
       className={`group absolute flex select-none flex-col gap-0.5 overflow-hidden rounded-md border p-1 shadow-sm transition-shadow ${
