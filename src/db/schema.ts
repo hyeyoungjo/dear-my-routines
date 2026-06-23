@@ -342,6 +342,38 @@ export const userSettings = pgTable(
   ],
 );
 
+// --- allowed_emails: access control allowlist (phase 10) ------------------
+
+/**
+ * Allowlist of emails permitted to use the app. The middleware (step 1) checks
+ * this table on every request. Rows are managed by the admin only (Supabase
+ * dashboard or service key) — users have no INSERT/UPDATE/DELETE policy, so
+ * they cannot add themselves. The SELECT policy lets an authenticated user
+ * verify their own email only, without exposing the full list.
+ *
+ * No `user_id` column: this table identifies access by email, not by uid, so
+ * `ownerPolicies` does not apply here.
+ */
+export const allowedEmails = pgTable(
+  "allowed_emails",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: text("email").notNull(),
+    note: text("note"),
+    createdOn: timestamp("created_on", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("allowed_emails_email_uq").on(t.email),
+    pgPolicy("allowed_emails_self_read", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`email = (select auth.email())`,
+    }),
+  ],
+);
+
 // --- category_stats: layer-2 aggregate memory (ADR-006) -------------------
 
 export const categoryStats = pgTable(
@@ -393,3 +425,5 @@ export type NewCategoryStat = InferInsertModel<typeof categoryStats>;
 
 export type UserSettings = InferSelectModel<typeof userSettings>;
 export type NewUserSettings = InferInsertModel<typeof userSettings>;
+
+export type AllowedEmail = InferSelectModel<typeof allowedEmails>;
