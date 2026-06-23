@@ -23,7 +23,7 @@ import {
 } from "@/hooks/planBlocks";
 import { useProjects } from "@/hooks/projects";
 import { useTasks, useUpdateTask } from "@/hooks/tasks";
-import { useTranslations } from "@/i18n/context";
+import { useTranslations } from "next-intl";
 
 /**
  * The detail card for a single `task` — the *bar* editor (the user's mental

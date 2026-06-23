@@ -9,7 +9,7 @@ import {
   useUpsertDailyReview,
   type UpsertReviewInput,
 } from "@/hooks/dailyReviews";
-import { useTranslations } from "@/i18n/context";
+import { useLocale, useTranslations } from "next-intl";
 
 /** Idle time after the last keystroke before the journal is auto-saved. */
 const DEBOUNCE_MS = 600;
@@ -97,6 +97,7 @@ export function ReviewColumn() {
 }
 
 function AnalysisResult({ analysis }: { analysis: DailyAnalysis }) {
+  const locale = useLocale();
   return (
     <div className="border-t border-grid bg-accent-soft/40 p-3 space-y-2 text-sm">
       <p className="font-semibold text-accent">{analysis.summary}</p>
@@ -116,7 +117,7 @@ function AnalysisResult({ analysis }: { analysis: DailyAnalysis }) {
 
       {analysis.generatedAt && (
         <p className="text-xs text-muted">
-          {new Date(analysis.generatedAt).toLocaleTimeString([], {
+          {new Date(analysis.generatedAt).toLocaleTimeString(locale, {
             hour: "2-digit",
             minute: "2-digit",
           })}

@@ -8,7 +8,7 @@ import {
   useRemoveProject,
   useUpdateProject,
 } from "@/hooks/projects";
-import { useTranslations } from "@/i18n/context";
+import { useTranslations } from "next-intl";
 
 /**
  * Top-of-page project legend (PRD: Project is a non-timed grouping). Projects are

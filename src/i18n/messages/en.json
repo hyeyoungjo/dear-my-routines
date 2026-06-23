@@ -15,7 +15,13 @@
     "action": "Action",
     "review": "Review",
     "loading": "Loading…",
-    "loadFailed": "Failed to load."
+    "loadFailed": "Failed to load.",
+    "today": "Today",
+    "prevDay": "Previous day",
+    "nextDay": "Next day",
+    "pickDate": "Pick a date",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month"
   },
   "block": {
     "newTask": "New task",
@@ -79,5 +85,8 @@
     "sending": "Sending…",
     "emailPlaceholder": "you@example.com",
     "or": "or"
+  },
+  "auth": {
+    "signOut": "Sign out"
   }
 }

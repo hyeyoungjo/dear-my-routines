@@ -1,10 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { dayKey, isSameMonth, monthGrid } from "@/core/time/day";
 
-const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const MONTH_LABEL: Intl.DateTimeFormatOptions = { month: "long", year: "numeric" };
+
+/**
+ * Weekday headers in the active locale, Sunday-first to match `monthGrid`.
+ * 2023-01-01 is a Sunday, so it anchors the 7-day sequence; `Intl` localizes
+ * each label ("Sun"/"일") instead of hardcoding English.
+ */
+function weekdayLabels(locale: string): string[] {
+  const fmt = new Intl.DateTimeFormat(locale, { weekday: "short" });
+  return Array.from({ length: 7 }, (_, i) => fmt.format(new Date(2023, 0, 1 + i)));
+}
 
 /**
  * Month-grid date picker drawn entirely from the app's own tokens (rounded,
@@ -21,6 +31,9 @@ export function MiniCalendar({
 }) {
   // The month in view starts on the selected day's month; ‹ › steps it.
   const [viewMonth, setViewMonth] = useState(selected);
+  const locale = useLocale();
+  const t = useTranslations("calendar");
+  const weekdays = useMemo(() => weekdayLabels(locale), [locale]);
   const weeks = monthGrid(viewMonth);
   const selectedKey = dayKey(selected);
   const todayKey = dayKey(new Date());
@@ -34,19 +47,19 @@ export function MiniCalendar({
   return (
     <div className="w-64 select-none">
       <div className="mb-2 flex items-center justify-between">
-        <button type="button" onClick={() => stepMonth(-1)} aria-label="Previous month" className={nav}>
+        <button type="button" onClick={() => stepMonth(-1)} aria-label={t("prevMonth")} className={nav}>
           ‹
         </button>
         <span className="text-sm font-medium text-foreground">
-          {viewMonth.toLocaleDateString("en-US", MONTH_LABEL)}
+          {viewMonth.toLocaleDateString(locale, MONTH_LABEL)}
         </span>
-        <button type="button" onClick={() => stepMonth(1)} aria-label="Next month" className={nav}>
+        <button type="button" onClick={() => stepMonth(1)} aria-label={t("nextMonth")} className={nav}>
           ›
         </button>
       </div>
 
       <div className="grid grid-cols-7 gap-0.5">
-        {WEEKDAYS.map((w) => (
+        {weekdays.map((w) => (
           <div key={w} className="py-1 text-center text-[10px] font-medium text-muted">
             {w}
           </div>

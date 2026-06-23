@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/services/supabase/client";
-import { useTranslations } from "@/i18n/context";
+import { useTranslations } from "next-intl";
 
 // Magic-link login stays in the code (ADR-011) but is hidden in the UI for now —
 // single-user only. Flip SHOW_MAGIC_LINK to true to re-enable the email form.

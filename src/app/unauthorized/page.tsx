@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/services/supabase/server";
 import Link from "next/link";
+import { SignOutButton } from "@/components/SignOutButton";
 
 async function signOut() {
   "use server";
@@ -20,14 +21,10 @@ export default function UnauthorizedPage() {
           This app is currently private. Your account is not on the access list.
         </p>
         <div className="mt-8 flex flex-col items-center gap-3">
-          <form action={signOut}>
-            <button
-              type="submit"
-              className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
-            >
-              Sign out
-            </button>
-          </form>
+          <SignOutButton
+            action={signOut}
+            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+          />
           <Link
             href="/login"
             className="text-sm text-neutral-500 underline underline-offset-2 hover:text-neutral-700"

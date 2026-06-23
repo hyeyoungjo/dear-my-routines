@@ -5,6 +5,7 @@ import { ProjectLegend } from "@/components/calendar/ProjectLegend";
 import { DateBar } from "@/components/DateBar";
 import { ThemeMenu } from "@/components/ThemeMenu";
 import { AnalyzeButton } from "@/components/AnalyzeButton";
+import { SignOutButton } from "@/components/SignOutButton";
 
 async function signOut() {
   "use server";
@@ -23,14 +24,10 @@ export default function Home() {
         <div className="flex items-center gap-2">
           <AnalyzeButton />
           <ThemeMenu />
-          <form action={signOut}>
-            <button
-              type="submit"
-              className="rounded-md border border-border px-3 py-1.5 text-sm text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
-            >
-              Sign out
-            </button>
-          </form>
+          <SignOutButton
+            action={signOut}
+            className="rounded-md border border-border px-3 py-1.5 text-sm text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
+          />
         </div>
       </header>
       <main className="mx-auto w-full max-w-5xl flex-1 p-4">

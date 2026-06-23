@@ -7,7 +7,7 @@ import { AI_MODELS, DEFAULT_MODEL_ID } from "@/services/ai/models";
 import { LANGUAGES, DEFAULT_LANGUAGE_ID } from "@/lib/languages";
 import { useUserSettings, useUpdateUserSettings } from "@/hooks/userSettings";
 import { ExportModal } from "@/components/ExportModal";
-import { useTranslations } from "@/i18n/context";
+import { useTranslations } from "next-intl";
 
 /** Gear button (top-right) that opens settings: theme, AI model, language, undo limit. */
 export function ThemeMenu() {

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { PROJECT_COLORS } from "@/lib/projectColor";
-import { useTranslations } from "@/i18n/context";
+import { useTranslations } from "next-intl";
 
 /** Accepts `#rrggbb` or `rrggbb`. */
 const HEX_RE = /^#?[0-9a-fA-F]{6}$/;

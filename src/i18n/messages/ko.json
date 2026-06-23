@@ -15,7 +15,13 @@
     "action": "실행",
     "review": "리뷰",
     "loading": "불러오는 중…",
-    "loadFailed": "불러오기 실패."
+    "loadFailed": "불러오기 실패.",
+    "today": "오늘",
+    "prevDay": "이전 날",
+    "nextDay": "다음 날",
+    "pickDate": "날짜 선택",
+    "prevMonth": "이전 달",
+    "nextMonth": "다음 달"
   },
   "block": {
     "newTask": "새 작업",
@@ -79,5 +85,8 @@
     "sending": "보내는 중…",
     "emailPlaceholder": "you@example.com",
     "or": "또는"
+  },
+  "auth": {
+    "signOut": "로그아웃"
   }
 }

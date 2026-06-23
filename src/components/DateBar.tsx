@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { useSelectedDate } from "@/components/date";
 import { MiniCalendar } from "@/components/MiniCalendar";
 
@@ -20,14 +21,16 @@ export function DateBar() {
   const { selectedDate, setSelectedDate, goPrevDay, goNextDay, goToday, isToday } =
     useSelectedDate();
   const [pickerOpen, setPickerOpen] = useState(false);
-  const label = selectedDate.toLocaleDateString("en-US", DATE_LABEL);
+  const locale = useLocale();
+  const t = useTranslations("calendar");
+  const label = selectedDate.toLocaleDateString(locale, DATE_LABEL);
 
   const arrow =
     "rounded-md px-2 py-1 text-lg leading-none text-muted transition-colors hover:bg-accent-soft hover:text-foreground";
 
   return (
     <div className="flex items-center justify-center gap-2">
-      <button type="button" onClick={goPrevDay} aria-label="Previous day" className={arrow}>
+      <button type="button" onClick={goPrevDay} aria-label={t("prevDay")} className={arrow}>
         ‹
       </button>
 
@@ -35,7 +38,7 @@ export function DateBar() {
         <button
           type="button"
           onClick={() => setPickerOpen((o) => !o)}
-          aria-label="Pick a date"
+          aria-label={t("pickDate")}
           className="min-w-32 rounded-md px-2 py-1 text-center text-sm font-medium text-foreground transition-colors hover:bg-accent-soft"
         >
           {label}
@@ -56,7 +59,7 @@ export function DateBar() {
         )}
       </div>
 
-      <button type="button" onClick={goNextDay} aria-label="Next day" className={arrow}>
+      <button type="button" onClick={goNextDay} aria-label={t("nextDay")} className={arrow}>
         ›
       </button>
       <button
@@ -65,7 +68,7 @@ export function DateBar() {
         disabled={isToday}
         className="ml-1 rounded-md border border-border px-2.5 py-1 text-xs text-muted transition-colors hover:bg-accent-soft hover:text-foreground disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted"
       >
-        Today
+        {t("today")}
       </button>
     </div>
   );

@@ -35,7 +35,7 @@ import {
 } from "@/hooks/actionBlocks";
 import { useTasks, useCreateTaskWithBlock } from "@/hooks/tasks";
 import { useProjects } from "@/hooks/projects";
-import { useTranslations } from "@/i18n/context";
+import { useTranslations } from "next-intl";
 
 /** Pixel height of one hour row; the whole grid scales off this. */
 const SLOT_HEIGHT = 48;

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { dayKey } from "@/core/time/day";
 import { useExport } from "@/hooks/useExport";
-import { useTranslations } from "@/i18n/context";
+import { useTranslations } from "next-intl";
 
 type Props = {
   open: boolean;

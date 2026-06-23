@@ -5,7 +5,7 @@ import { useProjects } from "@/hooks/projects";
 import { useUpdateTask } from "@/hooks/tasks";
 import { useRemovePlanBlock } from "@/hooks/planBlocks";
 import { useRemoveActionBlock } from "@/hooks/actionBlocks";
-import { useTranslations } from "@/i18n/context";
+import { useTranslations } from "next-intl";
 
 /** Which list a column reads/writes (ADR-017 PLAN vs. ACT). */
 export type ColumnKind = "plan" | "action";
