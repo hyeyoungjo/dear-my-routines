@@ -21,7 +21,10 @@
     {
       "step": 2,
       "name": "export-api",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-06-24T02:26:06+0900",
+      "summary": "GET /api/export?from=YYYY-MM-DD&to=YYYY-MM-DD 라우트 추가 — 인증·파라미터 검증(400/401), 6개 DB 쿼리, buildExportRows 호출, CSV escape 후 text/csv 응답",
+      "completed_at": "2026-06-24T02:30:00+0900"
     },
     {
       "step": 3,
