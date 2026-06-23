@@ -25,6 +25,7 @@ import {
   type DragMode,
 } from "@/components/calendar/CalendarBlock";
 import { TaskDetailModal } from "@/components/calendar/TaskDetailModal";
+import { ReviewColumn } from "@/components/calendar/ReviewColumn";
 import { useSelectedDate } from "@/components/date";
 import { usePlanBlocks, useAddPlanBlock, useUpdatePlanBlock } from "@/hooks/planBlocks";
 import {
@@ -417,6 +418,9 @@ export function CalendarGrid() {
         <h2 className="flex-1 text-center text-base font-semibold tracking-tight text-foreground">
           Action
         </h2>
+        <h2 className="flex-1 text-center text-base font-semibold tracking-tight text-foreground">
+          Review
+        </h2>
       </div>
 
       {isLoading ? (
@@ -443,6 +447,9 @@ export function CalendarGrid() {
 
           {/* Right: Action column */}
           {renderColumn("action")}
+
+          {/* Far right: Review journal (no time axis — about the whole day) */}
+          <ReviewColumn />
         </div>
       )}
 

@@ -11,6 +11,7 @@ import {
   real,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { authenticatedRole } from "drizzle-orm/supabase";
@@ -302,7 +303,12 @@ export const dailyReviews = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => ownerPolicies("daily_reviews", t.userId),
+  // One journal per (user, day): the unique index is the upsert conflict target
+  // (PUT /api/daily-reviews onConflictDoUpdate), DB-guaranteeing "one review/day".
+  (t) => [
+    uniqueIndex("daily_reviews_user_date_uq").on(t.userId, t.date),
+    ...ownerPolicies("daily_reviews", t.userId),
+  ],
 );
 
 // --- category_stats: layer-2 aggregate memory (ADR-006) -------------------
