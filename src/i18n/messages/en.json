@@ -81,6 +81,12 @@
   },
   "login": {
     "continueWithGoogle": "Continue with Google",
+    "passwordPlaceholder": "Password",
+    "signIn": "Sign in",
+    "createAccount": "Create account",
+    "toggleToSignUp": "New here? Create an account",
+    "toggleToSignIn": "Already have an account? Sign in",
+    "confirmEmailSent": "Almost there. Confirm your address via the link we sent to {email}.",
     "checkInbox": "Check your inbox. We sent a sign-in link to {email}.",
     "sendMagicLink": "Send magic link",
     "sending": "Sending…",
