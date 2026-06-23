@@ -4,7 +4,7 @@ import { CalendarGrid } from "@/components/calendar/CalendarGrid";
 import { ProjectLegend } from "@/components/calendar/ProjectLegend";
 import { DateBar } from "@/components/DateBar";
 import { ThemeMenu } from "@/components/ThemeMenu";
-import { SettingsMenu } from "@/components/SettingsMenu";
+import { AnalyzeButton } from "@/components/AnalyzeButton";
 
 async function signOut() {
   "use server";
@@ -21,7 +21,7 @@ export default function Home() {
           Dear My Routines
         </h1>
         <div className="flex items-center gap-2">
-          <SettingsMenu />
+          <AnalyzeButton />
           <ThemeMenu />
           <form action={signOut}>
             <button

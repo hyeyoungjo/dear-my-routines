@@ -3,24 +3,30 @@
 import { useState } from "react";
 import { THEMES, useTheme, type Theme } from "@/components/theme";
 import { useUndo } from "@/components/undo";
+import { AI_MODELS, DEFAULT_MODEL_ID } from "@/services/ai/models";
+import { useUserSettings, useUpdateUserSettings } from "@/hooks/userSettings";
 
 const LABELS: Record<Theme, string> = {
   light: "Light",
   dark: "Dark",
 };
 
-/** Gear button (top-right) that opens a small theme picker. */
+/** Gear button (top-right) that opens settings: theme, AI model, undo limit. */
 export function ThemeMenu() {
   const { theme, setTheme } = useTheme();
   const { max, setMax } = useUndo();
   const [open, setOpen] = useState(false);
+  const { data: settings } = useUserSettings();
+  const updateSettings = useUpdateUserSettings();
+
+  const currentModelId = settings?.aiModel ?? DEFAULT_MODEL_ID;
 
   return (
     <div className="relative">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        aria-label="Theme settings"
+        aria-label="Settings"
         className="rounded-md p-1 text-2xl leading-none text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
       >
         ⚙
@@ -28,7 +34,9 @@ export function ThemeMenu() {
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-20 mt-1 w-44 rounded-md border border-border bg-panel p-1 shadow-lg">
+          <div className="absolute right-0 z-20 mt-1 w-52 rounded-md border border-border bg-panel p-1 shadow-lg">
+            {/* Theme */}
+            <p className="px-2 py-1 text-xs font-medium text-muted">Theme</p>
             {THEMES.map((t) => (
               <button
                 key={t}
@@ -42,7 +50,30 @@ export function ThemeMenu() {
                 }`}
               >
                 {LABELS[t]}
-                {theme === t && <span>✓</span>}
+                {theme === t && <span>&#10003;</span>}
+              </button>
+            ))}
+
+            <div className="my-1 border-t border-border" />
+
+            {/* AI Model */}
+            <p className="px-2 py-1 text-xs font-medium text-muted">AI Model</p>
+            {AI_MODELS.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => {
+                  updateSettings.mutate({ aiModel: m.id });
+                  setOpen(false);
+                }}
+                className={`flex w-full items-center justify-between rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent-soft ${
+                  currentModelId === m.id
+                    ? "font-medium text-accent"
+                    : "text-foreground"
+                }`}
+              >
+                {m.label}
+                {currentModelId === m.id && <span>&#10003;</span>}
               </button>
             ))}
 
