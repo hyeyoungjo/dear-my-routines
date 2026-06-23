@@ -2,9 +2,39 @@
   "project": "Dear My Routines",
   "phase": "11-data-export",
   "steps": [
-    { "step": 0, "name": "category-schema", "status": "pending" },
-    { "step": 1, "name": "export-core", "status": "pending" },
-    { "step": 2, "name": "export-api", "status": "pending" },
-    { "step": 3, "name": "export-ui", "status": "pending" }
-  ]
+    {
+      "step": 0,
+      "name": "category-schema",
+      "status": "completed",
+      "started_at": "2026-06-24T02:18:26+0900",
+      "summary": "tasks 테이블에 nullable category 컬럼 추가, migration 0012",
+      "completed_at": "2026-06-24T02:20:54+0900"
+    },
+    {
+      "step": 1,
+      "name": "export-core",
+      "status": "completed",
+      "started_at": "2026-06-24T02:20:54+0900",
+      "summary": "src/core/export/ — ExportRow 타입, buildExportRows 순수 함수, 단위 테스트(7 케이스) 추가",
+      "completed_at": "2026-06-24T02:26:06+0900"
+    },
+    {
+      "step": 2,
+      "name": "export-api",
+      "status": "completed",
+      "started_at": "2026-06-24T02:26:06+0900",
+      "summary": "GET /api/export?from=YYYY-MM-DD&to=YYYY-MM-DD 라우트 추가 — 인증·파라미터 검증(400/401), 6개 DB 쿼리, buildExportRows 호출, CSV escape 후 text/csv 응답",
+      "completed_at": "2026-06-24T02:28:04+0900"
+    },
+    {
+      "step": 3,
+      "name": "export-ui",
+      "status": "completed",
+      "started_at": "2026-06-24T02:28:04+0900",
+      "summary": "useExport hook(fetch→blob→download+revoke), ExportModal(날짜 범위 입력·isPending·에러), ThemeMenu에 'Export data' 버튼 + ExportModal 추가",
+      "completed_at": "2026-06-24T02:30:35+0900"
+    }
+  ],
+  "created_at": "2026-06-24T02:18:26+0900",
+  "completed_at": "2026-06-24T02:30:35+0900"
 }

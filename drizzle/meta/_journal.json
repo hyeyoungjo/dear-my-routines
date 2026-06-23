@@ -85,6 +85,13 @@
       "when": 1782265000000,
       "tag": "0011_allowed_emails",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1782270000000,
+      "tag": "0012_tasks_category",
+      "breakpoints": true
     }
   ]
 }

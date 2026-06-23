@@ -58,7 +58,8 @@
     },
     {
       "dir": "11-data-export",
-      "status": "pending"
+      "status": "completed",
+      "completed_at": "2026-06-24T02:30:35+0900"
     }
   ]
 }
