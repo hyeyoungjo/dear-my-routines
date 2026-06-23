@@ -42,7 +42,9 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isPublicRoute =
-    pathname === "/login" || pathname.startsWith("/auth");
+    pathname === "/login" ||
+    pathname === "/unauthorized" ||
+    pathname.startsWith("/auth");
 
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
@@ -53,6 +55,24 @@ export async function updateSession(request: NextRequest) {
       redirectResponse.cookies.set(cookie),
     );
     return redirectResponse;
+  }
+
+  if (user && !isPublicRoute) {
+    const { data } = await supabase
+      .from("allowed_emails")
+      .select("id")
+      .eq("email", user.email)
+      .maybeSingle();
+
+    if (data === null) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/unauthorized";
+      const redirectResponse = NextResponse.redirect(url);
+      supabaseResponse.cookies.getAll().forEach((cookie) =>
+        redirectResponse.cookies.set(cookie),
+      );
+      return redirectResponse;
+    }
   }
 
   return supabaseResponse;

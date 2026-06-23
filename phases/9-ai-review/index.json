@@ -1,0 +1,44 @@
+{
+  "project": "Dear My Routines",
+  "phase": "9-ai-review",
+  "steps": [
+    {
+      "step": 0,
+      "name": "ai-provider",
+      "status": "completed",
+      "started_at": "2026-06-23T23:48:50+0900",
+      "completed_at": "2026-06-24T00:20:08+0900",
+      "summary": "src/services/ai/{index,provider,models}.ts 생성(ai+@ai-sdk/google+zod 패키지는 네트워크 제약으로 미설치, stub으로 빌드 통과). AI_MODELS 상수, resolveModelId, generateStructured 시그니처 완비. 패키지 설치 후 TODO 주석 해제하면 복원됨."
+    },
+    {
+      "step": 1,
+      "name": "prompt-core",
+      "status": "blocked",
+      "blocked_reason": "zod 패키지 미설치(사내 네트워크 제약). npm install zod 가능해지면 pending으로 되돌리고 재실행."
+    },
+    {
+      "step": 2,
+      "name": "settings-schema-api",
+      "status": "completed",
+      "summary": "userSettings pgTable(user_settings) + RLS + uniqueIndex 추가(schema.ts). drizzle/0009_stiff_mongu.sql 생성(user_settings 전용으로 정리). GET/PUT /api/user-settings route 생성(isAllowedModel whitelist 검증, userId는 세션에서 주입). migrate는 수동 실행 필요."
+    },
+    {
+      "step": 3,
+      "name": "settings-ui",
+      "status": "completed",
+      "summary": "src/hooks/userSettings.ts(useUserSettings·useUpdateUserSettings 낙관적 업데이트). src/components/SettingsMenu.tsx(AI 버튼+모델 드롭다운, ThemeMenu 패턴). page.tsx header에 <SettingsMenu /> 추가. 빌드 통과."
+    },
+    {
+      "step": 4,
+      "name": "analyze-route",
+      "status": "pending"
+    },
+    {
+      "step": 5,
+      "name": "review-ai-ui",
+      "status": "completed",
+      "summary": "src/core/ai/schema.ts(DailyAnalysis 타입+isDailyAnalysis 가드, zod 없이). useAnalyzeDay 훅 추가(dailyReviews.ts). ReviewColumn.tsx에 Analyze today 버튼+결과 표시(summary·observations·encouragement·generatedAt). analyze route stub(503). 빌드·테스트 95개 통과."
+    }
+  ],
+  "created_at": "2026-06-23T23:48:50+0900"
+}

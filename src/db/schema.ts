@@ -311,6 +311,69 @@ export const dailyReviews = pgTable(
   ],
 );
 
+// --- user_settings: per-user preferences (ADR-020) ------------------------
+
+/**
+ * One settings row per user. Currently holds only the preferred AI model;
+ * more columns can be added as settings grow. `aiModel` null means "use the
+ * env default" (`GEMINI_MODEL`). The unique index on `user_id` is the upsert
+ * conflict target for PUT /api/user-settings.
+ */
+export const userSettings = pgTable(
+  "user_settings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    // Preferred AI model id (from services/ai/models AI_MODELS[].id).
+    // null = fall back to env GEMINI_MODEL default.
+    aiModel: text("ai_model"),
+    // Whether the user has opted in to AI analysis. Default false — opt-in.
+    aiEnabled: boolean("ai_enabled").notNull().default(false),
+    createdOn: timestamp("created_on", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedOn: timestamp("updated_on", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("user_settings_user_uq").on(t.userId),
+    ...ownerPolicies("user_settings", t.userId),
+  ],
+);
+
+// --- allowed_emails: access control allowlist (phase 10) ------------------
+
+/**
+ * Allowlist of emails permitted to use the app. The middleware (step 1) checks
+ * this table on every request. Rows are managed by the admin only (Supabase
+ * dashboard or service key) — users have no INSERT/UPDATE/DELETE policy, so
+ * they cannot add themselves. The SELECT policy lets an authenticated user
+ * verify their own email only, without exposing the full list.
+ *
+ * No `user_id` column: this table identifies access by email, not by uid, so
+ * `ownerPolicies` does not apply here.
+ */
+export const allowedEmails = pgTable(
+  "allowed_emails",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: text("email").notNull(),
+    note: text("note"),
+    createdOn: timestamp("created_on", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("allowed_emails_email_uq").on(t.email),
+    pgPolicy("allowed_emails_self_read", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`email = (select auth.email())`,
+    }),
+  ],
+);
+
 // --- category_stats: layer-2 aggregate memory (ADR-006) -------------------
 
 export const categoryStats = pgTable(
@@ -359,3 +422,8 @@ export type NewDailyReview = InferInsertModel<typeof dailyReviews>;
 
 export type CategoryStat = InferSelectModel<typeof categoryStats>;
 export type NewCategoryStat = InferInsertModel<typeof categoryStats>;
+
+export type UserSettings = InferSelectModel<typeof userSettings>;
+export type NewUserSettings = InferInsertModel<typeof userSettings>;
+
+export type AllowedEmail = InferSelectModel<typeof allowedEmails>;

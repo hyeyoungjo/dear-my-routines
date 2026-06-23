@@ -1,0 +1,24 @@
+{
+  "project": "Dear My Routines",
+  "phase": "10-access-control",
+  "steps": [
+    {
+      "step": 0,
+      "name": "allowlist-schema",
+      "status": "completed",
+      "started_at": "2026-06-24T02:15:28+0900",
+      "summary": "allowed_emails 테이블 추가(schema.ts + 마이그레이션 0011): email 기준 self-read RLS만, INSERT/UPDATE/DELETE 정책 없음, AllowedEmail 타입 export",
+      "completed_at": "2026-06-24T02:17:05+0900"
+    },
+    {
+      "step": 1,
+      "name": "allowlist-middleware",
+      "status": "completed",
+      "started_at": "2026-06-24T02:17:05+0900",
+      "summary": "미들웨어에 allowed_emails allowlist 조회 추가(유저 컨텍스트 RLS), /unauthorized 퍼블릭 라우트 처리, /unauthorized 페이지 생성(sign out + back to login)",
+      "completed_at": "2026-06-24T02:18:22+0900"
+    }
+  ],
+  "created_at": "2026-06-24T02:15:28+0900",
+  "completed_at": "2026-06-24T02:18:22+0900"
+}

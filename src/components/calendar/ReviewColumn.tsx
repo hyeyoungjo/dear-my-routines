@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSelectedDate } from "@/components/date";
 import { dayKey } from "@/core/time/day";
+import { isDailyAnalysis, type DailyAnalysis } from "@/core/ai/schema";
 import {
   useDailyReview,
   useUpsertDailyReview,
@@ -14,18 +15,15 @@ const DEBOUNCE_MS = 600;
 
 /**
  * Review column: a single free-form journal for the *whole* selected grid day
- * (ADR-004 "Review", PRD). Unlike Plan/Act it shares no time axis — the entry is
- * about the day as a whole, not a clock position — so it draws no hour lines, just
- * one stretching textarea beside the two calendar columns.
+ * (ADR-004 "Review", PRD). Unlike Plan/Act it shares no time axis.
  *
- * Input is held in local state and **debounced** (~600ms after typing stops) into
- * the optimistic upsert hook (Step 1), so the screen never waits on the server
- * (ADR-007 — the textarea is never disabled). A pending save is flushed
- * immediately on blur and when the selected day changes, because a debounce timer
- * still ticking when the user navigates away would otherwise drop the last edit.
- * The timer is cleared on unmount to avoid a duplicate save / leak.
+ * Input is debounced (~600ms) into the optimistic upsert hook (ADR-007).
+ * Pending saves are flushed on blur and on day change.
  *
- * AI analysis (`ai_analysis`) is out of scope this phase — no buttons, no results.
+ * AI analysis is triggered from the header "Analyze today" button (ADR-020).
+ * When ai_analysis exists on the review row, it is shown below the journal in
+ * a visually distinct area (accent-tinted background). The textarea is never
+ * disabled — analysis loading is fully decoupled (ADR-007).
  */
 export function ReviewColumn() {
   const { selectedDate } = useSelectedDate();
@@ -33,17 +31,12 @@ export function ReviewColumn() {
   const { data } = useDailyReview(date);
   const upsert = useUpsertDailyReview();
 
-  // Editor text lives locally; the server row only seeds / re-syncs it.
   const [text, setText] = useState("");
-  // The debounce timer and the not-yet-saved write (tagged with its own date so a
-  // flush triggered by a day change still saves to the day it was typed for).
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRef = useRef<UpsertReviewInput | null>(null);
-  // Mirror the latest mutate so the stable `flush` never closes over a stale one.
   const mutateRef = useRef(upsert.mutate);
   mutateRef.current = upsert.mutate;
 
-  /** Save the pending write now (if any) and cancel the debounce timer. */
   const flush = useCallback(() => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
@@ -56,16 +49,11 @@ export function ReviewColumn() {
     }
   }, []);
 
-  // Seed (or re-sync) the editor from the server row when switching days or when
-  // a day's review first arrives — but never clobber unsaved local edits for the
-  // day currently being typed (pending write still queued for this date).
   useEffect(() => {
     if (pendingRef.current?.date === date) return;
     setText(data?.journalText ?? "");
   }, [date, data?.journalText]);
 
-  // On day change, flush the previous day's pending write before the seed effect
-  // above swaps in the new day's text — otherwise a mid-debounce nav loses it.
   const prevDateRef = useRef(date);
   useEffect(() => {
     if (prevDateRef.current !== date) {
@@ -74,7 +62,6 @@ export function ReviewColumn() {
     }
   }, [date, flush]);
 
-  // Clear the timer on unmount (no duplicate save, no leak).
   useEffect(() => () => {
     if (timerRef.current) clearTimeout(timerRef.current);
   }, []);
@@ -87,6 +74,11 @@ export function ReviewColumn() {
     timerRef.current = setTimeout(flush, DEBOUNCE_MS);
   };
 
+  // Safely narrow the jsonb blob — unknown shape must never crash the render.
+  const analysis: DailyAnalysis | null = isDailyAnalysis(data?.aiAnalysis)
+    ? data.aiAnalysis
+    : null;
+
   return (
     <div className="flex flex-1 flex-col border-l border-grid">
       <textarea
@@ -94,8 +86,40 @@ export function ReviewColumn() {
         onChange={handleChange}
         onBlur={flush}
         placeholder="How did today go?"
-        className="h-full w-full resize-none bg-transparent p-3 text-sm leading-relaxed text-foreground placeholder:text-muted focus:outline-none"
+        className="min-h-0 flex-1 w-full resize-none bg-transparent p-3 text-sm leading-relaxed text-foreground placeholder:text-muted focus:outline-none"
       />
+
+      {analysis && <AnalysisResult analysis={analysis} />}
+    </div>
+  );
+}
+
+function AnalysisResult({ analysis }: { analysis: DailyAnalysis }) {
+  return (
+    <div className="border-t border-grid bg-accent-soft/40 p-3 space-y-2 text-sm">
+      <p className="font-semibold text-accent">{analysis.summary}</p>
+
+      {analysis.observations.length > 0 && (
+        <ul className="space-y-0.5 text-foreground/80">
+          {analysis.observations.map((obs, i) => (
+            <li key={i} className="flex gap-1.5">
+              <span className="mt-0.5 shrink-0 text-accent">·</span>
+              <span>{obs}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <p className="italic text-foreground/70">{analysis.encouragement}</p>
+
+      {analysis.generatedAt && (
+        <p className="text-xs text-muted">
+          {new Date(analysis.generatedAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </p>
+      )}
     </div>
   );
 }

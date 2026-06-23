@@ -54,6 +54,36 @@ export function useDailyReview(date: string) {
   });
 }
 
+// --- Analyze mutation (non-optimistic: result unknown until AI responds) ----
+
+async function analyzeDay(input: { date: string }): Promise<DailyReview> {
+  const res = await fetch("/api/daily-reviews/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(`Analysis failed (${res.status})`);
+  return res.json();
+}
+
+/**
+ * Trigger AI analysis for a grid day. Not optimistic — the result is unknown
+ * until the model responds. On success, writes the returned row into the cache
+ * so the result appears immediately without a refetch.
+ */
+export function useAnalyzeDay() {
+  const queryClient = useQueryClient();
+  return useMutation<DailyReview, Error, { date: string }>({
+    mutationFn: analyzeDay,
+    onSuccess: (data, { date }) => {
+      queryClient.setQueryData<DailyReview | null>(dailyReviewKey(date), data);
+    },
+    onError: (_err, { date }) => {
+      queryClient.invalidateQueries({ queryKey: dailyReviewKey(date) });
+    },
+  });
+}
+
 // --- Optimistic upsert ----------------------------------------------------
 
 type OptimisticContext = { previous: DailyReview | null | undefined };

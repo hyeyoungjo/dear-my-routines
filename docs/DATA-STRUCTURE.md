@@ -89,7 +89,12 @@ daily_reviews  (하루 회고 일기 + AI 분석)
    ├─     user_id     : uuid   NOT NULL           — 소유자(RLS)
    ├─     date        : date   NOT NULL           — 회고 대상 날(grid day)
    ├─     journal_text: text   NOT NULL           — 사용자가 직접 쓴 일기/리플렉션
-   ├─     ai_analysis : jsonb  ?                  — AI 분석 결과(미구현, 현재 null)
+   ├─     ai_analysis : jsonb  ?                  — 데일리 AI 분석 결과(ADR-020, phase 9)
+   │                                  구조: { summary: string, observations: string[],
+   │                                          encouragement: string, generatedAt: ISO string }
+   │                                  summary/observations/encouragement는 AI 생성(자유 텍스트),
+   │                                  generatedAt은 서버가 저장 시 주입. 분석 전이면 null.
+   │                                  POST /api/daily-reviews/analyze가 채운다(journal_text 불변).
    └─     created_at  : timestamptz NOT NULL = now()
    ※ (user_id, date) unique 인덱스 `daily_reviews_user_date_uq`로 "하루 1개" 보장
      (마이그레이션 0008). PUT route가 이 제약을 conflict target으로 upsert한다.
@@ -104,6 +109,18 @@ category_stats  (2층 집계 메모리 — ADR-006, 집계 파이프라인 미�
    ├─     sample_count: integer NOT NULL = 0      — 표본 수
    ├─     trend       : jsonb  ?                  — 시간 추세
    └─     updated_at  : timestamptz NOT NULL = now()
+
+user_settings  (유저별 설정 — ADR-020, phase 9에서 추가 / 마이그레이션 0009)
+└─ PK  id           : uuid
+   ├─     user_id     : uuid   NOT NULL           — 소유자(RLS)
+   ├─     ai_model    : text   ?                  — 선택한 AI 모델 id(services/ai/models AI_MODELS[].id)
+   │                                  null = env GEMINI_MODEL 기본값 사용. 드롭다운 선택을 저장.
+   ├─     created_on  : timestamptz NOT NULL = now()
+   └─     updated_on  : timestamptz NOT NULL = now()
+   ※ (user_id) unique 인덱스 `user_settings_user_uq`로 "유저당 설정 1행" 보장.
+     GET/PUT /api/user-settings가 이 제약을 conflict target으로 upsert한다. PUT은 ai_model을
+     isAllowedModel로 화이트리스트 검증(임의 문자열 차단). 모델 비종속(ADR-005): 지금은 Gemini
+     variants뿐이나 AI_MODELS 배열에 항목만 늘리면 다른 provider도 확장된다.
 ```
 
 ---
