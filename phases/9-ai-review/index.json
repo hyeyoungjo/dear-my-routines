@@ -1,0 +1,40 @@
+{
+  "project": "Dear My Routines",
+  "phase": "9-ai-review",
+  "steps": [
+    {
+      "step": 0,
+      "name": "ai-provider",
+      "status": "error",
+      "started_at": "2026-06-23T23:48:50+0900",
+      "error_message": "[3회 시도 후 실패] Step did not update status",
+      "failed_at": "2026-06-24T00:20:08+0900"
+    },
+    {
+      "step": 1,
+      "name": "prompt-core",
+      "status": "pending"
+    },
+    {
+      "step": 2,
+      "name": "settings-schema-api",
+      "status": "pending"
+    },
+    {
+      "step": 3,
+      "name": "settings-ui",
+      "status": "pending"
+    },
+    {
+      "step": 4,
+      "name": "analyze-route",
+      "status": "pending"
+    },
+    {
+      "step": 5,
+      "name": "review-ai-ui",
+      "status": "pending"
+    }
+  ],
+  "created_at": "2026-06-23T23:48:50+0900"
+}
