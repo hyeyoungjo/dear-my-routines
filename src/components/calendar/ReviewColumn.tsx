@@ -93,7 +93,7 @@ export function ReviewColumn() {
         value={text}
         onChange={handleChange}
         onBlur={flush}
-        placeholder="How did today go? Write freely…"
+        placeholder="How did today go?"
         className="h-full w-full resize-none bg-transparent p-3 text-sm leading-relaxed text-foreground placeholder:text-muted focus:outline-none"
       />
     </div>
