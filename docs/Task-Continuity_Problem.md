@@ -113,6 +113,13 @@
 > Q3 = ✕는 "그 행 삭제"로 통일, 이월은 별도 명시 동작(UI는 동작 설계 단계). Q4 = action은 N행
 > 가능. Q5 = carry-v2를 **진화**(정체성/배치 분리 유지, plan+actual 한 행 합침만 해체).
 > 아래 원문은 사고 흐름 기록으로 보존.
+>
+> **추가 갱신 → ADR-016/017.** 모델이 더 진화: nodes 트리 폐기 → **projects + tasks 2층**(ADR-016);
+> status 어휘 확정(plan=`planned/missed` 저장, action kind=`kept/revised/added` 파생, task/project
+> 롤업=`todo/doing/overdue/done` 파생; action status 칸 폐기). 캘린더는 ghost 클릭=계획시간대로
+> action 생성·자유편집, ✕=항상 삭제, 수동 이월 버튼 없음(sweep), in-progress=now 겹침 하이라이트.
+> **구현 진행**(브랜치 `feat-7-carry-v2`): 스키마·core·hooks·api·마이그(0005~0007) 완료, **캘린더
+> 재구축이 다음**. 상세는 ADR-015/016/017.
 
 1. **Plan/Action 분리를 어떻게 구현?**
    - (i) `task_blocks`에 `kind: plan | action` 컬럼을 두고 행을 분리?

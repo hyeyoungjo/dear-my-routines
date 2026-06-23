@@ -202,3 +202,30 @@ DB가 직접 차단(ADR-003 멀티유저 확장과도 맞물림). **Vercel AI SD
 `nodes`(트리)를 projects/tasks로 **재분류 이전**해야 한다 — area→drop 또는 project로, subtask→task로
 승격 등 의미 매핑은 실데이터를 보고 마이그레이션 단계에서 정한다. **ADR-009를 대체**하고 ADR-015의
 nodes 부분을 **구체화**한다(정체성/배치/통계 묶음의 의도는 유지).
+
+### ADR-017: status 어휘 통일 + 캘린더 동작 확정 (2026-06-22)
+**맥락**: ADR-016의 `action_block_status(in-progress|done)`은 캘린더 UX를 정하는 과정에서
+어긋났다. "doing"을 저장 상태가 아니라 시각으로 파생하기로 하면서 그 칸이 무의미해졌고,
+status 어휘가 list마다 제각각(`planned/missed` 중복, `in-progress`만 하이픈)이었다.
+**결정 — status 어휘(전부 파생, 단 하나만 저장)**:
+- **plan_blocks** (유일한 저장 status): `planned` | `missed`.
+- **action kind** (파생): `kept`(그날 plan과 시각 **정확히 일치**) | `revised`(plan 있고 다름) |
+  `added`(그날 plan 없음). `actionKindOf(action, plans)`로 계산.
+- **task/project 롤업** (파생): `todo` | `doing` | `overdue` | `done`. `doing`은 **now가 action
+  span 안**일 때(`isOngoing`). task=`currentStatusOf`, project=`projectStatusOf`(doing>overdue>
+  all done>todo). → 어떤 단어도 두 층위를 가리키지 않는다.
+- **action_blocks는 status 칸 없음** — 0006에서 넣은 칸/enum을 0007에서 제거. `end_at`만 nullable로
+  남겨 미래 타이머("끝 미정")에 대비.
+**결정 — 캘린더 동작(2열 PLAN|ACT)**:
+- PLAN열=plan_blocks, ACT열=action_blocks. 옛 **비교 라벨(`2h→9h`) 제거**(두 열 분리).
+- **ghost**(ACT열의 흐릿한 plan 투영) 유지: 클릭=그 **계획 시간대로 action 생성**, 이후 드래그/
+  리사이즈로 자유 편집. "계획=실제 박제" 걱정은 *동기 있는 1인 유저*라 안 막는다(YAGNI, 단순함 우선).
+- **✕ = 항상 삭제**. **수동 이월 버튼 없음** — 못함은 자동 sweep(`carryOverPlan`), 재계획은 드래그.
+- **carryCount 표시**: 0~1=숨김, 2~3=muted `·N`, 4+=amber(은근한 subproject 신호).
+- **in-progress 하이라이트**: now가 걸친 ACT 블록 강조(시각으로 파생).
+**이유**: 저장 상태를 최소화(plan만)하고 나머지를 파생하면 동기화 부담이 사라지고(ADR-013 정합),
+어휘에서 단어 재사용이 없어져 모호함이 준다. ghost는 한 클릭 실행이라는 좋은 어포던스를 유지하되
+비교 라벨만 떼어내 거슬림을 없앤다.
+**트레이드오프**: 파생 비용(매 렌더 계산)은 1인 소량 데이터라 무시 가능. action kind가 *현재 plan
+기준*이라, action 후 plan을 수정하면 kept→revised로 재분류된다(드물고 의미상 허용). **ADR-016을
+구체화**한다(action status 저장만 철회).
