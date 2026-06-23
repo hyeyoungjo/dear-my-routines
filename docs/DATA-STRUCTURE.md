@@ -91,7 +91,8 @@ daily_reviews  (하루 회고 일기 + AI 분석)
    ├─     journal_text: text   NOT NULL           — 사용자가 직접 쓴 일기/리플렉션
    ├─     ai_analysis : jsonb  ?                  — AI 분석 결과(미구현, 현재 null)
    └─     created_at  : timestamptz NOT NULL = now()
-   ※ 현재 (user_id, date) unique 제약 없음 → "하루 1개" 보장 인덱스는 추가 예정.
+   ※ (user_id, date) unique 인덱스 `daily_reviews_user_date_uq`로 "하루 1개" 보장
+     (마이그레이션 0008). PUT route가 이 제약을 conflict target으로 upsert한다.
 
 category_stats  (2층 집계 메모리 — ADR-006, 집계 파이프라인 미구현)
 └─ PK  id            : uuid
