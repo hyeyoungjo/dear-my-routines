@@ -14,7 +14,8 @@
       "name": "review-hooks",
       "status": "completed",
       "started_at": "2026-06-23T14:39:47+0900",
-      "summary": "src/hooks/dailyReviews.ts — useDailyReview(date)(쿼리키 [\"daily-review\",date], data null 허용)·useUpsertDailyReview()(planBlocks와 동일 onMutate/onError/onSettled 낙관적 upsert, 기존행 병합 or 플레이스홀더 생성, ai_analysis null 유지)·dailyReviewKey(date) export. build+test(95) 통과."
+      "summary": "src/hooks/dailyReviews.ts — useDailyReview(date)(쿼리키 [\"daily-review\",date], data null 허용)·useUpsertDailyReview()(planBlocks와 동일 onMutate/onError/onSettled 낙관적 upsert, 기존행 병합 or 플레이스홀더 생성, ai_analysis null 유지)·dailyReviewKey(date) export. build+test(95) 통과.",
+      "completed_at": "2026-06-23T14:41:30+0900"
     },
     {
       "step": 2,
