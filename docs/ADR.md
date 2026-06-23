@@ -280,3 +280,42 @@ Gemini 기본(ADR-012)은 후속 AI 작업에서 적용한다.
 텍스트 한 통이라 구조화(잘된 점/아쉬운 점/내일) 가이드는 없다 — 자유도를 우선했다. 추후 AI 입력으로
 쓸 때 구조가 필요하면 재검토한다(본 결정을 깨지 않는 점진 확장).
 **비고**: ADR-004를 *구체화*하며, ADR-006/012의 AI 부분은 본 ADR 이후 별도 작업으로 남긴다.
+
+### ADR-020: 데일리 AI 분석 — 오늘 중심 입력, 버튼 트리거, 구조화 결과, 모델 선택 (2026-06-23)
+**맥락**: ADR-019가 Review를 일기 UI로 먼저 구현하고 AI 분석은 연기했다(`daily_reviews.ai_analysis`를
+비워둠). 이제 그 칸을 채운다. ADR-006의 3층 메모리(원장/집계/검색) 중 원장은 이미 있으나
+집계(`category_stats` 갱신 파이프라인)·검색은 미구현이고, 데이터도 아직 적다(task 16개 수준).
+**결정**:
+- **스코프 = 오늘 하루**(3층 중 1층 raw만). 입력은 그 날의 `plan_blocks`+`action_blocks`+
+  `daily_reviews`(일기)뿐. 누적 집계(예측 보정·성장 추세)와 과거 검색은 **데이터가 쌓인 뒤 후속
+  phase**로 분리한다. ADR-019의 "plan+action+review를 소스로 채운다"와 정확히 일치, 의존성 순서상
+  데일리 분석부터 동작시킨다.
+- **트리거 = 명시적 버튼**("Analyze today"). Review는 자동저장이라 Submit이 없으므로(ADR-019), 분석은
+  사용자가 하루 끝에 한 번 누른다. 데일리 1회 호출로 비용·토큰을 통제한다(ADR-004 트레이드오프 완화).
+- **결과 = 가벼운 구조화 JSON**: `{ summary, observations[], encouragement, generatedAt }`. Vercel AI
+  SDK `generateObject`로 zod 스키마(`core/ai/schema.ts`)를 강제해 안정적으로 받는다. `generatedAt`은
+  AI가 아니라 서버가 저장 시 붙인다.
+- **숫자는 core가 계산, 말은 AI가 생성**(결정적). 예상(plan 길이 합)·실제(action 길이 합)·carryCount
+  같은 수치는 `core/time`/`core/ai`의 순수 함수가 계산해 프롬프트에 *사실*로 박고, UI에도 그 값을
+  쓴다. AI는 그 사실을 보고 통찰·격려 *텍스트*만 만든다. 이유: LLM은 산수를 틀리는데 과소예측 교정이
+  이 앱의 핵심이라 숫자 오류는 치명적이다.
+- **모델 선택 = `user_settings`(DB)에 저장**. 헤더 기어 아이콘 드롭다운으로 고르고, DB에 두어 폰·
+  노트북 어디서든 같은 모델이 적용된다(ADR-002). 분석 라우트는 모델 id를 **클라 body가 아니라 서버가
+  DB에서 읽어** `resolveModelId`로 정규화한다(없으면 env `GEMINI_MODEL`). 신뢰 경계를 클라에 두지 않는다.
+- **모델 비종속 유지**(ADR-005): 허용 모델은 `services/ai/models.ts`의 `AI_MODELS`
+  (`{id,label,provider}`) 단일 출처에 둔다. 지금은 Gemini variants(`gemini-2.5-flash`/`-pro`)뿐이지만,
+  OpenAI 등을 붙이려면 이 배열과 `provider.ts`의 분기만 늘리면 된다. 모든 AI 호출은 `services/ai`
+  래퍼(`generateStructured`)로만 한다(CLAUDE.md CRITICAL).
+- **레이어 분리**: 프롬프트 구성·숫자 계산·결과 스키마는 `core/ai`(순수), AI 호출은 `services/ai`,
+  데이터 조립·저장은 `api`, 표시는 `components`. (CLAUDE.md "비즈니스 로직을 UI에서 분리".)
+- **프롬프트 텍스트는 `prompts/` 마크다운 파일로 분리**. `prompts/daily-analysis-system.md`(시스템
+  지시)와 `prompts/daily-analysis-user.md`(데이터 템플릿 + `{{PLACEHOLDER}}`)를 프로젝트 루트에 둔다.
+  서버 route가 `fs`로 읽어 `buildDailyPrompt(input, templates)`에 넘기고, core는 치환만 한다. 이유:
+  사용자가 코드를 건드리지 않고 프롬프트만 수정할 수 있어야 한다. core 순수성도 유지된다.
+**이유**: 오늘 중심으로 좁히면 미구현 파이프라인(집계/검색)에 막히지 않고 가장 빨리 가치를 낸다.
+구조화 결과 + core 숫자 계산은 과소예측 교정의 정확성을 지킨다. 모델을 DB에 두면 어디서든 일관된다.
+**트레이드오프**: ADR-004/006이 그리는 누적 통계(성장 추세·예측 보정)는 이번에 포함되지 않는다 —
+데이터가 쌓인 뒤 별도 phase. 모델 목록을 상수로 하드코딩하므로 새 모델이 나오면 코드를 수정해야
+한다(1인 앱이라 허용). 일기를 안 쓴 날도 plan/action만으로 분석은 가능하나, 통찰 품질은 낮을 수 있다.
+**비고**: ADR-004/006/019를 *구체화*한다(데일리 AI의 *의도*는 유지, 이번엔 오늘 중심으로 범위 확정).
+집계·검색 파이프라인과 누적 통계는 본 ADR 이후 별도 작업으로 남긴다. phase `9-ai-review`로 구현.

@@ -45,6 +45,10 @@
       "dir": "8-review-journal",
       "status": "completed",
       "completed_at": "2026-06-23T14:44:40+0900"
+    },
+    {
+      "dir": "9-ai-review",
+      "status": "pending"
     }
   ]
 }
