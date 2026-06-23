@@ -5,6 +5,7 @@ import { THEMES, useTheme, type Theme } from "@/components/theme";
 import { useUndo } from "@/components/undo";
 import { AI_MODELS, DEFAULT_MODEL_ID } from "@/services/ai/models";
 import { LANGUAGES, DEFAULT_LANGUAGE_ID } from "@/lib/languages";
+import { FONTS, DEFAULT_FONT_ID } from "@/lib/fonts";
 import { useUserSettings, useUpdateUserSettings } from "@/hooks/userSettings";
 import { ExportModal } from "@/components/ExportModal";
 import { useTranslations } from "next-intl";
@@ -22,6 +23,7 @@ export function ThemeMenu() {
   const currentModelId = settings?.aiModel ?? DEFAULT_MODEL_ID;
   const aiEnabled = settings?.aiEnabled ?? false;
   const currentLanguageId = settings?.language ?? DEFAULT_LANGUAGE_ID;
+  const currentFontId = settings?.font ?? DEFAULT_FONT_ID;
 
   const LABELS: Record<Theme, string> = {
     light: t("themeLight"),
@@ -128,6 +130,30 @@ export function ThemeMenu() {
               >
                 {l.label}
                 {currentLanguageId === l.id && <span>&#10003;</span>}
+              </button>
+            ))}
+
+            <div className="my-1 border-t border-border" />
+
+            {/* Font — each option previewed in its own typeface */}
+            <p className="px-2 py-1 text-xs font-medium text-muted">{t("font")}</p>
+            {FONTS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => {
+                  updateSettings.mutate({ font: f.id });
+                  setOpen(false);
+                }}
+                style={{ fontFamily: `var(${f.variable})` }}
+                className={`flex w-full items-center justify-between rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent-soft ${
+                  currentFontId === f.id
+                    ? "font-medium text-accent"
+                    : "text-foreground"
+                }`}
+              >
+                {f.label}
+                {currentFontId === f.id && <span>&#10003;</span>}
               </button>
             ))}
 

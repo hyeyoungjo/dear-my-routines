@@ -23,6 +23,7 @@ export type UpdateSettingsInput = {
   aiModel?: string | null;
   aiEnabled?: boolean;
   language?: string | null;
+  font?: string | null;
 };
 
 async function updateUserSettings(
@@ -73,6 +74,7 @@ export function useUpdateUserSettings() {
           aiModel: input.aiModel ?? null,
           aiEnabled: input.aiEnabled ?? false,
           language: input.language ?? null,
+          font: input.font ?? null,
           createdOn: new Date(),
           updatedOn: new Date(),
         };

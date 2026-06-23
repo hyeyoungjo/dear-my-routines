@@ -331,6 +331,8 @@ export const userSettings = pgTable(
     aiEnabled: boolean("ai_enabled").notNull().default(false),
     // UI language preference (LanguageId). null = fall back to 'en' default.
     language: text("language"),
+    // UI font preference (FontId). null = fall back to 'nanum-gothic' default.
+    font: text("font"),
     createdOn: timestamp("created_on", { withTimezone: true })
       .notNull()
       .defaultNow(),

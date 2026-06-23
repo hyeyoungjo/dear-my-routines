@@ -6,6 +6,7 @@ import { DateProvider } from "@/components/date";
 import { ThemeProvider } from "@/components/theme";
 import { UndoProvider } from "@/components/undo";
 import { I18nProvider } from "@/i18n/provider";
+import { FontProvider } from "@/components/font";
 import { useCarryOverSweep } from "@/hooks/useCarryOverSweep";
 
 /**
@@ -34,8 +35,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <UndoProvider>
           <DateProvider>
             <I18nProvider>
-              <CarryOverSweep />
-              {children}
+              <FontProvider>
+                <CarryOverSweep />
+                {children}
+              </FontProvider>
             </I18nProvider>
           </DateProvider>
         </UndoProvider>
