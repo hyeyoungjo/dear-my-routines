@@ -311,6 +311,35 @@ export const dailyReviews = pgTable(
   ],
 );
 
+// --- user_settings: per-user preferences (ADR-020) ------------------------
+
+/**
+ * One settings row per user. Currently holds only the preferred AI model;
+ * more columns can be added as settings grow. `aiModel` null means "use the
+ * env default" (`GEMINI_MODEL`). The unique index on `user_id` is the upsert
+ * conflict target for PUT /api/user-settings.
+ */
+export const userSettings = pgTable(
+  "user_settings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    // Preferred AI model id (from services/ai/models AI_MODELS[].id).
+    // null = fall back to env GEMINI_MODEL default.
+    aiModel: text("ai_model"),
+    createdOn: timestamp("created_on", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedOn: timestamp("updated_on", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("user_settings_user_uq").on(t.userId),
+    ...ownerPolicies("user_settings", t.userId),
+  ],
+);
+
 // --- category_stats: layer-2 aggregate memory (ADR-006) -------------------
 
 export const categoryStats = pgTable(
@@ -359,3 +388,6 @@ export type NewDailyReview = InferInsertModel<typeof dailyReviews>;
 
 export type CategoryStat = InferSelectModel<typeof categoryStats>;
 export type NewCategoryStat = InferInsertModel<typeof categoryStats>;
+
+export type UserSettings = InferSelectModel<typeof userSettings>;
+export type NewUserSettings = InferInsertModel<typeof userSettings>;

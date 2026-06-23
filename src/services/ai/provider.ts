@@ -1,9 +1,9 @@
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import type { LanguageModel } from "ai";
+// TODO: install ai + @ai-sdk/google, then restore real implementation
+// import { createGoogleGenerativeAI } from "@ai-sdk/google";
+// import type { LanguageModel } from "ai";
 
-export function getModel(modelId: string): LanguageModel {
-  const google = createGoogleGenerativeAI({
-    apiKey: process.env.GEMINI_API_KEY,
-  });
-  return google(modelId);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function getModel(modelId: string): any {
+  void modelId;
+  throw new Error("AI packages not installed. Run: npm install ai @ai-sdk/google zod");
 }

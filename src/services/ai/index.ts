@@ -1,19 +1,15 @@
-import { generateObject } from "ai";
-import type { z } from "zod";
+// TODO: install ai + @ai-sdk/google + zod, then restore real implementation
+// import { generateObject } from "ai";
+// import type { z } from "zod";
 import { getModel } from "./provider";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function generateStructured<T>(args: {
   modelId: string;
-  schema: z.ZodType<T>;
+  schema: unknown;
   system: string;
   prompt: string;
 }): Promise<T> {
-  const model = getModel(args.modelId);
-  const result = await generateObject({
-    model,
-    schema: args.schema,
-    system: args.system,
-    prompt: args.prompt,
-  });
-  return result.object;
+  void getModel(args.modelId); // throws: AI packages not installed
+  throw new Error("AI packages not installed. Run: npm install ai @ai-sdk/google zod");
 }
