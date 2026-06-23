@@ -5,6 +5,7 @@ import { THEMES, useTheme, type Theme } from "@/components/theme";
 import { useUndo } from "@/components/undo";
 import { AI_MODELS, DEFAULT_MODEL_ID } from "@/services/ai/models";
 import { useUserSettings, useUpdateUserSettings } from "@/hooks/userSettings";
+import { ExportModal } from "@/components/ExportModal";
 
 const LABELS: Record<Theme, string> = {
   light: "Light",
@@ -16,6 +17,7 @@ export function ThemeMenu() {
   const { theme, setTheme } = useTheme();
   const { max, setMax } = useUndo();
   const [open, setOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const { data: settings } = useUserSettings();
   const updateSettings = useUpdateUserSettings();
 
@@ -117,9 +119,23 @@ export function ThemeMenu() {
                 className="w-12 rounded border border-border bg-transparent px-1 py-0.5 text-right text-foreground focus:border-accent focus:outline-none"
               />
             </label>
+
+            <div className="my-1 border-t border-border" />
+
+            <button
+              type="button"
+              onClick={() => {
+                setExportOpen(true);
+                setOpen(false);
+              }}
+              className="flex w-full items-center rounded px-2 py-1.5 text-sm text-foreground transition-colors hover:bg-accent-soft"
+            >
+              Export data
+            </button>
           </div>
         </>
       )}
+      <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} />
     </div>
   );
 }
