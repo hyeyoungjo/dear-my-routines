@@ -23,7 +23,7 @@
       "status": "completed",
       "started_at": "2026-06-23T14:41:30+0900",
       "summary": "신규 src/components/calendar/ReviewColumn.tsx('use client', 시간축 없는 하루 전체 일기 textarea, useDailyReview/useUpsertDailyReview 600ms 디바운스 자동저장 + onBlur·날짜변경 flush + 언마운트 타이머 cleanup, 낙관적이라 textarea 비활성화 안함). CalendarGrid.tsx에 Review 헤더(flex-1)+Action열 우측 <ReviewColumn/> 통합(Plan/Act 기존 동작 불변). 고아 스텁 삭제: src/components/panels/ActPanel.tsx·ReviewPanel.tsx(+빈 panels 디렉토리). build+lint+test(95) 통과.",
-      "completed_at": "2026-06-23T15:44:00+0900"
+      "completed_at": "2026-06-23T14:44:40+0900"
     }
   ],
   "created_at": "2026-06-23T14:27:52+0900"
