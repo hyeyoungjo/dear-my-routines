@@ -3,12 +3,16 @@
 import { useSelectedDate } from "@/components/date";
 import { dayKey } from "@/core/time/day";
 import { useAnalyzeDay } from "@/hooks/dailyReviews";
+import { useUserSettings } from "@/hooks/userSettings";
 
-/** "Analyze today" button in the header — triggers AI analysis for the selected date. */
+/** "Analyze today" button — only renders when the user has enabled AI analysis. */
 export function AnalyzeButton() {
+  const { data: settings } = useUserSettings();
   const { selectedDate } = useSelectedDate();
   const date = dayKey(selectedDate);
   const analyze = useAnalyzeDay();
+
+  if (!settings?.aiEnabled) return null;
 
   return (
     <button

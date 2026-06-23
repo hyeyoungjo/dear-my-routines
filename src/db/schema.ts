@@ -327,6 +327,8 @@ export const userSettings = pgTable(
     // Preferred AI model id (from services/ai/models AI_MODELS[].id).
     // null = fall back to env GEMINI_MODEL default.
     aiModel: text("ai_model"),
+    // Whether the user has opted in to AI analysis. Default false — opt-in.
+    aiEnabled: boolean("ai_enabled").notNull().default(false),
     createdOn: timestamp("created_on", { withTimezone: true })
       .notNull()
       .defaultNow(),

@@ -19,7 +19,10 @@ async function fetchUserSettings(): Promise<UserSettings | null> {
   return res.json();
 }
 
-export type UpdateSettingsInput = { aiModel: string | null };
+export type UpdateSettingsInput = {
+  aiModel?: string | null;
+  aiEnabled?: boolean;
+};
 
 async function updateUserSettings(
   input: UpdateSettingsInput,
@@ -61,12 +64,13 @@ export function useUpdateUserSettings() {
       const previous =
         queryClient.getQueryData<UserSettings | null>(userSettingsKey);
       queryClient.setQueryData<UserSettings | null>(userSettingsKey, (old) => {
-        if (old) return { ...old, aiModel: input.aiModel };
+        if (old) return { ...old, ...input };
         // placeholder when no row exists yet
         return {
           id: crypto.randomUUID(),
           userId: "",
-          aiModel: input.aiModel,
+          aiModel: input.aiModel ?? null,
+          aiEnabled: input.aiEnabled ?? false,
           createdOn: new Date(),
           updatedOn: new Date(),
         };

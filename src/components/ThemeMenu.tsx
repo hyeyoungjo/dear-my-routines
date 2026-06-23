@@ -20,6 +20,7 @@ export function ThemeMenu() {
   const updateSettings = useUpdateUserSettings();
 
   const currentModelId = settings?.aiModel ?? DEFAULT_MODEL_ID;
+  const aiEnabled = settings?.aiEnabled ?? false;
 
   return (
     <div className="relative">
@@ -56,9 +57,31 @@ export function ThemeMenu() {
 
             <div className="my-1 border-t border-border" />
 
-            {/* AI Model */}
-            <p className="px-2 py-1 text-xs font-medium text-muted">AI Model</p>
-            {AI_MODELS.map((m) => (
+            {/* AI Analysis toggle */}
+            <button
+              type="button"
+              onClick={() => updateSettings.mutate({ aiEnabled: !aiEnabled })}
+              className="flex w-full items-center justify-between rounded px-2 py-1.5 text-sm text-foreground hover:bg-accent-soft transition-colors"
+            >
+              <span>AI Analysis</span>
+              <span
+                className={`inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                  aiEnabled ? "bg-accent" : "bg-border"
+                }`}
+              >
+                <span
+                  className={`h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${
+                    aiEnabled ? "translate-x-4" : "translate-x-1"
+                  }`}
+                />
+              </span>
+            </button>
+
+            {/* AI Model — only when AI is enabled */}
+            {aiEnabled && (
+              <>
+                <p className="px-2 py-1 text-xs font-medium text-muted">AI Model</p>
+                {AI_MODELS.map((m) => (
               <button
                 key={m.id}
                 type="button"
@@ -66,16 +89,18 @@ export function ThemeMenu() {
                   updateSettings.mutate({ aiModel: m.id });
                   setOpen(false);
                 }}
-                className={`flex w-full items-center justify-between rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent-soft ${
-                  currentModelId === m.id
-                    ? "font-medium text-accent"
-                    : "text-foreground"
-                }`}
-              >
-                {m.label}
-                {currentModelId === m.id && <span>&#10003;</span>}
-              </button>
-            ))}
+                  className={`flex w-full items-center justify-between rounded px-2 py-1.5 text-sm transition-colors hover:bg-accent-soft ${
+                    currentModelId === m.id
+                      ? "font-medium text-accent"
+                      : "text-foreground"
+                  }`}
+                >
+                  {m.label}
+                  {currentModelId === m.id && <span>&#10003;</span>}
+                </button>
+              ))}
+              </>
+            )}
 
             <div className="my-1 border-t border-border" />
 

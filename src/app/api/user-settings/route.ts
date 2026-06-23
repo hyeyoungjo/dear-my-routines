@@ -49,7 +49,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { aiModel } = body;
+  const { aiModel, aiEnabled } = body;
 
   // null = reset to default; string = must be an allowed model id
   if (aiModel !== null && aiModel !== undefined) {
@@ -67,16 +67,25 @@ export async function PUT(request: NextRequest) {
     }
   }
 
+  if (aiEnabled !== undefined && typeof aiEnabled !== "boolean") {
+    return NextResponse.json(
+      { error: "aiEnabled must be a boolean" },
+      { status: 400 },
+    );
+  }
+
   const [upserted] = await db
     .insert(userSettings)
     .values({
       userId: user.id,
       aiModel: (aiModel as string | null) ?? null,
+      aiEnabled: (aiEnabled as boolean | undefined) ?? false,
     })
     .onConflictDoUpdate({
       target: userSettings.userId,
       set: {
-        aiModel: (aiModel as string | null) ?? null,
+        ...(aiModel !== undefined && { aiModel: aiModel as string | null }),
+        ...(aiEnabled !== undefined && { aiEnabled: aiEnabled as boolean }),
         updatedOn: new Date(),
       },
     })
