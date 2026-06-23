@@ -4,13 +4,10 @@ import { db } from "@/db";
 import { actionBlocks, type NewActionBlock } from "@/db/schema";
 import { createClient } from "@/services/supabase/server";
 
-const ACTION_STATUSES = ["in-progress", "done"] as const;
-
 /**
  * Pick only the fields a client may patch on an action_block. `actionBlockId`,
  * `userId`, and `taskId` are never accepted. `startAt` can move (not clear);
- * `endAt` can be set or cleared to null (finishing or reopening a span); status
- * is in-progress|done.
+ * `endAt` can be set or cleared to null (finishing or reopening a span).
  */
 function parseActionPatchInput(
   body: Record<string, unknown>,
@@ -24,12 +21,6 @@ function parseActionPatchInput(
     values.endAt = new Date(body.endAt);
   } else if (body.endAt === null) {
     values.endAt = null;
-  }
-  if (
-    typeof body.status === "string" &&
-    ACTION_STATUSES.includes(body.status as never)
-  ) {
-    values.status = body.status as NewActionBlock["status"];
   }
 
   return values;

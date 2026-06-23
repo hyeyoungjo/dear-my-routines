@@ -24,7 +24,7 @@ async function fetchActionBlocks(): Promise<ActionBlock[]> {
 
 /** Fields a client may supply when creating an action (server injects userId). */
 export type AddActionInput = Pick<ActionBlock, "taskId" | "date" | "startAt"> &
-  Partial<Pick<ActionBlock, "endAt" | "status">>;
+  Partial<Pick<ActionBlock, "endAt">>;
 
 async function createActionBlock(input: AddActionInput): Promise<ActionBlock> {
   const res = await fetch("/api/action-blocks", {
@@ -113,7 +113,6 @@ function optimisticAction(input: AddActionInput): ActionBlock {
     date: input.date,
     startAt: input.startAt,
     endAt: input.endAt ?? null,
-    status: input.status ?? "done",
   };
 }
 

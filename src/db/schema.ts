@@ -77,14 +77,6 @@ export const planBlockStatus = pgEnum("plan_block_status", [
   "missed",
 ]);
 
-// An action_block's lifecycle (ADR-016). `in-progress` = started but not yet
-// finished (a running span, no end time yet) → this is what revives "doing";
-// `done` = a completed span. Hence action_blocks.end_at is nullable.
-export const actionBlockStatus = pgEnum("action_block_status", [
-  "in-progress",
-  "done",
-]);
-
 // --- nodes: flexible Area > Project > Task > Subtask tree (ADR-009) --------
 
 export const nodes = pgTable(
@@ -252,11 +244,11 @@ export const planBlocks = pgTable(
 // --- action_blocks: per-day *actual execution* of a task (ADR-015) ---------
 
 /**
- * One span of actually doing a task — reality, not intention (ADR-015/016).
- * `status` is `in-progress` (running, no `end_at` yet) or `done` (finished). A
- * task done across two days is two rows. Stats join plan_blocks + action_blocks
- * by `task_id`; the estimate-vs-actual comparison is computed there, never on a
- * calendar block.
+ * One span of actually doing a task — reality, not intention (ADR-015/016). A
+ * task done across two days is two rows. Its *kind* (kept / revised / added vs
+ * the plan) and whether it is *doing* (now within its span) are derived, never
+ * stored (see core/time). Stats join plan_blocks + action_blocks by `task_id`;
+ * the estimate-vs-actual comparison is computed there, never on a calendar block.
  */
 export const actionBlocks = pgTable(
   "action_blocks",
@@ -268,9 +260,8 @@ export const actionBlocks = pgTable(
       .references(() => tasks.taskId, { onDelete: "cascade" }),
     date: date("date").notNull(),
     startAt: timestamp("start_at", { withTimezone: true }).notNull(),
-    // Nullable: an `in-progress` span has no end time yet.
+    // Nullable: a still-running span has no end time yet (future timer).
     endAt: timestamp("end_at", { withTimezone: true }),
-    status: actionBlockStatus("status").notNull().default("done"),
     createdOn: timestamp("created_on", { withTimezone: true })
       .notNull()
       .defaultNow(),

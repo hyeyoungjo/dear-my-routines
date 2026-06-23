@@ -4,14 +4,11 @@ import { db } from "@/db";
 import { actionBlocks, type NewActionBlock } from "@/db/schema";
 import { createClient } from "@/services/supabase/server";
 
-const ACTION_STATUSES = ["in-progress", "done"] as const;
-
 /**
  * Pick only the fields a client may set when creating an action_block
  * (ADR-015/016). `actionBlockId`/`userId` are NOT accepted — the server injects
  * `userId` from the session (ADR-003/010, RLS). `startAt` is required; `endAt`
- * is optional (an `in-progress` span has no end yet) and `status` defaults to
- * `done` (the schema default) when omitted.
+ * is optional (a still-running span has no end yet).
  */
 function parseActionCreateInput(
   body: Record<string, unknown>,
@@ -31,12 +28,6 @@ function parseActionCreateInput(
     startAt: new Date(startAt),
   };
   if (typeof body.endAt === "string") values.endAt = new Date(body.endAt);
-  if (
-    typeof body.status === "string" &&
-    ACTION_STATUSES.includes(body.status as never)
-  ) {
-    values.status = body.status as NewActionBlock["status"];
-  }
 
   return values;
 }

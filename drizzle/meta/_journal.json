@@ -50,6 +50,13 @@
       "when": 1782165885307,
       "tag": "0006_projects_tasks_split",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1782181291602,
+      "tag": "0007_drop_action_status",
+      "breakpoints": true
     }
   ]
 }

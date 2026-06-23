@@ -2,14 +2,17 @@ import { describe, expect, it } from "vitest";
 import {
   type ActionBlock,
   actionBelongsToDay,
+  actionKindOf,
   actionSpan,
   actionsForDay,
   actualDateOf,
   actualMinutesOf,
+  isOngoing,
   shiftAction,
 } from "./action";
 import { durationMinutes } from "./calendar";
 import { dayKey, gridDayOf } from "./day";
+import type { PlanBlock } from "./plan";
 
 /** An action with sensible defaults — override what a test needs. */
 function action(partial: Partial<ActionBlock>): ActionBlock {
@@ -19,10 +22,65 @@ function action(partial: Partial<ActionBlock>): ActionBlock {
     date: "2026-06-21",
     startAt: new Date(2026, 5, 21, 9, 0).toISOString(),
     endAt: new Date(2026, 5, 21, 10, 0).toISOString(),
-    status: "done",
     ...partial,
   };
 }
+
+function plan(partial: Partial<PlanBlock>): PlanBlock {
+  return {
+    planBlockId: "p",
+    taskId: "t",
+    date: "2026-06-21",
+    startAt: new Date(2026, 5, 21, 9, 0).toISOString(),
+    endAt: new Date(2026, 5, 21, 10, 0).toISOString(),
+    status: "planned",
+    ...partial,
+  };
+}
+
+describe("actionKindOf", () => {
+  it("is 'added' when the task has no plan that day", () => {
+    expect(actionKindOf(action({}), [])).toBe("added");
+    // a plan on a different day doesn't count.
+    expect(actionKindOf(action({ date: "2026-06-21" }), [plan({ date: "2026-06-20" })])).toBe(
+      "added",
+    );
+  });
+
+  it("is 'kept' when the action span equals the plan exactly", () => {
+    expect(actionKindOf(action({}), [plan({})])).toBe("kept");
+  });
+
+  it("is 'revised' when a plan exists but the span differs", () => {
+    const a = action({ endAt: new Date(2026, 5, 21, 11, 30).toISOString() });
+    expect(actionKindOf(a, [plan({})])).toBe("revised");
+  });
+
+  it("is 'revised' for a still-running action (no end) with a plan", () => {
+    expect(actionKindOf(action({ endAt: null }), [plan({})])).toBe("revised");
+  });
+});
+
+describe("isOngoing", () => {
+  it("is true when now falls within the span", () => {
+    const a = action({
+      startAt: new Date(2026, 5, 21, 9, 0).toISOString(),
+      endAt: new Date(2026, 5, 21, 11, 0).toISOString(),
+    });
+    expect(isOngoing(a, new Date(2026, 5, 21, 10, 0))).toBe(true);
+    expect(isOngoing(a, new Date(2026, 5, 21, 12, 0))).toBe(false);
+    expect(isOngoing(a, new Date(2026, 5, 21, 8, 0))).toBe(false);
+  });
+
+  it("a running action (no end) is ongoing from its start onward", () => {
+    const a = action({
+      startAt: new Date(2026, 5, 21, 9, 0).toISOString(),
+      endAt: null,
+    });
+    expect(isOngoing(a, new Date(2026, 5, 21, 23, 0))).toBe(true);
+    expect(isOngoing(a, new Date(2026, 5, 21, 8, 0))).toBe(false);
+  });
+});
 
 describe("actionBelongsToDay / actionsForDay", () => {
   it("anchors an action by its start's grid day", () => {
@@ -57,9 +115,8 @@ describe("actionSpan", () => {
     expect(durationMinutes(span.start, span.end)).toBe(90);
   });
 
-  it("returns null while in-progress (no end yet)", () => {
-    const a = action({ endAt: null, status: "in-progress" });
-    expect(actionSpan(a)).toBeNull();
+  it("returns null while still running (no end yet)", () => {
+    expect(actionSpan(action({ endAt: null }))).toBeNull();
   });
 });
 
@@ -80,11 +137,10 @@ describe("shiftAction", () => {
     expect(patch.date).toBe("2026-06-22"); // action owns its day now
   });
 
-  it("moves an in-progress action's start with no end", () => {
+  it("moves a running action's start with no end", () => {
     const a = action({
       startAt: new Date(2026, 5, 21, 14, 0).toISOString(),
       endAt: null,
-      status: "in-progress",
     });
     const patch = shiftAction(a, new Date(2026, 5, 22));
     expect(patch.date).toBe("2026-06-22");
@@ -115,7 +171,7 @@ describe("per-task derived values", () => {
     expect(actualDateOf([])).toBeNull();
   });
 
-  it("actualMinutesOf sums finished spans, ignoring in-progress", () => {
+  it("actualMinutesOf sums finished spans, ignoring still-running ones", () => {
     const actions = [
       action({
         startAt: new Date(2026, 5, 22, 9, 0).toISOString(),
@@ -125,7 +181,7 @@ describe("per-task derived values", () => {
         startAt: new Date(2026, 5, 23, 9, 0).toISOString(),
         endAt: new Date(2026, 5, 23, 9, 30).toISOString(), // 30
       }),
-      action({ endAt: null, status: "in-progress" }), // contributes 0
+      action({ endAt: null }), // running → contributes 0
     ];
     expect(actualMinutesOf(actions)).toBe(120);
     expect(actualMinutesOf([])).toBe(0);
