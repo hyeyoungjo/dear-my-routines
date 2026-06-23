@@ -6,6 +6,10 @@
 # dependencies
 node_modules/
 
+# local-only: points npm at the corporate (Autodesk) registry.
+# only works on the office network; would break installs on home network.
+.npmrc
+
 # build output
 .next/
 out/
