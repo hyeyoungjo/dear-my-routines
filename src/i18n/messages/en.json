@@ -107,6 +107,9 @@
     "createAccount": "Create account",
     "toggleToSignUpPrompt": "New here?",
     "toggleToSignInPrompt": "Already have an account?",
+    "forgotPassword": "Forgot your password?",
+    "enterEmailFirst": "Enter your email above first.",
+    "resetEmailSent": "Check your inbox. We sent a password-reset link to {email}.",
     "confirmEmailSent": "Almost there. Confirm your address via the link we sent to {email}.",
     "checkInbox": "Check your inbox. We sent a sign-in link to {email}.",
     "sendMagicLink": "Send magic link",
@@ -120,5 +123,17 @@
   },
   "auth": {
     "signOut": "Sign out"
+  },
+  "updatePassword": {
+    "title": "Set a new password",
+    "subtitle": "Choose a password you'll use to sign in from now on.",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "submit": "Save password",
+    "saving": "Saving…",
+    "mismatch": "Passwords don't match.",
+    "tooShort": "Password must be at least 8 characters.",
+    "success": "Password saved. Redirecting…",
+    "invalidSession": "This reset link is invalid or has expired. Request a new one from the login page."
   }
 }

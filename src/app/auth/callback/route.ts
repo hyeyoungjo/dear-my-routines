@@ -11,11 +11,20 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
 
+  // Where to land after a successful exchange. Only same-origin relative paths
+  // are honored (leading "/", but not "//host") to avoid open-redirects. The
+  // password-recovery flow points here at "/auth/update-password".
+  const nextParam = searchParams.get("next");
+  const next =
+    nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")
+      ? nextParam
+      : "/";
+
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(`${origin}/`);
+      return NextResponse.redirect(`${origin}${next}`);
     }
   }
 

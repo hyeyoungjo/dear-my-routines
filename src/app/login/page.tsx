@@ -21,9 +21,34 @@ export default function LoginPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const t = useTranslations("login");
   const [status, setStatus] = useState<
-    "idle" | "sending" | "sent" | "confirm" | "error"
+    "idle" | "sending" | "sent" | "confirm" | "reset" | "error"
   >("idle");
   const [errorMessage, setErrorMessage] = useState("");
+
+  async function handleForgotPassword() {
+    setErrorMessage("");
+    if (!email) {
+      setStatus("error");
+      setErrorMessage(t("enterEmailFirst"));
+      return;
+    }
+
+    setStatus("sending");
+    const supabase = createClient();
+    // The recovery link lands on /auth/callback, which exchanges the code and
+    // forwards to /auth/update-password where the new password is set.
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/auth/update-password`,
+    });
+
+    if (error) {
+      setStatus("error");
+      setErrorMessage(error.message);
+      return;
+    }
+
+    setStatus("reset");
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -183,6 +208,10 @@ export default function LoginPage() {
           <p className="mt-8 rounded-md bg-neutral-100 p-4 text-sm text-neutral-700">
             {t("confirmEmailSent", { email })}
           </p>
+        ) : status === "reset" ? (
+          <p className="mt-8 rounded-md bg-neutral-100 p-4 text-sm text-neutral-700">
+            {t("resetEmailSent", { email })}
+          </p>
         ) : (
           <>
             {SHOW_GOOGLE && (
@@ -239,6 +268,16 @@ export default function LoginPage() {
                     ? t("createAccount")
                     : t("signIn")}
               </button>
+
+              {mode === "signin" && (
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="self-end text-xs text-neutral-500 underline-offset-2 hover:text-neutral-900 hover:underline"
+                >
+                  {t("forgotPassword")}
+                </button>
+              )}
             </form>
 
             {status === "error" && (
