@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { createClient } from "@/services/supabase/client";
 import { useTranslations, useLocale } from "next-intl";
 import { LANGUAGES } from "@/lib/languages";
@@ -9,6 +9,10 @@ import { GUEST_LOCALE_EVENT } from "@/i18n/provider";
 // Magic-link login stays in the code (ADR-011) but is hidden in the UI for now —
 // single-user only. Flip SHOW_MAGIC_LINK to true to re-enable the email form.
 const SHOW_MAGIC_LINK = false;
+
+// Google OAuth works but is hidden in the UI for now (kept the code so it can be
+// flipped back on). Set SHOW_GOOGLE to true to show the "Continue with Google" button.
+const SHOW_GOOGLE = false;
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -119,10 +123,9 @@ export default function LoginPage() {
       {/* Language toggle — top-right corner */}
       <div className="absolute right-4 top-4 z-10 flex items-center gap-1 rounded-full border border-neutral-200 bg-white/80 px-1 py-0.5 text-xs backdrop-blur-sm">
         {LANGUAGES.map((l, i) => (
-          <>
-            {i > 0 && <span key={`sep-${l.id}`} className="text-neutral-300">/</span>}
+          <Fragment key={l.id}>
+            {i > 0 && <span className="text-neutral-300">/</span>}
             <button
-              key={l.id}
               type="button"
               onClick={() => switchLocale(l.id)}
               className={`rounded-full px-2 py-0.5 transition-colors ${
@@ -133,7 +136,7 @@ export default function LoginPage() {
             >
               {l.label}
             </button>
-          </>
+          </Fragment>
         ))}
       </div>
       {/* Left: app preview */}
@@ -169,7 +172,7 @@ export default function LoginPage() {
       <div className="flex flex-1 flex-col items-center justify-center px-8 py-12">
       <div className="w-full max-w-sm">
         <h2 className="text-2xl font-semibold tracking-tight">
-          Sign in
+          {mode === "signup" ? t("createAccount") : t("signIn")}
         </h2>
 
         {status === "sent" ? (
@@ -182,23 +185,27 @@ export default function LoginPage() {
           </p>
         ) : (
           <>
-            <button
-              type="button"
-              onClick={handleGoogleSignIn}
-              className="mt-8 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium transition-colors hover:bg-neutral-50"
-            >
-              {t("continueWithGoogle")}
-            </button>
+            {SHOW_GOOGLE && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleGoogleSignIn}
+                  className="mt-8 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium transition-colors hover:bg-neutral-50"
+                >
+                  {t("continueWithGoogle")}
+                </button>
 
-            <div className="my-4 flex items-center gap-3 text-xs text-neutral-400">
-              <span className="h-px flex-1 bg-neutral-200" />
-              {t("or")}
-              <span className="h-px flex-1 bg-neutral-200" />
-            </div>
+                <div className="my-4 flex items-center gap-3 text-xs text-neutral-400">
+                  <span className="h-px flex-1 bg-neutral-200" />
+                  {t("or")}
+                  <span className="h-px flex-1 bg-neutral-200" />
+                </div>
+              </>
+            )}
 
             <form
               onSubmit={handlePasswordSubmit}
-              className="flex flex-col gap-3"
+              className={`flex flex-col gap-3 ${SHOW_GOOGLE ? "" : "mt-8"}`}
             >
               <input
                 type="email"
@@ -245,9 +252,14 @@ export default function LoginPage() {
                 setStatus("idle");
                 setErrorMessage("");
               }}
-              className="mt-4 w-full text-center text-xs text-neutral-500 underline-offset-2 hover:underline"
+              className="group mt-5 w-full text-center text-sm text-neutral-500"
             >
-              {mode === "signin" ? t("toggleToSignUp") : t("toggleToSignIn")}
+              {mode === "signin"
+                ? t("toggleToSignUpPrompt")
+                : t("toggleToSignInPrompt")}{" "}
+              <span className="font-semibold text-neutral-900 underline underline-offset-2 group-hover:opacity-80">
+                {mode === "signin" ? t("createAccount") : t("signIn")}
+              </span>
             </button>
 
             {SHOW_MAGIC_LINK && (

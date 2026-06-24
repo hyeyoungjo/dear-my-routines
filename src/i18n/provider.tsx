@@ -20,10 +20,15 @@ function readGuestLocale(): LanguageId {
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   const { data: settings } = useUserSettings();
-  const [guestLocale, setGuestLocale] = useState<LanguageId>(readGuestLocale);
+  // Start from the server-default locale so the first client render matches the
+  // SSR'd HTML (localStorage isn't available on the server). The saved guest
+  // locale is read after mount in the effect below — avoids a hydration mismatch.
+  const [guestLocale, setGuestLocale] = useState<LanguageId>(DEFAULT_LANGUAGE_ID);
 
-  // Re-read when the login page fires a locale-change event (same-tab).
+  // Read the saved locale on mount, and re-read when the login page fires a
+  // locale-change event (same-tab).
   useEffect(() => {
+    setGuestLocale(readGuestLocale());
     const handler = () => setGuestLocale(readGuestLocale());
     window.addEventListener(GUEST_LOCALE_EVENT, handler);
     return () => window.removeEventListener(GUEST_LOCALE_EVENT, handler);
