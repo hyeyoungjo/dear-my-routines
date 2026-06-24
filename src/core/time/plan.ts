@@ -146,3 +146,8 @@ export function revisedDateOf(taskPlans: PlanBlock[]): string | null {
 export function carryCountOf(taskPlans: PlanBlock[]): number {
   return taskPlans.filter((p) => p.status === "missed").length;
 }
+
+/** How many times this task was carried before reaching `beforeDate` (exclusive). */
+export function carryCountUpTo(taskPlans: PlanBlock[], beforeDate: string): number {
+  return taskPlans.filter((p) => p.status === "missed" && p.date < beforeDate).length;
+}

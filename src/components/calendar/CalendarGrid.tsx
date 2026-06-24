@@ -15,7 +15,7 @@ import {
   snapToSlot,
   type Span,
 } from "@/core/time/calendar";
-import { carryCountOf, carryOverPlan, planSpan, plansForDay } from "@/core/time/plan";
+import { carryCountUpTo, carryOverPlan, planSpan, plansForDay } from "@/core/time/plan";
 import { actionSpan, actionsForDay, isOngoing } from "@/core/time/action";
 import { addDays, dayKey } from "@/core/time/day";
 import { projectColor } from "@/lib/projectColor";
@@ -297,15 +297,18 @@ export function CalendarGrid() {
       : resizeBlockEnd(base.start, base.end, drag.deltaMinutes);
   };
 
-  /** Title/colour/carryCount join for a task, or null for an orphan block. */
-  const decorate = (taskId: string) => {
+  /** Title/colour/carryCount join for a task, or null for an orphan block.
+   * `beforeDate` scopes the carry count: only missed plans *before* that date
+   * are counted, so each day's badge reflects how many times the task was
+   * carried to reach that specific day rather than the lifetime total. */
+  const decorate = (taskId: string, beforeDate: string) => {
     const task = taskById.get(taskId);
     if (!task) return null;
     return {
       title: task.title,
       projectId: task.projectId,
       color: colorOf(task.projectId),
-      carryCount: carryCountOf(plansByTask.get(taskId) ?? []),
+      carryCount: carryCountUpTo(plansByTask.get(taskId) ?? [], beforeDate),
     };
   };
 
@@ -321,7 +324,7 @@ export function CalendarGrid() {
       // PLAN shows every plan that day — `planned` (solid) AND `missed` (dashed,
       // the "meant to, didn't" record kept for review). Both belong here.
       for (const plan of plansForDay(allPlans, selectedDate, gridStartHour, gridEndHour)) {
-        const d = decorate(plan.taskId);
+        const d = decorate(plan.taskId, plan.date);
         if (!d) continue;
         result.push({
           kind: "plan",
@@ -335,12 +338,13 @@ export function CalendarGrid() {
       return result;
     }
 
+    const selectedDateKey = dayKey(selectedDate);
     const dayActions = actionsForDay(allActions, selectedDate, gridStartHour, gridEndHour);
     const actedTaskIds = new Set(dayActions.map((a) => a.taskId));
     for (const action of dayActions) {
       const base = actionSpan(action);
       if (!base) continue; // running (no end) — nothing to draw yet
-      const d = decorate(action.taskId);
+      const d = decorate(action.taskId, selectedDateKey);
       if (!d) continue;
       result.push({
         kind: "action",
@@ -358,7 +362,7 @@ export function CalendarGrid() {
     for (const plan of plansForDay(allPlans, selectedDate, gridStartHour, gridEndHour)) {
       if (plan.status !== "planned") continue;
       if (actedTaskIds.has(plan.taskId)) continue;
-      const d = decorate(plan.taskId);
+      const d = decorate(plan.taskId, plan.date);
       if (!d) continue;
       result.push({
         kind: "action",
