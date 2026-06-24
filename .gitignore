@@ -5,6 +5,10 @@
 
 # dependencies
 node_modules/
+# Lock file excluded: macOS-generated lock omits Linux-specific optional
+# deps (e.g. @emnapi) needed by Next.js on Railway. Railway generates
+# its own fresh install on Linux without a lock file present.
+package-lock.json
 
 # local-only: points npm at the corporate (Autodesk) registry.
 # only works on the office network; would break installs on home network.
