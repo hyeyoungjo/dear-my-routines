@@ -323,8 +323,17 @@ export function CalendarGrid() {
   const buildColumnBlocks = (kind: ColumnKind): CalBlock[] => {
     const result: CalBlock[] = [];
     if (kind === "plan") {
-      // PLAN shows every plan that day — `planned` (solid) AND `missed` (dashed,
-      // the "meant to, didn't" record kept for review). Both belong here.
+      // PLAN shows every plan that day — `planned` (solid) AND `missed` (hatched,
+      // the "meant to, didn't" record kept for review). But a `missed` plan whose
+      // task was actually DONE that day (an action exists) is not a "didn't":
+      // completion is derived from the action, never a stored plan status
+      // (ADR-017). So it renders as a normal block, not the failed/struck-through
+      // style — the stale `missed` flag is reconciled against reality here.
+      const actedTaskIds = new Set(
+        actionsForDay(allActions, selectedDate, gridStartHour, gridEndHour).map(
+          (a) => a.taskId,
+        ),
+      );
       for (const plan of plansForDay(allPlans, selectedDate, gridStartHour, gridEndHour)) {
         const d = decorate(plan.taskId, plan.date);
         if (!d) continue;
@@ -333,7 +342,7 @@ export function CalendarGrid() {
           blockId: plan.planBlockId,
           taskId: plan.taskId,
           span: withPreview("plan", plan.planBlockId, planSpan(plan)),
-          isMissed: plan.status === "missed",
+          isMissed: plan.status === "missed" && !actedTaskIds.has(plan.taskId),
           ...d,
         });
       }
