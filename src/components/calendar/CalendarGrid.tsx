@@ -104,8 +104,6 @@ export function CalendarGrid() {
   const addActionBlock = useAddActionBlock();
   const updatePlanBlock = useUpdatePlanBlock();
   const updateActionBlock = useUpdateActionBlock();
-  const planBodyRef = useRef<HTMLDivElement>(null);
-  const actionBodyRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<DragPreview | null>(null);
   // The task whose detail modal is open (clicking a block's ⤢), null = closed.
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null);
@@ -208,9 +206,13 @@ export function CalendarGrid() {
       justDraggedRef.current = false;
       return;
     }
-    const body = (kind === "plan" ? planBodyRef : actionBodyRef).current;
-    if (!body) return;
-    const y = e.clientY - body.getBoundingClientRect().top;
+    // Measure the *clicked* column body via e.currentTarget — NOT a shared ref.
+    // renderColumn is rendered twice (desktop + the display:none mobile copy) and
+    // both attach the same planBodyRef/actionBodyRef, so the ref can resolve to
+    // the hidden copy whose getBoundingClientRect() is all zeros. That made `y`
+    // the full page-offset of the body (scroll-dependent), placing new blocks
+    // hours below the click. currentTarget is always the visible body clicked.
+    const y = e.clientY - e.currentTarget.getBoundingClientRect().top;
     createAt(snapToSlot(y / PX_PER_MINUTE, gridTotalMinutes), kind);
   };
 
@@ -379,7 +381,6 @@ export function CalendarGrid() {
   /** Render one column's grid body: hour lines, click-to-create, and blocks. */
   const renderColumn = (kind: ColumnKind) => (
     <div
-      ref={kind === "plan" ? planBodyRef : actionBodyRef}
       onClick={(e) => handleBodyClick(e, kind)}
       className="relative flex-1 cursor-pointer overflow-hidden border-l border-grid"
       style={{ height: bodyHeight }}
