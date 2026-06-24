@@ -7,7 +7,7 @@ import {
 } from "./dailyReviewPrompt";
 
 const templates: PromptTemplates = {
-  system: "SYSTEM",
+  system: "SYSTEM — answer in {{language}}",
   user: "Date: {{date}}\nJournal: {{journal}}\nPlan: {{totalPlanned}} Actual: {{totalActual}}\n{{tasksTable}}",
 };
 
@@ -15,6 +15,7 @@ const templates: PromptTemplates = {
 const baseInput: DailyReviewPromptInput = {
   date: "2026-06-24",
   journalText: "Felt scattered today.",
+  language: "한국어",
   tasks: [
     {
       taskTitle: "Write report",
@@ -36,9 +37,9 @@ describe("formatMinutes", () => {
 });
 
 describe("buildDailyReviewPrompt", () => {
-  it("passes the system template through verbatim", () => {
+  it("interpolates the answer language into the system template", () => {
     const { system } = buildDailyReviewPrompt(baseInput, templates);
-    expect(system).toBe("SYSTEM");
+    expect(system).toBe("SYSTEM — answer in 한국어");
   });
 
   it("fills the journal, date, and per-task planned-vs-actual figures", () => {

@@ -11,6 +11,7 @@ import {
   tasks,
   userSettings,
 } from "@/db/schema";
+import { languageLabel } from "@/lib/languages";
 import { generateStructured } from "@/services/ai";
 import { resolveModelId } from "@/services/ai/models";
 import { loadDailyReviewTemplates } from "@/services/ai/prompts";
@@ -62,12 +63,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  // Preferred model (null → env GEMINI_MODEL default).
+  // Preferred model (null → env GEMINI_MODEL default) and UI language: the AI
+  // answers in the language the user chose for the interface (null → default).
   const [settings] = await db
-    .select({ aiModel: userSettings.aiModel })
+    .select({ aiModel: userSettings.aiModel, language: userSettings.language })
     .from(userSettings)
     .where(eq(userSettings.userId, user.id));
   const modelId = resolveModelId(settings?.aiModel);
+  const language = languageLabel(settings?.language);
 
   // The journal for the day (may not exist yet — empty journal is allowed).
   const [review] = await db
@@ -96,7 +99,7 @@ export async function POST(request: NextRequest) {
 
   const templates = await loadDailyReviewTemplates();
   const { system, prompt } = buildDailyReviewPrompt(
-    { date, journalText, tasks: reviewTasks },
+    { date, journalText, tasks: reviewTasks, language },
     templates,
   );
 

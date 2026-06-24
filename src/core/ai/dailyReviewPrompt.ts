@@ -25,6 +25,8 @@ export type DailyReviewPromptInput = {
   date: string;
   journalText: string;
   tasks: ReviewTaskInput[];
+  /** Native label of the user's UI language (e.g. "한국어") — the answer language. */
+  language: string;
 };
 
 export type PromptTemplates = { system: string; user: string };
@@ -92,9 +94,9 @@ function fillTemplate(template: string, vars: Record<string, string>): string {
 }
 
 /**
- * Build the `{ system, prompt }` pair the AI SDK consumes. `system` is the
- * persona template verbatim; `prompt` is the user template with the day's
- * journal and planned-vs-actual figures filled in.
+ * Build the `{ system, prompt }` pair the AI SDK consumes. Both templates are
+ * interpolated with the same vars, so a `{{placeholder}}` (notably
+ * `{{language}}`) can be authored into either the system or user markdown.
  */
 export function buildDailyReviewPrompt(
   input: DailyReviewPromptInput,
@@ -104,13 +106,17 @@ export function buildDailyReviewPrompt(
   const totalPlanned = summaries.reduce((s, t) => s + t.plannedMinutes, 0);
   const totalActual = summaries.reduce((s, t) => s + t.actualMinutes, 0);
 
-  const prompt = fillTemplate(templates.user, {
+  const vars: Record<string, string> = {
     date: input.date,
     journal: input.journalText.trim() || "(no journal written)",
+    language: input.language,
     totalPlanned: formatMinutes(totalPlanned),
     totalActual: formatMinutes(totalActual),
     tasksTable: renderTasksTable(summaries),
-  });
+  };
 
-  return { system: templates.system, prompt };
+  return {
+    system: fillTemplate(templates.system, vars),
+    prompt: fillTemplate(templates.user, vars),
+  };
 }
