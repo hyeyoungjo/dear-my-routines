@@ -9,3 +9,6 @@ Total actual: {{totalActual}}
 
 Per task (planned → actual):
 {{tasksTable}}
+
+## Recent patterns (trailing window, for trend context only)
+{{history}}

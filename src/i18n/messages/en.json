@@ -13,7 +13,16 @@
     "gridHours": "Grid hours",
     "geminiApiKey": "Gemini API Key",
     "saveKey": "Save",
-    "removeKey": "Remove"
+    "removeKey": "Remove",
+    "title": "Settings",
+    "reviewStyle": "Review style",
+    "reviewStyleHint": "Extra guidance for tone & wording (optional)",
+    "reviewStylePlaceholder": "e.g. Keep it brief and warm; lead with the key point.",
+    "reviewHistory": "Review history",
+    "reviewHistoryHint": "Days of past patterns the review considers",
+    "daysUnit": "days",
+    "save": "Save",
+    "close": "Close"
   },
   "calendar": {
     "plan": "Plan",

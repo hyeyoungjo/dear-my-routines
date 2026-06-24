@@ -1,7 +1,10 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, gte, inArray, lte } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 import { buildDailyReviewPrompt, type ReviewTaskInput } from "@/core/ai/dailyReviewPrompt";
+import { clampHistoryDays, summarizeReviewHistory } from "@/core/ai/reviewHistory";
 import { dailyAnalysisSchema, type DailyAnalysis } from "@/core/ai/schema";
+import { buildExportRows } from "@/core/export";
+import { addDays, dayFromKey, dayKey } from "@/core/time/day";
 import { db } from "@/db";
 import {
   actionBlocks,
@@ -66,11 +69,18 @@ export async function POST(request: NextRequest) {
   // Preferred model (null → env GEMINI_MODEL default) and UI language: the AI
   // answers in the language the user chose for the interface (null → default).
   const [settings] = await db
-    .select({ aiModel: userSettings.aiModel, language: userSettings.language })
+    .select({
+      aiModel: userSettings.aiModel,
+      language: userSettings.language,
+      reviewStylePrompt: userSettings.reviewStylePrompt,
+      reviewHistoryDays: userSettings.reviewHistoryDays,
+    })
     .from(userSettings)
     .where(eq(userSettings.userId, user.id));
   const modelId = resolveModelId(settings?.aiModel);
   const language = languageLabel(settings?.language);
+  const customStyle = settings?.reviewStylePrompt ?? "";
+  const historyDays = clampHistoryDays(settings?.reviewHistoryDays);
 
   // The journal for the day (may not exist yet — empty journal is allowed).
   const [review] = await db
@@ -97,9 +107,15 @@ export async function POST(request: NextRequest) {
 
   const reviewTasks = await buildReviewTasks(user.id, taskIds, plans, actions);
 
+  // Trailing window of prior days (strictly before `date`) condensed into a
+  // short pattern block — chronic under-estimation / repeated deferral that a
+  // single day cannot reveal. Reuses the export roll-up so the figures match
+  // exactly what the user sees in their CSV.
+  const history = await buildReviewHistory(user.id, date, historyDays);
+
   const templates = await loadDailyReviewTemplates();
   const { system, prompt } = buildDailyReviewPrompt(
-    { date, journalText, tasks: reviewTasks, language },
+    { date, journalText, tasks: reviewTasks, language, history, customStyle },
     templates,
   );
 
@@ -137,6 +153,60 @@ export async function POST(request: NextRequest) {
     .returning();
 
   return NextResponse.json(saved);
+}
+
+/**
+ * Build the condensed trailing-history block for the prompt. Pulls the window
+ * `[date - days, date - 1]` (prior days only — the reviewed day is already in
+ * the per-task table) and runs it through the export roll-up + summarizer.
+ * `allTaskPlanBlocks` is every plan for the user, which `buildExportRows` needs
+ * to compute carry-over counts accurately.
+ */
+async function buildReviewHistory(
+  userId: string,
+  date: string,
+  days: number,
+): Promise<string> {
+  const to = dayKey(addDays(dayFromKey(date), -1));
+  const from = dayKey(addDays(dayFromKey(date), -days));
+
+  const [taskRows, projectRows, planRows, actionRows, allPlanRows] =
+    await Promise.all([
+      db.select().from(tasks).where(eq(tasks.userId, userId)),
+      db.select().from(projects).where(eq(projects.userId, userId)),
+      db
+        .select()
+        .from(planBlocks)
+        .where(
+          and(
+            eq(planBlocks.userId, userId),
+            gte(planBlocks.date, from),
+            lte(planBlocks.date, to),
+          ),
+        ),
+      db
+        .select()
+        .from(actionBlocks)
+        .where(
+          and(
+            eq(actionBlocks.userId, userId),
+            gte(actionBlocks.date, from),
+            lte(actionBlocks.date, to),
+          ),
+        ),
+      db.select().from(planBlocks).where(eq(planBlocks.userId, userId)),
+    ]);
+
+  const rows = buildExportRows({
+    tasks: taskRows,
+    projects: projectRows,
+    planBlocks: planRows,
+    actionBlocks: actionRows,
+    dailyReviews: [],
+    allTaskPlanBlocks: allPlanRows,
+  });
+
+  return summarizeReviewHistory(rows, days);
 }
 
 type PlanRow = { taskId: string; startAt: Date; endAt: Date };

@@ -27,6 +27,10 @@ export type DailyReviewPromptInput = {
   tasks: ReviewTaskInput[];
   /** Native label of the user's UI language (e.g. "한국어") — the answer language. */
   language: string;
+  /** Pre-summarized trailing-window patterns (see core/ai/reviewHistory). */
+  history: string;
+  /** User's free-text style guidance for the review (tone/wording only). */
+  customStyle: string;
 };
 
 export type PromptTemplates = { system: string; user: string };
@@ -113,6 +117,8 @@ export function buildDailyReviewPrompt(
     totalPlanned: formatMinutes(totalPlanned),
     totalActual: formatMinutes(totalActual),
     tasksTable: renderTasksTable(summaries),
+    history: input.history.trim() || "(no recent history available)",
+    customStyle: input.customStyle.trim() || "(none)",
   };
 
   return {

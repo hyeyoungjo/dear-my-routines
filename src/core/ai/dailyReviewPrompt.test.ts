@@ -16,6 +16,8 @@ const baseInput: DailyReviewPromptInput = {
   date: "2026-06-24",
   journalText: "Felt scattered today.",
   language: "한국어",
+  history: "(no recent history available)",
+  customStyle: "(none)",
   tasks: [
     {
       taskTitle: "Write report",

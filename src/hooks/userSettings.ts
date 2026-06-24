@@ -32,6 +32,10 @@ export type UpdateSettingsInput = {
   font?: string | null;
   gridStartTime?: number | null;
   gridEndTime?: number | null;
+  // Free-text style guidance for the AI review; null clears, undefined leaves unchanged.
+  reviewStylePrompt?: string | null;
+  // Trailing history window in days (1–30); null resets to default.
+  reviewHistoryDays?: number | null;
   // Pass a non-empty string to save, null to clear, undefined to leave unchanged.
   apiKey?: string | null;
 };
@@ -92,6 +96,8 @@ export function useUpdateUserSettings() {
           font: input.font ?? null,
           gridStartTime: input.gridStartTime ?? null,
           gridEndTime: input.gridEndTime ?? null,
+          reviewStylePrompt: input.reviewStylePrompt ?? null,
+          reviewHistoryDays: input.reviewHistoryDays ?? null,
           hasApiKey,
           role: "user" as const,
           createdOn: new Date(),

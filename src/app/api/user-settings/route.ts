@@ -59,7 +59,43 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { aiModel, aiEnabled, language, font, gridStartTime, gridEndTime, apiKey } = body;
+  const {
+    aiModel,
+    aiEnabled,
+    language,
+    font,
+    gridStartTime,
+    gridEndTime,
+    apiKey,
+    reviewStylePrompt,
+    reviewHistoryDays,
+  } = body;
+
+  // Free-text style guidance: any string up to a sane cap, or null to clear.
+  const REVIEW_STYLE_MAX = 2000;
+  if (reviewStylePrompt !== undefined && reviewStylePrompt !== null) {
+    if (typeof reviewStylePrompt !== "string" || reviewStylePrompt.length > REVIEW_STYLE_MAX) {
+      return NextResponse.json(
+        { error: `reviewStylePrompt must be a string up to ${REVIEW_STYLE_MAX} chars or null` },
+        { status: 400 },
+      );
+    }
+  }
+
+  // Trailing history window: integer 1–30 (clamped for performance), or null.
+  if (reviewHistoryDays !== undefined && reviewHistoryDays !== null) {
+    if (
+      typeof reviewHistoryDays !== "number" ||
+      !Number.isInteger(reviewHistoryDays) ||
+      reviewHistoryDays < 1 ||
+      reviewHistoryDays > 30
+    ) {
+      return NextResponse.json(
+        { error: "reviewHistoryDays must be an integer 1–30 or null" },
+        { status: 400 },
+      );
+    }
+  }
 
   // null = reset to default; string = must be an allowed model id
   if (aiModel !== null && aiModel !== undefined) {
@@ -139,6 +175,8 @@ export async function PUT(request: NextRequest) {
       font: (font as string | null | undefined) ?? null,
       gridStartTime: (gridStartTime as number | null | undefined) ?? null,
       gridEndTime: (gridEndTime as number | null | undefined) ?? null,
+      reviewStylePrompt: (reviewStylePrompt as string | null | undefined) ?? null,
+      reviewHistoryDays: (reviewHistoryDays as number | null | undefined) ?? null,
       encryptedApiKey: encryptedApiKey ?? null,
     })
     .onConflictDoUpdate({
@@ -150,6 +188,8 @@ export async function PUT(request: NextRequest) {
         ...(font !== undefined && { font: font as string | null }),
         ...(gridStartTime !== undefined && { gridStartTime: gridStartTime as number | null }),
         ...(gridEndTime !== undefined && { gridEndTime: gridEndTime as number | null }),
+        ...(reviewStylePrompt !== undefined && { reviewStylePrompt: reviewStylePrompt as string | null }),
+        ...(reviewHistoryDays !== undefined && { reviewHistoryDays: reviewHistoryDays as number | null }),
         ...(encryptedApiKey !== undefined && { encryptedApiKey }),
         updatedOn: new Date(),
       },

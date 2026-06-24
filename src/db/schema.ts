@@ -343,6 +343,12 @@ export const userSettings = pgTable(
     // null = fall back to defaults (7 AM start, midnight end).
     gridStartTime: integer("grid_start_time"),
     gridEndTime: integer("grid_end_time"),
+    // Extra free-text style guidance the user can add for the daily AI review
+    // (tone/wording only — never the output structure). null = none.
+    reviewStylePrompt: text("review_style_prompt"),
+    // How many trailing days of planned-vs-actual patterns to feed the review
+    // (1–30, clamped for performance). null = default (REVIEW_HISTORY_DAYS_DEFAULT).
+    reviewHistoryDays: integer("review_history_days"),
     // AES-256-GCM encrypted Gemini API key (iv:tag:ciphertext, all hex).
     // null = user has not provided a key (admin/tester use env GEMINI_API_KEY).
     encryptedApiKey: text("encrypted_api_key"),
