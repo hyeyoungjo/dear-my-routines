@@ -14,6 +14,8 @@ import {
   REVIEW_HISTORY_DAYS_MAX,
 } from "@/core/ai/reviewHistory";
 import { ExportModal } from "@/components/ExportModal";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faGear } from "@fortawesome/free-solid-svg-icons";
 import { useTranslations } from "next-intl";
 
 function hourLabel(h: number): string {
@@ -98,9 +100,9 @@ export function ThemeMenu() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label={t("buttonLabel")}
-        className="rounded-md p-1 text-2xl leading-none text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
+        className="rounded-md p-1 text-xl leading-none text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
       >
-        ⚙
+        <FontAwesomeIcon icon={faGear} fixedWidth />
       </button>
 
       {open && (

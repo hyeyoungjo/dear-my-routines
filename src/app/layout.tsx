@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { config } from "@fortawesome/fontawesome-svg-core";
+import "@fortawesome/fontawesome-svg-core/styles.css";
 import "./globals.css";
 import { Providers } from "./providers";
+
+// Import Font Awesome's CSS ourselves (above) and stop the lib from injecting
+// it at runtime — otherwise icons flash oversized before the late <style> lands
+// (CLAUDE.md: smooth UX is the top constraint).
+config.autoAddCss = false;
 
 /**
  * Self-hosted fonts (all SIL OFL 1.1, commercial use allowed — license copies

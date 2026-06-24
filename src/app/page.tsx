@@ -6,6 +6,8 @@ import { DateBar } from "@/components/DateBar";
 import { ThemeMenu } from "@/components/ThemeMenu";
 import { AnalyzeButton } from "@/components/AnalyzeButton";
 import { SignOutButton } from "@/components/SignOutButton";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faMugHot } from "@fortawesome/free-solid-svg-icons";
 
 async function signOut() {
   "use server";
@@ -23,6 +25,16 @@ export default function Home() {
         </h1>
         <div className="flex items-center gap-2">
           <AnalyzeButton />
+          <a
+            href="https://ko-fi.com/heyyoungsoul"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Support on Ko-fi"
+            title="Support on Ko-fi"
+            className="rounded-md p-1 text-xl leading-none text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
+          >
+            <FontAwesomeIcon icon={faMugHot} fixedWidth />
+          </a>
           <ThemeMenu />
           <SignOutButton
             action={signOut}
