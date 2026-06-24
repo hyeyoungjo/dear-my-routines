@@ -11,8 +11,17 @@ const messages: Record<LanguageId, typeof en> = { en, ko };
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   const { data: settings } = useUserSettings();
   const locale = (settings?.language ?? DEFAULT_LANGUAGE_ID) as LanguageId;
+  // next-intl needs an explicit timeZone or it logs an ENVIRONMENT_FALLBACK
+  // warning (server vs. browser zone could disagree for date formatting). The
+  // app already renders every time in the viewer's local zone (native Date /
+  // toLocaleDateString), so resolve the browser's IANA zone and pass it through.
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   return (
-    <NextIntlClientProvider locale={locale} messages={messages[locale] ?? en}>
+    <NextIntlClientProvider
+      locale={locale}
+      timeZone={timeZone}
+      messages={messages[locale] ?? en}
+    >
       {children}
     </NextIntlClientProvider>
   );
