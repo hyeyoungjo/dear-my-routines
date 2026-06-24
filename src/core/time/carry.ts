@@ -1,10 +1,10 @@
-import { GRID_START_HOUR } from "./calendar";
-import { addDays, startOfDay } from "./day";
+import { startOfDay } from "./day";
 
 /**
  * Pure span-shift math for carry-over and reschedule (ADR-013/014). No React, no
- * DB, no network (CLAUDE.md CRITICAL). The day-boundary rule is NOT redefined
- * here: the 07:00 → 02:00 grid boundary lives in `day.ts`/`calendar.ts`.
+ * DB, no network (CLAUDE.md CRITICAL). Blocks are attributed to their calendar
+ * date (midnight boundary); display filtering handles cross-midnight grids in
+ * plansForDay / actionsForDay.
  *
  * Per-day placement now lives on `task_blocks`, so the node-level carry helpers
  * are gone (ADR-014); `blocks.ts` reuses `shiftSpanOntoGridDay` below for the
@@ -12,12 +12,10 @@ import { addDays, startOfDay } from "./day";
  */
 
 /**
- * Place a clock time (hour/minute/second of `clock`) on the calendar so that its
- * *grid day* equals `dayKey(toDate)`. Daytime times (≥ 07:00) land on toDate's
- * own calendar date; post-midnight times (00:00–06:59) are the tail of the grid
- * and therefore land on the *next* calendar date, exactly the inverse of
- * `gridDayOf`'s wrap. This is what keeps "where the block is drawn" and "which
- * day it counts toward" in agreement after a carry.
+ * Place the clock time of `clock` onto `toDate`'s calendar date. The hour/minute
+ * stay the same; only the date changes. No post-midnight wrapping — a 1 AM block
+ * shifted to June 22 lands at 1 AM June 22 and appears on whichever day's grid
+ * window includes that timestamp.
  */
 function clockOntoGridDay(clock: Date, toDate: Date): Date {
   const result = startOfDay(toDate);
@@ -27,11 +25,6 @@ function clockOntoGridDay(clock: Date, toDate: Date): Date {
     clock.getSeconds(),
     clock.getMilliseconds(),
   );
-  // A pre-07:00 time belongs to the previous grid day, so to anchor it to
-  // toDate's grid day its calendar date must be the day after toDate.
-  if (clock.getHours() < GRID_START_HOUR) {
-    return addDays(result, 1);
-  }
   return result;
 }
 

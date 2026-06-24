@@ -1,14 +1,13 @@
-import { GRID_START_HOUR } from "./calendar";
-
 /**
  * Day scoping for the calendar (CLAUDE.md CRITICAL — date math lives in `core/`,
- * never in components). A "day" here is the *grid day*: the calendar runs
- * 07:00 → 02:00 the next morning (see calendar.ts), so a 00:00–06:59 timestamp
- * is the tail of the previous calendar day, not the head of its own.
+ * never in components). Blocks are attributed to the calendar date their startAt
+ * timestamp falls on (midnight–midnight). What appears on a given day's grid is
+ * determined by the configurable time window in plansForDay / actionsForDay, not
+ * by a hardcoded "logical day" boundary — that keeps data and visualisation separate.
  *
  * Per-day attribution of work now lives on `task_blocks` (ADR-014); these
- * helpers are the pure date math (keys, grid-day boundary, month grid) that the
- * block-scoping in `blocks.ts` and the calendar UI build on.
+ * helpers are the pure date math (keys, calendar-day boundary, month grid) that the
+ * block-scoping in plan.ts / action.ts and the calendar UI build on.
  */
 
 /** Local calendar key `YYYY-MM-DD` (timezone = the runtime's local zone). */
@@ -26,17 +25,12 @@ export function dayFromKey(key: string): Date {
 }
 
 /**
- * Which grid day a timestamp belongs to. Mirrors `minutesFromGridStart`'s
- * `hour < GRID_START_HOUR` wrap so that *where a block is drawn* and *which day
- * it counts toward* always agree: a 01:00 block sits at the bottom of a day's
- * grid and belongs to that same (previous calendar) day.
+ * The calendar date a timestamp belongs to — simply the date component of the
+ * local timestamp, no wrap. Display filtering (which blocks appear on a given
+ * day's grid) uses a configurable time window in plansForDay / actionsForDay.
  */
 export function gridDayOf(ts: Date): string {
-  const d = new Date(ts);
-  if (d.getHours() < GRID_START_HOUR) {
-    d.setDate(d.getDate() - 1);
-  }
-  return dayKey(d);
+  return dayKey(ts);
 }
 
 /** Local midnight of `date` — the canonical anchor for a selected day. */

@@ -19,22 +19,12 @@ describe("dayKey", () => {
 });
 
 describe("gridDayOf", () => {
-  it("keeps a daytime timestamp on its own calendar day", () => {
+  it("returns the calendar date of the timestamp regardless of hour", () => {
     expect(gridDayOf(new Date(2026, 5, 21, 13, 0))).toBe("2026-06-21");
-  });
-
-  it("counts 07:00 (grid start) as that day", () => {
     expect(gridDayOf(new Date(2026, 5, 21, 7, 0))).toBe("2026-06-21");
-  });
-
-  it("rolls a post-midnight timestamp back to the previous day", () => {
-    // 01:00 on Jun 22 is the tail of Jun 21's grid (07:00 → 02:00).
-    expect(gridDayOf(new Date(2026, 5, 22, 1, 0))).toBe("2026-06-21");
-  });
-
-  it("counts 06:59 as the previous day, 07:00 as the new one", () => {
-    expect(gridDayOf(new Date(2026, 5, 22, 6, 59))).toBe("2026-06-21");
-    expect(gridDayOf(new Date(2026, 5, 22, 7, 0))).toBe("2026-06-22");
+    // 01:00 on Jun 22 belongs to Jun 22 (calendar date, no wrap)
+    expect(gridDayOf(new Date(2026, 5, 22, 1, 0))).toBe("2026-06-22");
+    expect(gridDayOf(new Date(2026, 5, 22, 6, 59))).toBe("2026-06-22");
   });
 });
 

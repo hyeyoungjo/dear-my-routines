@@ -1,4 +1,5 @@
 import type { Span } from "./calendar";
+import { DEFAULT_GRID_END_HOUR, DEFAULT_GRID_START_HOUR } from "./calendar";
 import { shiftSpanOntoGridDay } from "./carry";
 import { dayKey, gridDayOf } from "./day";
 
@@ -25,18 +26,42 @@ export type PlanBlock = {
   status: "planned" | "missed";
 };
 
-/**
- * Which grid day a plan belongs to: anchored by its start's grid day so "where
- * it is drawn" and "which day it counts toward" always agree. A plan is always
- * placed as a box (ADR-015), so its start exists — no date-less fallback.
- */
-export function planBelongsToDay(plan: PlanBlock, day: Date): boolean {
-  return gridDayOf(new Date(plan.startAt)) === dayKey(day);
+/** ms timestamps of the grid window [startHour, endHour) on `day`. */
+function windowBounds(
+  day: Date,
+  startHour: number,
+  endHour: number,
+): { start: number; end: number } {
+  const midnight = new Date(day);
+  midnight.setHours(0, 0, 0, 0);
+  const ms = midnight.getTime();
+  return { start: ms + startHour * 3_600_000, end: ms + endHour * 3_600_000 };
 }
 
-/** The subset of plans that belong to `day` (see `planBelongsToDay`). */
-export function plansForDay(plans: PlanBlock[], day: Date): PlanBlock[] {
-  return plans.filter((plan) => planBelongsToDay(plan, day));
+/**
+ * Whether a plan's startAt falls within the grid window for `day`. The window
+ * is [gridStartHour, gridEndHour) from midnight of `day`; endHour > 24 reaches
+ * into the next calendar day, enabling cross-midnight grids.
+ */
+export function planBelongsToDay(
+  plan: PlanBlock,
+  day: Date,
+  gridStartHour = DEFAULT_GRID_START_HOUR,
+  gridEndHour = DEFAULT_GRID_END_HOUR,
+): boolean {
+  const { start, end } = windowBounds(day, gridStartHour, gridEndHour);
+  const t = new Date(plan.startAt).getTime();
+  return t >= start && t < end;
+}
+
+/** Plans whose startAt falls within the grid window for `day`. */
+export function plansForDay(
+  plans: PlanBlock[],
+  day: Date,
+  gridStartHour = DEFAULT_GRID_START_HOUR,
+  gridEndHour = DEFAULT_GRID_END_HOUR,
+): PlanBlock[] {
+  return plans.filter((plan) => planBelongsToDay(plan, day, gridStartHour, gridEndHour));
 }
 
 /** The plan's span as concrete Dates. Both edges always exist (notNull). */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { durationMinutes } from "./calendar";
-import { dayKey, gridDayOf } from "./day";
+import { dayKey } from "./day";
 import {
   type PlanBlock,
   carryCountOf,
@@ -28,19 +28,27 @@ function plan(partial: Partial<PlanBlock>): PlanBlock {
 }
 
 describe("planBelongsToDay / plansForDay", () => {
-  it("anchors a plan by its start's grid day", () => {
+  it("includes a plan whose startAt falls within the default window (7AM–midnight)", () => {
     const p = plan({ startAt: new Date(2026, 5, 22, 9, 0).toISOString() });
     expect(planBelongsToDay(p, new Date(2026, 5, 22))).toBe(true);
     expect(planBelongsToDay(p, new Date(2026, 5, 21))).toBe(false);
   });
 
-  it("anchors a post-midnight plan to the previous grid day (ADR-013)", () => {
-    // 01:00 Jun 23 is the tail of Jun 22's grid.
+  it("excludes a 1 AM plan from the default window (starts at 7 AM)", () => {
+    // 01:00 Jun 23 is outside the 7AM–midnight window for Jun 23.
     const p = plan({ startAt: new Date(2026, 5, 23, 1, 0).toISOString() });
-    expect(planBelongsToDay(p, new Date(2026, 5, 22))).toBe(true);
+    expect(planBelongsToDay(p, new Date(2026, 5, 23))).toBe(false);
   });
 
-  it("filters the plans that belong to a day", () => {
+  it("includes a 1 AM plan in a cross-midnight window (e.g. 10 PM–3 AM)", () => {
+    // Jun 22's grid window [22, 27) includes 01:00 Jun 23.
+    const p = plan({ startAt: new Date(2026, 5, 23, 1, 0).toISOString() });
+    expect(planBelongsToDay(p, new Date(2026, 5, 22), 22, 27)).toBe(true);
+    // But Jun 23's window [22, 27) starts at 10 PM Jun 23, not 1 AM.
+    expect(planBelongsToDay(p, new Date(2026, 5, 23), 22, 27)).toBe(false);
+  });
+
+  it("filters the plans that fall within the day's window", () => {
     const plans = [
       plan({ planBlockId: "a", startAt: new Date(2026, 5, 22, 9, 0).toISOString() }),
       plan({ planBlockId: "b", startAt: new Date(2026, 5, 21, 9, 0).toISOString() }),
@@ -79,7 +87,7 @@ describe("shiftPlan", () => {
     expect(patch.status).toBeUndefined(); // a reschedule is not a carry
   });
 
-  it("anchors a post-midnight plan to the target's grid day", () => {
+  it("places a 1 AM plan on the target's calendar date", () => {
     const p = plan({
       startAt: new Date(2026, 5, 21, 1, 0).toISOString(),
       endAt: new Date(2026, 5, 21, 2, 0).toISOString(),
@@ -87,8 +95,8 @@ describe("shiftPlan", () => {
     const patch = shiftPlan(p, new Date(2026, 5, 22));
     const start = new Date(patch.startAt as string);
     expect([start.getHours(), start.getMinutes()]).toEqual([1, 0]);
-    expect(dayKey(start)).toBe("2026-06-23"); // next calendar date...
-    expect(gridDayOf(start)).toBe("2026-06-22"); // ...but Jun 22's grid day.
+    // Calendar date = toDate (no post-midnight wrap).
+    expect(dayKey(start)).toBe("2026-06-22");
   });
 });
 

@@ -124,6 +124,7 @@ export function CalendarGrid() {
   const now = new Date();
   const allPlans = planData ?? [];
   const allActions = actionData ?? [];
+
   const allTasks = taskData ?? [];
   const allProjects = projectData ?? [];
 
@@ -319,7 +320,7 @@ export function CalendarGrid() {
     if (kind === "plan") {
       // PLAN shows every plan that day — `planned` (solid) AND `missed` (dashed,
       // the "meant to, didn't" record kept for review). Both belong here.
-      for (const plan of plansForDay(allPlans, selectedDate)) {
+      for (const plan of plansForDay(allPlans, selectedDate, gridStartHour, gridEndHour)) {
         const d = decorate(plan.taskId);
         if (!d) continue;
         result.push({
@@ -334,7 +335,7 @@ export function CalendarGrid() {
       return result;
     }
 
-    const dayActions = actionsForDay(allActions, selectedDate);
+    const dayActions = actionsForDay(allActions, selectedDate, gridStartHour, gridEndHour);
     const actedTaskIds = new Set(dayActions.map((a) => a.taskId));
     for (const action of dayActions) {
       const base = actionSpan(action);
@@ -354,7 +355,7 @@ export function CalendarGrid() {
     // Ghosts project only `planned` plans (no action yet). A `missed` plan was
     // carried away — it leaves the ACT view and lives on as a dashed PLAN record,
     // so a ghost ✕ (carry-over → missed) makes the ghost disappear here at once.
-    for (const plan of plansForDay(allPlans, selectedDate)) {
+    for (const plan of plansForDay(allPlans, selectedDate, gridStartHour, gridEndHour)) {
       if (plan.status !== "planned") continue;
       if (actedTaskIds.has(plan.taskId)) continue;
       const d = decorate(plan.taskId);

@@ -1,4 +1,4 @@
-import { type Span, durationMinutes } from "./calendar";
+import { type Span, DEFAULT_GRID_END_HOUR, DEFAULT_GRID_START_HOUR, durationMinutes } from "./calendar";
 import { shiftSpanOntoGridDay } from "./carry";
 import { dayKey, gridDayOf } from "./day";
 import type { PlanBlock } from "./plan";
@@ -65,18 +65,41 @@ export function isOngoing(action: ActionBlock, now: Date): boolean {
   return action.endAt == null || t <= new Date(action.endAt).getTime();
 }
 
-/**
- * Which grid day an action belongs to: anchored by its start's grid day so the
- * span is drawn on the day it counts toward. An action always has a start, so
- * there is no date-less fallback.
- */
-export function actionBelongsToDay(action: ActionBlock, day: Date): boolean {
-  return gridDayOf(new Date(action.startAt)) === dayKey(day);
+/** ms timestamps of the grid window [startHour, endHour) on `day`. */
+function windowBounds(
+  day: Date,
+  startHour: number,
+  endHour: number,
+): { start: number; end: number } {
+  const midnight = new Date(day);
+  midnight.setHours(0, 0, 0, 0);
+  const ms = midnight.getTime();
+  return { start: ms + startHour * 3_600_000, end: ms + endHour * 3_600_000 };
 }
 
-/** The subset of actions that belong to `day` (see `actionBelongsToDay`). */
-export function actionsForDay(actions: ActionBlock[], day: Date): ActionBlock[] {
-  return actions.filter((action) => actionBelongsToDay(action, day));
+/**
+ * Whether an action's startAt falls within the grid window for `day`. endHour > 24
+ * reaches into the next calendar day for cross-midnight grids.
+ */
+export function actionBelongsToDay(
+  action: ActionBlock,
+  day: Date,
+  gridStartHour = DEFAULT_GRID_START_HOUR,
+  gridEndHour = DEFAULT_GRID_END_HOUR,
+): boolean {
+  const { start, end } = windowBounds(day, gridStartHour, gridEndHour);
+  const t = new Date(action.startAt).getTime();
+  return t >= start && t < end;
+}
+
+/** Actions whose startAt falls within the grid window for `day`. */
+export function actionsForDay(
+  actions: ActionBlock[],
+  day: Date,
+  gridStartHour = DEFAULT_GRID_START_HOUR,
+  gridEndHour = DEFAULT_GRID_END_HOUR,
+): ActionBlock[] {
+  return actions.filter((action) => actionBelongsToDay(action, day, gridStartHour, gridEndHour));
 }
 
 /**
