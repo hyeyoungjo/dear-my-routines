@@ -80,7 +80,7 @@ export function ReviewColumn({ className }: { className?: string }) {
 
   // Safely narrow the jsonb blob — unknown shape must never crash the render.
   const analysis: DailyAnalysis | null = isDailyAnalysis(data?.aiAnalysis)
-    ? data.aiAnalysis
+    ? (data!.aiAnalysis as DailyAnalysis)
     : null;
 
   return (
