@@ -33,8 +33,8 @@ export function ProjectLegend() {
     );
 
   return (
-    <div className="flex flex-nowrap items-center gap-2 sm:flex-wrap">
-      <span className="text-xs font-medium text-muted">{t("label")}</span>
+    <div className="flex flex-nowrap items-center gap-2">
+      <span className="shrink-0 text-xs font-medium text-muted">{t("label")}</span>
 
       {projects.map((p) => {
         const c = p.projectColor ?? projectColor(p.projectId) ?? "#94a3b8";
@@ -44,7 +44,7 @@ export function ProjectLegend() {
             // Capsule tinted with the project colour; text stays foreground for
             // readability (a faint tint + dark text reads on any hue).
             style={{ backgroundColor: `${c}22`, borderColor: `${c}66` }}
-            className="flex items-center gap-1.5 rounded-full border py-1 pl-1.5 pr-1 text-xs text-foreground"
+            className="flex shrink-0 items-center gap-1.5 rounded-full border py-1 pl-1.5 pr-1 text-xs text-foreground"
           >
             {/* Custom colour picker (preset palette + hex) — matches the app UI. */}
             <ColorPicker
@@ -90,7 +90,7 @@ export function ProjectLegend() {
       <button
         type="button"
         onClick={() => addProject.mutate({ title: "" })}
-        className="rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-muted transition-colors hover:border-accent hover:text-foreground"
+        className="shrink-0 rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-muted transition-colors hover:border-accent hover:text-foreground"
       >
         {t("add")}
       </button>

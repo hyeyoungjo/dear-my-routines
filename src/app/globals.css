@@ -91,3 +91,16 @@ body {
     "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-size-adjust: var(--font-adjust, 0.52);
 }
+
+/*
+ * Hide the native scrollbar while keeping the element scrollable — used for the
+ * horizontal project-legend strip, whose default bar clashed with the theme.
+ * Content still scrolls via swipe/trackpad/wheel; a cut-off chip hints at more.
+ */
+.no-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge/IE */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}

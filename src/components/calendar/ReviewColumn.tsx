@@ -9,6 +9,7 @@ import {
   useUpsertDailyReview,
   type UpsertReviewInput,
 } from "@/hooks/dailyReviews";
+import { AnalyzeButton } from "@/components/AnalyzeButton";
 import { useLocale, useTranslations } from "next-intl";
 
 /** Idle time after the last keystroke before the journal is auto-saved. */
@@ -21,10 +22,11 @@ const DEBOUNCE_MS = 600;
  * Input is debounced (~600ms) into the optimistic upsert hook (ADR-007).
  * Pending saves are flushed on blur and on day change.
  *
- * AI analysis is triggered from the header "Analyze today" button (ADR-020).
- * When ai_analysis exists on the review row, it is shown below the journal in
- * a visually distinct area (accent-tinted background). The textarea is never
- * disabled — analysis loading is fully decoupled (ADR-007).
+ * AI analysis is triggered from the Analyze button at the foot of this panel
+ * (ADR-020), so the trigger sits beside its result. When ai_analysis exists on
+ * the review row, it is shown below the journal in a visually distinct area
+ * (accent-tinted background). The textarea is never disabled — analysis loading
+ * is fully decoupled (ADR-007).
  */
 export function ReviewColumn({ className }: { className?: string }) {
   const t = useTranslations("review");
@@ -92,6 +94,8 @@ export function ReviewColumn({ className }: { className?: string }) {
       />
 
       {analysis && <AnalysisResult analysis={analysis} />}
+
+      <AnalyzeButton />
     </div>
   );
 }
