@@ -24,6 +24,11 @@ src/
 **핵심 원칙**: `core/`는 React·DB·네트워크를 import하지 않는 순수 함수만. 이래야 단위
 테스트가 쉽고, 나중에 모바일 앱이 같은 로직을 그대로 가져다 쓴다.
 
+## 그리드 시간 모델 (ADR-024/025)
+- **데이터 귀속**: 블록의 날짜는 `startAt` 타임스탬프의 달력 날짜(자정 기준). 특수한 "논리적 하루" 경계 없음.
+- **화면 필터**: `plansForDay(plans, day, startHour, endHour)` — 시간 윈도우로 필터. `endHour > 24`이면 다음 달력 날짜 새벽까지 포함(자정 넘는 그리드 지원).
+- **사용자 설정**: `user_settings.grid_start_time` / `grid_end_time` (정수, 시 단위; ≥24은 다음 날). null이면 기본값 7/24.
+
 ## 데이터 모델 (유연한 트리 — ADR-009)
 임의 깊이의 중첩(frame inside frame)을 위해, **단일 `nodes` 테이블 + self-referencing
 `parent_id`** 로 트리를 표현한다 (고정 4테이블보다 유연).
