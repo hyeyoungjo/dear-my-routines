@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  GRID_TOTAL_MINUTES,
+  DEFAULT_GRID_END_HOUR,
+  DEFAULT_GRID_START_HOUR,
   blockPixelHeight,
   blockTopMinutes,
   gridSlots,
@@ -35,10 +36,17 @@ import {
 } from "@/hooks/actionBlocks";
 import { useTasks, useCreateTaskWithBlock } from "@/hooks/tasks";
 import { useProjects } from "@/hooks/projects";
+import { useUserSettings } from "@/hooks/userSettings";
 import { useTranslations } from "next-intl";
 
 /** Pixel height of one hour row; the whole grid scales off this. */
 const SLOT_HEIGHT = 48;
+
+const TAB_COLOR: Record<"plan" | "action" | "review", string> = {
+  plan:   "var(--tab-plan-fg)",
+  action: "var(--tab-act-fg)",
+  review: "var(--tab-reflect-fg)",
+};
 const PX_PER_MINUTE = SLOT_HEIGHT / 60;
 /** Default length of a freshly-created block (one hour). */
 const DEFAULT_BLOCK_MINUTES = 60;
@@ -85,7 +93,12 @@ export function CalendarGrid() {
   const { data: actionData } = useActionBlocks();
   const { data: taskData } = useTasks();
   const { data: projectData } = useProjects();
+  const { data: userSettingsData } = useUserSettings();
   const { selectedDate } = useSelectedDate();
+
+  const gridStartHour = userSettingsData?.gridStartTime ?? DEFAULT_GRID_START_HOUR;
+  const gridEndHour = userSettingsData?.gridEndTime ?? DEFAULT_GRID_END_HOUR;
+  const gridTotalMinutes = (gridEndHour - gridStartHour) * 60;
   const createTaskWithBlock = useCreateTaskWithBlock();
   const addPlanBlock = useAddPlanBlock();
   const addActionBlock = useAddActionBlock();
@@ -96,6 +109,8 @@ export function CalendarGrid() {
   const [drag, setDrag] = useState<DragPreview | null>(null);
   // The task whose detail modal is open (clicking a block's ⤢), null = closed.
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null);
+  // Mobile-only: which tab is active. Desktop always shows all three columns.
+  const [activeTab, setActiveTab] = useState<"plan" | "action" | "review">("plan");
   // Mirror the latest drag so the window pointerup handler (registered once per
   // drag) can read the final deltas without re-subscribing on every move.
   const dragRef = useRef<DragPreview | null>(null);
@@ -104,8 +119,8 @@ export function CalendarGrid() {
   // browser fires doesn't reach the grid and create a new task.
   const justDraggedRef = useRef(false);
 
-  const slots = gridSlots();
-  const bodyHeight = GRID_TOTAL_MINUTES * PX_PER_MINUTE;
+  const slots = gridSlots(gridStartHour, gridEndHour);
+  const bodyHeight = gridTotalMinutes * PX_PER_MINUTE;
   const now = new Date();
   const allPlans = planData ?? [];
   const allActions = actionData ?? [];
@@ -131,8 +146,8 @@ export function CalendarGrid() {
   };
 
   const createAt = (offsetMinutes: number, kind: ColumnKind) => {
-    const start = slotDate(selectedDate, offsetMinutes);
-    const end = slotDate(selectedDate, offsetMinutes + DEFAULT_BLOCK_MINUTES);
+    const start = slotDate(selectedDate, offsetMinutes, gridStartHour);
+    const end = slotDate(selectedDate, offsetMinutes + DEFAULT_BLOCK_MINUTES, gridStartHour);
     const span = {
       date: dayKey(selectedDate),
       startAt: start.toISOString(),
@@ -195,7 +210,7 @@ export function CalendarGrid() {
     const body = (kind === "plan" ? planBodyRef : actionBodyRef).current;
     if (!body) return;
     const y = e.clientY - body.getBoundingClientRect().top;
-    createAt(snapToSlot(y / PX_PER_MINUTE), kind);
+    createAt(snapToSlot(y / PX_PER_MINUTE, gridTotalMinutes), kind);
   };
 
   /** A block was pressed — begin tracking a vertical move/resize. */
@@ -397,7 +412,7 @@ export function CalendarGrid() {
               onDragStart={handleDragStart}
               isDragging={isDragging}
               style={{
-                top: blockTopMinutes(block.span.start) * PX_PER_MINUTE,
+                top: blockTopMinutes(block.span.start, gridStartHour) * PX_PER_MINUTE,
                 height: blockPixelHeight(block, PX_PER_MINUTE),
                 left: `calc(${slot.col * widthPct}% + 2px)`,
                 width: `calc(${widthPct}% - 4px)`,
@@ -409,58 +424,95 @@ export function CalendarGrid() {
     </div>
   );
 
+  const timeAxis = (width: string) => (
+    <div className={`relative ${width} shrink-0`} style={{ height: bodyHeight }}>
+      {slots.map((slot) => (
+        <span
+          key={slot.offsetMinutes}
+          className="absolute inset-x-0 -translate-y-1/2 text-center text-[10px] tabular-nums text-muted"
+          style={{ top: slot.offsetMinutes * PX_PER_MINUTE }}
+        >
+          {slot.label}
+        </span>
+      ))}
+    </div>
+  );
+
   return (
-    <section className="flex min-h-0 flex-col rounded-xl border border-border bg-panel p-5">
-      {/* Column headers aligned to the body layout below. */}
-      <div className="mb-4 flex items-baseline">
-        <h2 className="flex-1 text-center text-base font-semibold tracking-tight text-foreground">
-          {t("plan")}
-        </h2>
-        <div className="w-14 shrink-0" aria-hidden />
-        <h2 className="flex-1 text-center text-base font-semibold tracking-tight text-foreground">
-          {t("action")}
-        </h2>
-        <h2 className="flex-1 text-center text-base font-semibold tracking-tight text-foreground">
-          {t("review")}
-        </h2>
+    <div className="flex flex-col">
+      {/*
+       * Mobile: folder-tab bar. Sits ABOVE the panel (not inside it) so the
+       * active tab can visually merge with the panel below — same bg-panel
+       * background, -mb-px to cover the panel's top border, z-10 to layer above.
+       * Inactive tabs use bg-background to appear "behind" the open folder.
+       */}
+      <div className="relative z-10 flex items-end gap-0.5 sm:hidden">
+        {(["plan", "action", "review"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            style={activeTab === tab ? { color: TAB_COLOR[tab] } : undefined}
+            className={[
+              "flex-1 rounded-t-xl border-l border-r border-t border-border text-center text-sm font-semibold transition-colors",
+              activeTab === tab
+                ? "-mb-px bg-panel pb-2 pt-3"
+                : "bg-background pb-2 pt-2 text-muted hover:text-foreground",
+            ].join(" ")}
+          >
+            {t(tab)}
+          </button>
+        ))}
       </div>
 
-      {isLoading ? (
-        <p className="text-sm text-muted">{t("loading")}</p>
-      ) : isError ? (
-        <p className="text-sm text-red-500">{t("loadFailed")}</p>
-      ) : (
-        <div className="flex">
-          {/* Left: Plan column */}
-          {renderColumn("plan")}
-
-          {/* Center: shared time axis */}
-          <div className="relative w-14 shrink-0" style={{ height: bodyHeight }}>
-            {slots.map((slot) => (
-              <span
-                key={slot.offsetMinutes}
-                className="absolute inset-x-0 -translate-y-1/2 text-center text-[10px] tabular-nums text-muted"
-                style={{ top: slot.offsetMinutes * PX_PER_MINUTE }}
-              >
-                {slot.label}
-              </span>
-            ))}
-          </div>
-
-          {/* Right: Action column */}
-          {renderColumn("action")}
-
-          {/* Far right: Review journal (no time axis — about the whole day) */}
-          <ReviewColumn />
+      <section className="relative flex min-h-0 flex-col rounded-b-xl border border-border bg-panel p-5 sm:rounded-xl">
+        {/* Desktop: column headers */}
+        <div className="mb-4 hidden items-baseline sm:flex">
+          <h2 className="flex-1 text-center text-base font-semibold tracking-tight text-foreground">
+            {t("plan")}
+          </h2>
+          <div className="w-14 shrink-0" aria-hidden />
+          <h2 className="flex-1 text-center text-base font-semibold tracking-tight text-foreground">
+            {t("action")}
+          </h2>
+          <h2 className="flex-1 text-center text-base font-semibold tracking-tight text-foreground">
+            {t("review")}
+          </h2>
         </div>
-      )}
 
-      {detailTaskId && (
-        <TaskDetailModal
-          taskId={detailTaskId}
-          onClose={() => setDetailTaskId(null)}
-        />
-      )}
-    </section>
+        {isLoading ? (
+          <p className="text-sm text-muted">{t("loading")}</p>
+        ) : isError ? (
+          <p className="text-sm text-red-500">{t("loadFailed")}</p>
+        ) : (
+          <>
+            {/* Desktop: 3-column layout */}
+            <div className="hidden sm:flex">
+              {renderColumn("plan")}
+              {timeAxis("w-14")}
+              {renderColumn("action")}
+              <ReviewColumn />
+            </div>
+
+            {/* Mobile: single active tab */}
+            <div className="sm:hidden">
+              {(activeTab === "plan" || activeTab === "action") && (
+                <div className="flex" style={{ height: bodyHeight }}>
+                  {timeAxis("w-14")}
+                  {renderColumn(activeTab)}
+                </div>
+              )}
+              {activeTab === "review" && <ReviewColumn className="border-l-0" />}
+            </div>
+          </>
+        )}
+
+        {detailTaskId && (
+          <TaskDetailModal
+            taskId={detailTaskId}
+            onClose={() => setDetailTaskId(null)}
+          />
+        )}
+      </section>
+    </div>
   );
 }

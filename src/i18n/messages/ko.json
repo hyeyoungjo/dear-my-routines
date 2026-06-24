@@ -9,12 +9,13 @@
     "undoLimit": "실행 취소 한도",
     "exportData": "데이터 내보내기",
     "language": "언어",
-    "font": "글꼴"
+    "font": "글꼴",
+    "gridHours": "그리드 시간대"
   },
   "calendar": {
-    "plan": "계획",
-    "action": "실행",
-    "review": "리뷰",
+    "plan": "계획하기",
+    "action": "실천하기",
+    "review": "돌아보기",
     "loading": "불러오는 중…",
     "loadFailed": "불러오기 실패.",
     "today": "오늘",

@@ -9,25 +9,32 @@
  * pixels is the component's concern, the schedule arithmetic is ours.
  */
 
-/** First hour shown on the grid (07:00). */
+/** First hour shown on the grid (07:00) — used as the data-layer default. */
 export const GRID_START_HOUR = 7;
 /** Last boundary shown, expressed past midnight: 02:00 next day = 24 + 2. */
 export const GRID_END_HOUR = 26;
 /** Total minutes the grid spans (07:00 → 02:00 = 19h = 1140m). */
 export const GRID_TOTAL_MINUTES = (GRID_END_HOUR - GRID_START_HOUR) * 60;
 
+/** Default grid hours surfaced in the settings UI. */
+export const DEFAULT_GRID_START_HOUR = 7;
+export const DEFAULT_GRID_END_HOUR = 24;
+
 /** One labelled boundary on the time axis. */
 export type GridSlot = { offsetMinutes: number; label: string };
 
 /**
- * Hourly boundaries from 07:00 through 02:00 (next day), inclusive — 20 labels.
- * `offsetMinutes` is measured from the grid start; `label` is 24h `HH:00`.
+ * Hourly boundaries for the given start/end hours, inclusive.
+ * `offsetMinutes` is measured from `startHour`; `label` is 24h `HH:00`.
  */
-export function gridSlots(): GridSlot[] {
+export function gridSlots(
+  startHour = GRID_START_HOUR,
+  endHour = GRID_END_HOUR,
+): GridSlot[] {
   const slots: GridSlot[] = [];
-  for (let hour = GRID_START_HOUR; hour <= GRID_END_HOUR; hour++) {
+  for (let hour = startHour; hour <= endHour; hour++) {
     slots.push({
-      offsetMinutes: (hour - GRID_START_HOUR) * 60,
+      offsetMinutes: (hour - startHour) * 60,
       label: `${String(hour % 24).padStart(2, "0")}:00`,
     });
   }
@@ -35,17 +42,21 @@ export function gridSlots(): GridSlot[] {
 }
 
 /**
- * Minutes from the grid start (07:00) for a wall-clock hour+minute. Times before
- * 07:00 belong to the post-midnight tail, so they wrap a full day forward.
+ * Minutes from the grid start for a wall-clock hour+minute. Times before
+ * `startHour` belong to the post-midnight tail and wrap a full day forward.
  */
-export function minutesFromGridStart(hour: number, minute: number): number {
-  const wrapped = hour < GRID_START_HOUR ? hour + 24 : hour;
-  return (wrapped - GRID_START_HOUR) * 60 + minute;
+export function minutesFromGridStart(
+  hour: number,
+  minute: number,
+  startHour = GRID_START_HOUR,
+): number {
+  const wrapped = hour < startHour ? hour + 24 : hour;
+  return (wrapped - startHour) * 60 + minute;
 }
 
-/** Grid offset (minutes from 07:00) of a planned/actual start time. */
-export function blockTopMinutes(start: Date): number {
-  return minutesFromGridStart(start.getHours(), start.getMinutes());
+/** Grid offset (minutes from grid start) of a block's start time. */
+export function blockTopMinutes(start: Date, startHour = GRID_START_HOUR): number {
+  return minutesFromGridStart(start.getHours(), start.getMinutes(), startHour);
 }
 
 /** Whole minutes between two times (end − start), rounded. */
@@ -55,12 +66,15 @@ export function durationMinutes(start: Date, end: Date): number {
 
 /**
  * A concrete Date for a grid offset on a given base day. The base day's calendar
- * date anchors 07:00; adding the offset (which may exceed 24h-from-midnight)
- * rolls into the next day automatically via `setMinutes`.
+ * date anchors at `startHour`; adding the offset rolls into the next day automatically.
  */
-export function slotDate(baseDay: Date, offsetMinutes: number): Date {
+export function slotDate(
+  baseDay: Date,
+  offsetMinutes: number,
+  startHour = GRID_START_HOUR,
+): Date {
   const date = new Date(baseDay);
-  date.setHours(GRID_START_HOUR, 0, 0, 0);
+  date.setHours(startHour, 0, 0, 0);
   date.setMinutes(date.getMinutes() + offsetMinutes);
   return date;
 }
@@ -69,8 +83,11 @@ export function slotDate(baseDay: Date, offsetMinutes: number): Date {
  * Snap a raw minute offset down to its containing hour slot, clamped to the grid
  * (used when turning a click position into a new block's start).
  */
-export function snapToSlot(offsetMinutes: number): number {
-  const clamped = Math.max(0, Math.min(offsetMinutes, GRID_TOTAL_MINUTES - 60));
+export function snapToSlot(
+  offsetMinutes: number,
+  totalMinutes = GRID_TOTAL_MINUTES,
+): number {
+  const clamped = Math.max(0, Math.min(offsetMinutes, totalMinutes - 60));
   return Math.floor(clamped / 60) * 60;
 }
 

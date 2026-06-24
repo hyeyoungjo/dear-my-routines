@@ -9,12 +9,13 @@
     "undoLimit": "Undo limit",
     "exportData": "Export data",
     "language": "Language",
-    "font": "Font"
+    "font": "Font",
+    "gridHours": "Grid hours"
   },
   "calendar": {
     "plan": "Plan",
-    "action": "Action",
-    "review": "Review",
+    "action": "Act",
+    "review": "Reflect",
     "loading": "Loading…",
     "loadFailed": "Failed to load.",
     "today": "Today",
@@ -37,7 +38,7 @@
     "resizeBlock": "Resize block"
   },
   "review": {
-    "placeholder": "How did today go?"
+    "placeholder": "How was your day?"
   },
   "projects": {
     "label": "Projects",

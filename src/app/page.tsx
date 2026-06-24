@@ -32,7 +32,7 @@ export default function Home() {
       </header>
       <main className="mx-auto w-full max-w-5xl flex-1 p-4">
         <DateBar />
-        <div className="mt-3">
+        <div className="mt-3 overflow-x-auto sm:overflow-visible">
           <ProjectLegend />
         </div>
         <div className="mt-3">

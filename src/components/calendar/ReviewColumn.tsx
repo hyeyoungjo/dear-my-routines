@@ -26,7 +26,7 @@ const DEBOUNCE_MS = 600;
  * a visually distinct area (accent-tinted background). The textarea is never
  * disabled — analysis loading is fully decoupled (ADR-007).
  */
-export function ReviewColumn() {
+export function ReviewColumn({ className }: { className?: string }) {
   const t = useTranslations("review");
   const { selectedDate } = useSelectedDate();
   const date = dayKey(selectedDate);
@@ -82,7 +82,7 @@ export function ReviewColumn() {
     : null;
 
   return (
-    <div className="flex flex-1 flex-col border-l border-grid">
+    <div className={`flex flex-1 flex-col border-l border-grid${className ? ` ${className}` : ""}`}>
       <textarea
         value={text}
         onChange={handleChange}

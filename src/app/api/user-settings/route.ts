@@ -51,7 +51,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { aiModel, aiEnabled, language, font } = body;
+  const { aiModel, aiEnabled, language, font, gridStartTime, gridEndTime } = body;
 
   // null = reset to default; string = must be an allowed model id
   if (aiModel !== null && aiModel !== undefined) {
@@ -94,6 +94,17 @@ export async function PUT(request: NextRequest) {
     }
   }
 
+  if (gridStartTime !== undefined && gridStartTime !== null) {
+    if (typeof gridStartTime !== "number" || !Number.isInteger(gridStartTime) || gridStartTime < 0 || gridStartTime > 23) {
+      return NextResponse.json({ error: "gridStartTime must be an integer 0–23" }, { status: 400 });
+    }
+  }
+  if (gridEndTime !== undefined && gridEndTime !== null) {
+    if (typeof gridEndTime !== "number" || !Number.isInteger(gridEndTime) || gridEndTime < 1 || gridEndTime > 30) {
+      return NextResponse.json({ error: "gridEndTime must be an integer 1–30" }, { status: 400 });
+    }
+  }
+
   const [upserted] = await db
     .insert(userSettings)
     .values({
@@ -102,6 +113,8 @@ export async function PUT(request: NextRequest) {
       aiEnabled: (aiEnabled as boolean | undefined) ?? false,
       language: (language as string | null | undefined) ?? null,
       font: (font as string | null | undefined) ?? null,
+      gridStartTime: (gridStartTime as number | null | undefined) ?? null,
+      gridEndTime: (gridEndTime as number | null | undefined) ?? null,
     })
     .onConflictDoUpdate({
       target: userSettings.userId,
@@ -110,6 +123,8 @@ export async function PUT(request: NextRequest) {
         ...(aiEnabled !== undefined && { aiEnabled: aiEnabled as boolean }),
         ...(language !== undefined && { language: language as string | null }),
         ...(font !== undefined && { font: font as string | null }),
+        ...(gridStartTime !== undefined && { gridStartTime: gridStartTime as number | null }),
+        ...(gridEndTime !== undefined && { gridEndTime: gridEndTime as number | null }),
         updatedOn: new Date(),
       },
     })

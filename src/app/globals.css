@@ -17,6 +17,10 @@
   --grid: #ededf1; /* calendar hour/column lines (light: same as border) */
   --accent: #7c5cff; /* violet accent — used as a point only */
   --accent-soft: #f2efff; /* faint violet surface (blocks/hover) */
+  /* mobile tab active-label colors: Plan=blue, Act=green, Reflect=violet */
+  --tab-plan-fg: #2563eb;
+  --tab-act-fg: #16a34a;
+  --tab-reflect-fg: #7c5cff;
 }
 
 [data-theme="dark"] {
@@ -29,6 +33,10 @@
   --grid: #221f2c; /* grid lines: barely above the canvas so they don't glare */
   --accent: #a78bff;
   --accent-soft: #251f38;
+  /* mobile tab active-label colors (dark variants) */
+  --tab-plan-fg: #93c5fd;
+  --tab-act-fg: #86efac;
+  --tab-reflect-fg: #a78bff;
 }
 
 @theme inline {

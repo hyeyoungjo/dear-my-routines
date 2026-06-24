@@ -24,6 +24,8 @@ export type UpdateSettingsInput = {
   aiEnabled?: boolean;
   language?: string | null;
   font?: string | null;
+  gridStartTime?: number | null;
+  gridEndTime?: number | null;
 };
 
 async function updateUserSettings(
@@ -75,6 +77,8 @@ export function useUpdateUserSettings() {
           aiEnabled: input.aiEnabled ?? false,
           language: input.language ?? null,
           font: input.font ?? null,
+          gridStartTime: input.gridStartTime ?? null,
+          gridEndTime: input.gridEndTime ?? null,
           createdOn: new Date(),
           updatedOn: new Date(),
         };

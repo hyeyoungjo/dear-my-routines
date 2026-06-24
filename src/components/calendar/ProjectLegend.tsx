@@ -33,7 +33,7 @@ export function ProjectLegend() {
     );
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-nowrap items-center gap-2 sm:flex-wrap">
       <span className="text-xs font-medium text-muted">{t("label")}</span>
 
       {projects.map((p) => {
