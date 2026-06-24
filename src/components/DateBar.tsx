@@ -39,6 +39,7 @@ export function DateBar() {
           type="button"
           onClick={() => setPickerOpen((o) => !o)}
           aria-label={t("pickDate")}
+          suppressHydrationWarning
           className="min-w-32 rounded-md px-2 py-1 text-center text-sm font-medium text-foreground transition-colors hover:bg-accent-soft"
         >
           {label}
