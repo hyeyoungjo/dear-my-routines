@@ -155,6 +155,19 @@ describe("findOverduePlans", () => {
       "planned",
     ]);
   });
+
+  it("excludes a plan whose task is already done (has an action)", () => {
+    // The duplicate-task bug: a finished task's plan stays `planned`, so without
+    // the doneTaskIds guard it would be carried forward every day.
+    const plans = [
+      plan({ planBlockId: "done", taskId: "t-done", date: "2026-06-20" }),
+      plan({ planBlockId: "open", taskId: "t-open", date: "2026-06-20" }),
+    ];
+    const doneTaskIds = new Set(["t-done"]);
+    expect(
+      findOverduePlans(plans, today, doneTaskIds).map((p) => p.planBlockId),
+    ).toEqual(["open"]);
+  });
 });
 
 describe("per-task derived values", () => {

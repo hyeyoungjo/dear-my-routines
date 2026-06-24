@@ -109,15 +109,28 @@ export function carryOverPlan(
 
 /**
  * The plans the day-boundary sweep should pull forward to `today`: grid day
- * strictly before today's AND still `planned` (`missed` excluded). Excluding
- * non-planned is the idempotency core — a plan already carried (missed) or a
- * fresh plan already on today is never dragged forward again. YYYY-MM-DD sorts
- * lexicographically = chronologically.
+ * strictly before today's AND still `planned` (`missed` excluded) AND whose task
+ * has NOT been executed. Three exclusions:
+ *  - non-`planned` is the idempotency core — a plan already carried (missed) or a
+ *    fresh plan already on today is never dragged forward again.
+ *  - `doneTaskIds` are tasks that already have an action_block. Completion lives
+ *    on action, not plan (plan has no "done" status), so a finished task's plan
+ *    stays `planned` forever — without this guard the sweep re-creates the task
+ *    every day (the duplicate-task bug). "Has an action" is exactly the bar
+ *    model's done signal (see span.ts `barEndDay`).
+ * YYYY-MM-DD sorts lexicographically = chronologically.
  */
-export function findOverduePlans(plans: PlanBlock[], today: Date): PlanBlock[] {
+export function findOverduePlans(
+  plans: PlanBlock[],
+  today: Date,
+  doneTaskIds: ReadonlySet<string> = new Set(),
+): PlanBlock[] {
   const todayGridDay = gridDayOf(today);
   return plans.filter(
-    (plan) => plan.status === "planned" && plan.date < todayGridDay,
+    (plan) =>
+      plan.status === "planned" &&
+      plan.date < todayGridDay &&
+      !doneTaskIds.has(plan.taskId),
   );
 }
 

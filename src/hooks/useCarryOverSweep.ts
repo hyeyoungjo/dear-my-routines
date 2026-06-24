@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { carryOverPlan, findOverduePlans } from "@/core/time/plan";
 import { startOfDay } from "@/core/time/day";
+import { useActionBlocks } from "@/hooks/actionBlocks";
 import {
   useAddPlanBlock,
   usePlanBlocks,
@@ -31,23 +32,30 @@ import {
  * roll back on failure (ADR-007, no direct fetch).
  */
 export function useCarryOverSweep(): void {
-  const { data: plans, isSuccess } = usePlanBlocks();
+  const { data: plans, isSuccess: plansReady } = usePlanBlocks();
+  const { data: actions, isSuccess: actionsReady } = useActionBlocks();
   const updatePlanBlock = useUpdatePlanBlock();
   const addPlanBlock = useAddPlanBlock();
   const sweptRef = useRef(false);
 
   useEffect(() => {
     if (sweptRef.current) return;
-    if (!isSuccess || !plans) return;
+    // BOTH lists must be loaded: without actions we can't tell which tasks are
+    // done, and would carry finished tasks forward (the duplicate-task bug).
+    if (!plansReady || !plans || !actionsReady || !actions) return;
     // Guard BEFORE mutating: a re-run on this mount (Strict Mode, cache change)
     // must find the sweep already done and bail — else carryCount balloons.
     sweptRef.current = true;
 
+    // A task with any action_block is executed → its leftover `planned` plan
+    // must not be carried (completion lives on action, not plan).
+    const doneTaskIds = new Set(actions.map((a) => a.taskId));
+
     const today = startOfDay(new Date());
-    for (const plan of findOverduePlans(plans, today)) {
+    for (const plan of findOverduePlans(plans, today, doneTaskIds)) {
       const { missedPatch, nextPlan } = carryOverPlan(plan, today);
       updatePlanBlock.mutate({ planBlockId: plan.planBlockId, patch: missedPatch });
       addPlanBlock.mutate(nextPlan);
     }
-  }, [isSuccess, plans, updatePlanBlock, addPlanBlock]);
+  }, [plansReady, plans, actionsReady, actions, updatePlanBlock, addPlanBlock]);
 }
