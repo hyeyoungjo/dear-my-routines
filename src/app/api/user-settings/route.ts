@@ -1,10 +1,11 @@
 import { eq } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 import { db } from "@/db";
-import { userSettings } from "@/db/schema";
+import { userSettings, allowedEmails } from "@/db/schema";
 import { isAllowedModel } from "@/services/ai/models";
 import { isAllowedLanguage } from "@/lib/languages";
 import { isAllowedFont } from "@/lib/fonts";
+import { encryptApiKey } from "@/lib/apiKeyEncryption";
 import { createClient } from "@/services/supabase/server";
 
 /**
@@ -20,12 +21,19 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const [row] = await db
-    .select()
-    .from(userSettings)
-    .where(eq(userSettings.userId, user.id));
+  const [[row], [emailRow]] = await Promise.all([
+    db.select().from(userSettings).where(eq(userSettings.userId, user.id)),
+    db.select({ role: allowedEmails.role }).from(allowedEmails).where(eq(allowedEmails.email, user.email!)),
+  ]);
 
-  return NextResponse.json(row ?? null);
+  const role = emailRow?.role ?? "user";
+
+  if (!row) return NextResponse.json({ role });
+
+  // Never expose the encrypted key — return a boolean so the UI knows
+  // whether a key has been saved without sending the ciphertext to the client.
+  const { encryptedApiKey, ...rest } = row;
+  return NextResponse.json({ ...rest, hasApiKey: encryptedApiKey !== null, role });
 }
 
 /**
@@ -51,7 +59,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { aiModel, aiEnabled, language, font, gridStartTime, gridEndTime } = body;
+  const { aiModel, aiEnabled, language, font, gridStartTime, gridEndTime, apiKey } = body;
 
   // null = reset to default; string = must be an allowed model id
   if (aiModel !== null && aiModel !== undefined) {
@@ -105,6 +113,22 @@ export async function PUT(request: NextRequest) {
     }
   }
 
+  // apiKey: string → encrypt and store; null → clear stored key; undefined → leave unchanged
+  let encryptedApiKey: string | null | undefined = undefined;
+  if (apiKey !== undefined) {
+    if (apiKey === null) {
+      encryptedApiKey = null;
+    } else if (typeof apiKey !== "string" || apiKey.trim().length === 0) {
+      return NextResponse.json({ error: "apiKey must be a non-empty string or null" }, { status: 400 });
+    } else {
+      try {
+        encryptedApiKey = encryptApiKey(apiKey.trim());
+      } catch {
+        return NextResponse.json({ error: "Failed to encrypt API key — ENCRYPTION_KEY may not be configured" }, { status: 500 });
+      }
+    }
+  }
+
   const [upserted] = await db
     .insert(userSettings)
     .values({
@@ -115,6 +139,7 @@ export async function PUT(request: NextRequest) {
       font: (font as string | null | undefined) ?? null,
       gridStartTime: (gridStartTime as number | null | undefined) ?? null,
       gridEndTime: (gridEndTime as number | null | undefined) ?? null,
+      encryptedApiKey: encryptedApiKey ?? null,
     })
     .onConflictDoUpdate({
       target: userSettings.userId,
@@ -125,10 +150,12 @@ export async function PUT(request: NextRequest) {
         ...(font !== undefined && { font: font as string | null }),
         ...(gridStartTime !== undefined && { gridStartTime: gridStartTime as number | null }),
         ...(gridEndTime !== undefined && { gridEndTime: gridEndTime as number | null }),
+        ...(encryptedApiKey !== undefined && { encryptedApiKey }),
         updatedOn: new Date(),
       },
     })
     .returning();
 
-  return NextResponse.json(upserted);
+  const { encryptedApiKey: _enc, ...upsertedPublic } = upserted;
+  return NextResponse.json({ ...upsertedPublic, hasApiKey: _enc !== null });
 }

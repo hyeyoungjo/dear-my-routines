@@ -60,6 +60,12 @@ export const nodeType = pgEnum("node_type", [
   "subtask",
 ]);
 
+// Role assigned to an entry in allowed_emails.
+// admin   → env GEMINI_API_KEY + admin page access
+// tester  → env GEMINI_API_KEY, no admin page (free trial)
+// user    → must supply their own encrypted API key
+export const userRole = pgEnum("user_role", ["admin", "tester", "user"]);
+
 // A task_block's lifecycle on a single grid day (ADR-014). `missed` is the
 // carry-over signal: an unfinished planned block stays `missed` and a *new*
 // block is born on the next day (same node, time kept).
@@ -337,6 +343,9 @@ export const userSettings = pgTable(
     // null = fall back to defaults (7 AM start, midnight end).
     gridStartTime: integer("grid_start_time"),
     gridEndTime: integer("grid_end_time"),
+    // AES-256-GCM encrypted Gemini API key (iv:tag:ciphertext, all hex).
+    // null = user has not provided a key (admin/tester use env GEMINI_API_KEY).
+    encryptedApiKey: text("encrypted_api_key"),
     createdOn: timestamp("created_on", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -368,6 +377,8 @@ export const allowedEmails = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     email: text("email").notNull(),
     note: text("note"),
+    // Role determines API key source and page access level.
+    role: userRole("role").notNull().default("user"),
     createdOn: timestamp("created_on", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -435,3 +446,5 @@ export type UserSettings = InferSelectModel<typeof userSettings>;
 export type NewUserSettings = InferInsertModel<typeof userSettings>;
 
 export type AllowedEmail = InferSelectModel<typeof allowedEmails>;
+
+export type UserRoleValue = "admin" | "tester" | "user";

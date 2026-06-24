@@ -11,9 +11,15 @@ import type { UserSettings } from "@/db/schema";
 
 export const userSettingsKey = ["user-settings"] as const;
 
+// API never returns encrypted_api_key — instead it exposes hasApiKey + role.
+export type PublicUserSettings = Omit<UserSettings, "encryptedApiKey"> & {
+  hasApiKey: boolean;
+  role: "admin" | "tester" | "user";
+};
+
 // --- Fetcher ---------------------------------------------------------------
 
-async function fetchUserSettings(): Promise<UserSettings | null> {
+async function fetchUserSettings(): Promise<PublicUserSettings | null> {
   const res = await fetch("/api/user-settings");
   if (!res.ok) throw new Error(`Failed to load user settings (${res.status})`);
   return res.json();
@@ -26,11 +32,13 @@ export type UpdateSettingsInput = {
   font?: string | null;
   gridStartTime?: number | null;
   gridEndTime?: number | null;
+  // Pass a non-empty string to save, null to clear, undefined to leave unchanged.
+  apiKey?: string | null;
 };
 
 async function updateUserSettings(
   input: UpdateSettingsInput,
-): Promise<UserSettings> {
+): Promise<PublicUserSettings> {
   const res = await fetch("/api/user-settings", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -51,13 +59,13 @@ export function useUserSettings() {
 
 // --- Optimistic mutation ---------------------------------------------------
 
-type OptimisticContext = { previous: UserSettings | null | undefined };
+type OptimisticContext = { previous: PublicUserSettings | null | undefined };
 
 export function useUpdateUserSettings() {
   const queryClient = useQueryClient();
 
   return useMutation<
-    UserSettings,
+    PublicUserSettings,
     Error,
     UpdateSettingsInput,
     OptimisticContext
@@ -66,9 +74,14 @@ export function useUpdateUserSettings() {
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: userSettingsKey });
       const previous =
-        queryClient.getQueryData<UserSettings | null>(userSettingsKey);
-      queryClient.setQueryData<UserSettings | null>(userSettingsKey, (old) => {
-        if (old) return { ...old, ...input };
+        queryClient.getQueryData<PublicUserSettings | null>(userSettingsKey);
+      queryClient.setQueryData<PublicUserSettings | null>(userSettingsKey, (old) => {
+        // Optimistically reflect apiKey presence without exposing the value.
+        const hasApiKey =
+          input.apiKey === null ? false
+          : input.apiKey !== undefined ? true
+          : old?.hasApiKey ?? false;
+        if (old) return { ...old, ...input, hasApiKey };
         // placeholder when no row exists yet
         return {
           id: crypto.randomUUID(),
@@ -79,6 +92,8 @@ export function useUpdateUserSettings() {
           font: input.font ?? null,
           gridStartTime: input.gridStartTime ?? null,
           gridEndTime: input.gridEndTime ?? null,
+          hasApiKey,
+          role: "user" as const,
           createdOn: new Date(),
           updatedOn: new Date(),
         };

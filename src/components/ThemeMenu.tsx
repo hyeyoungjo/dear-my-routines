@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { THEMES, useTheme, type Theme } from "@/components/theme";
 import { useUndo } from "@/components/undo";
 import { AI_MODELS, DEFAULT_MODEL_ID } from "@/services/ai/models";
@@ -30,6 +30,10 @@ export function ThemeMenu() {
 
   const currentModelId = settings?.aiModel ?? DEFAULT_MODEL_ID;
   const aiEnabled = settings?.aiEnabled ?? false;
+  const role = settings?.role ?? "user";
+  const hasApiKey = settings?.hasApiKey ?? false;
+  const [apiKeyInput, setApiKeyInput] = useState("");
+  const apiKeyRef = useRef<HTMLInputElement>(null);
   const currentLanguageId = settings?.language ?? DEFAULT_LANGUAGE_ID;
   const currentFontId = settings?.font ?? DEFAULT_FONT_ID;
   const currentGridStart = settings?.gridStartTime ?? DEFAULT_GRID_START_HOUR;
@@ -94,6 +98,47 @@ export function ThemeMenu() {
                 />
               </span>
             </button>
+
+            {/* API key input — only for regular users (admin/tester use env key) */}
+            {role === "user" && (
+              <div className="px-2 py-1.5">
+                <p className="mb-1 text-xs font-medium text-muted">{t("geminiApiKey")}</p>
+                {hasApiKey ? (
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-xs text-muted">●●●●●●●●●●●●</span>
+                    <button
+                      type="button"
+                      onClick={() => updateSettings.mutate({ apiKey: null })}
+                      className="text-xs text-red-500 hover:underline"
+                    >
+                      {t("removeKey")}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-1">
+                    <input
+                      ref={apiKeyRef}
+                      type="password"
+                      value={apiKeyInput}
+                      onChange={(e) => setApiKeyInput(e.target.value)}
+                      placeholder="AIza..."
+                      className="min-w-0 flex-1 rounded border border-border bg-transparent px-1.5 py-0.5 text-xs text-foreground placeholder:text-muted focus:border-accent focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      disabled={!apiKeyInput.trim()}
+                      onClick={() => {
+                        updateSettings.mutate({ apiKey: apiKeyInput.trim() });
+                        setApiKeyInput("");
+                      }}
+                      className="rounded bg-accent px-2 py-0.5 text-xs text-white disabled:opacity-40"
+                    >
+                      {t("saveKey")}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* AI Model — only when AI is enabled */}
             {aiEnabled && (

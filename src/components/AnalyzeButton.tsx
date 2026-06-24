@@ -12,7 +12,9 @@ export function AnalyzeButton() {
   const date = dayKey(selectedDate);
   const analyze = useAnalyzeDay();
 
-  if (!settings?.aiEnabled) return null;
+  const role = settings?.role ?? "user";
+  const canAnalyze = role === "admin" || role === "tester" || settings?.aiEnabled;
+  if (!canAnalyze) return null;
 
   return (
     <button

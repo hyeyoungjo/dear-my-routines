@@ -10,7 +10,10 @@
     "exportData": "Export data",
     "language": "Language",
     "font": "Font",
-    "gridHours": "Grid hours"
+    "gridHours": "Grid hours",
+    "geminiApiKey": "Gemini API Key",
+    "saveKey": "Save",
+    "removeKey": "Remove"
   },
   "calendar": {
     "plan": "Plan",
