@@ -80,7 +80,8 @@ const fontVariables = [
 
 export const metadata: Metadata = {
   title: "Dear My Routines",
-  description: "예상 vs. 실제를 측정해 시간 과소예측을 교정하는 개인용 시간관리 앱.",
+  description:
+    "A personal time-management app that measures planned vs. actual time to fix chronic under-estimation.",
 };
 
 export default function RootLayout({
@@ -89,7 +90,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className={fontVariables}>
+    <html lang="en" className={fontVariables}>
       <body className="antialiased">
         <Providers>{children}</Providers>
       </body>
