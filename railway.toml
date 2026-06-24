@@ -1,0 +1,8 @@
+[build]
+# Use npm install instead of npm ci to handle cross-platform optional deps.
+# npm ci requires the lock file to include Linux-specific packages (e.g. @emnapi)
+# that macOS-generated lock files don't contain.
+buildCommand = "npm install --no-audit --no-fund && npm run build"
+
+[deploy]
+startCommand = "npm run start"
