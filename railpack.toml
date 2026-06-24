@@ -1,0 +1,2 @@
+[steps.install]
+command = "npm install --no-audit --no-fund"
