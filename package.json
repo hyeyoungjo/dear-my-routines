@@ -10,15 +10,18 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.83",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.2",
     "@tanstack/react-query": "^5.101.0",
+    "ai": "^6.0.209",
     "drizzle-orm": "^0.45.2",
     "next": "15.5.19",
     "next-intl": "^4.13.0",
     "postgres": "^3.4.9",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "zod": "^4.4.3"
   },
   "engines": {
     "node": ">=25.0.0",

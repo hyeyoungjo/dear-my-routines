@@ -1,21 +1,22 @@
-// TODO(step-1): replace with zod schema once `zod` is installed.
-// The type and guard below are manually kept in sync with dailyAnalysisSchema.
+import { z } from "zod";
 
-export type DailyAnalysis = {
-  summary: string;
-  observations: string[];
-  encouragement: string;
+/**
+ * Shape of a daily AI review. This is the single source of truth: the AI SDK
+ * validates the model output against it, and we reuse it to narrow jsonb read
+ * back from the DB. `generatedAt` is stamped server-side after generation, so
+ * it is not part of what the model produces.
+ */
+export const dailyAnalysisSchema = z.object({
+  summary: z.string(),
+  observations: z.array(z.string()),
+  encouragement: z.string(),
+});
+
+export type DailyAnalysis = z.infer<typeof dailyAnalysisSchema> & {
   generatedAt?: string;
 };
 
 /** Narrow an `unknown` jsonb value to DailyAnalysis without crashing. */
 export function isDailyAnalysis(value: unknown): value is DailyAnalysis {
-  if (typeof value !== "object" || value === null) return false;
-  const v = value as Record<string, unknown>;
-  return (
-    typeof v.summary === "string" &&
-    Array.isArray(v.observations) &&
-    (v.observations as unknown[]).every((o) => typeof o === "string") &&
-    typeof v.encouragement === "string"
-  );
+  return dailyAnalysisSchema.safeParse(value).success;
 }
