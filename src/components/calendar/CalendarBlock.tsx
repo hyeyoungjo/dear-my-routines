@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { Span } from "@/core/time/calendar";
 import { useProjects } from "@/hooks/projects";
 import { useUpdateTask } from "@/hooks/tasks";
@@ -102,6 +103,10 @@ export function CalendarBlock({
     carryCount,
   } = block;
   const t = useTranslations("block");
+  // Inline title editing: off by default so the title is a static, draggable
+  // surface (press-and-drag moves the block, even on a long wrapped title).
+  // A double-click flips it on, turning the title into a focused textarea.
+  const [editing, setEditing] = useState(false);
   const updateTask = useUpdateTask();
   const removePlanBlock = useRemovePlanBlock();
   const removeActionBlock = useRemoveActionBlock();
@@ -152,15 +157,15 @@ export function CalendarBlock({
         e.stopPropagation();
         onConfirm?.();
       }}
-      // Double-click a real block to open its task detail modal. A ghost is
-      // skipped: its single-click already spawns an action, so a double-click
-      // would fire that first — the detail modal opens on the resulting real
-      // block instead. The title/select/✕ keep their own handlers; a double-click
-      // anywhere else on the box (incl. the title text) opens details.
+      // Double-click a real block to edit its title inline (the title turns into
+      // a focused textarea). A single click/drag stays free for moving the block,
+      // so a long title no longer eats the drag surface. Ghosts are skipped (their
+      // single-click spawns an action; the title is edited on the PLAN side). The
+      // detail modal moved to the ⤢ button so double-click can own title editing.
       onDoubleClick={(e) => {
-        if (isGhost) return;
+        if (isGhost || editing) return;
         e.stopPropagation();
-        onOpenDetail?.();
+        setEditing(true);
       }}
       style={{ ...style, ...tintStyle, ...missedStyle }}
       className={`group absolute flex select-none flex-col gap-0.5 overflow-hidden rounded-md border p-1 shadow-sm transition-shadow ${
@@ -221,17 +226,42 @@ export function CalendarBlock({
           )}
         </span>
 
-        {/* Title — editable on a real block, static on a ghost (edit on PLAN). */}
+        {/* Title. A ghost is always static (edit on PLAN). A real block is static
+            until double-clicked: as a plain div its pointer-down bubbles to the
+            control row and starts a move, so the whole title is a drag surface.
+            Double-click flips `editing` on and swaps in a focused textarea. */}
         {isGhost ? (
           <span className="min-h-0 flex-1 break-words text-xs font-medium leading-tight text-foreground">
             {title || <span className="font-normal text-muted">{t("newTask")}</span>}
           </span>
-        ) : (
+        ) : editing ? (
           <textarea
             defaultValue={title}
             placeholder={t("newTask")}
-            onBlur={(e) => commitTitle(e.target.value)}
+            autoFocus
+            // Caret to the end on focus (rename-friendly), not a select-all.
+            onFocus={(e) => {
+              const v = e.currentTarget.value;
+              e.currentTarget.setSelectionRange(v.length, v.length);
+            }}
+            // Blur is the single commit+exit path: Enter and Escape both blur.
+            onBlur={(e) => {
+              commitTitle(e.target.value);
+              setEditing(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                e.currentTarget.blur();
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                // Revert before blurring so the commit on blur is a no-op.
+                e.currentTarget.value = title;
+                e.currentTarget.blur();
+              }
+            }}
             onClick={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
             aria-label={t("titleLabel")}
             rows={1}
@@ -239,8 +269,14 @@ export function CalendarBlock({
             // overflow-hidden crops it once it exceeds the box. overflow-hidden
             // here also kills the textarea's own scrollbar, which otherwise
             // appears when a font's line metrics overflow the box by a hair.
-            className={`min-h-0 flex-1 resize-none overflow-hidden break-words [field-sizing:content] bg-transparent text-xs font-medium leading-tight text-foreground placeholder:font-normal placeholder:text-muted focus:outline-none ${isMissed ? "line-through" : ""}`}
+            className="min-h-0 flex-1 resize-none overflow-hidden break-words [field-sizing:content] bg-transparent text-xs font-medium leading-tight text-foreground placeholder:font-normal placeholder:text-muted focus:outline-none"
           />
+        ) : (
+          <div
+            className={`min-h-0 flex-1 break-words text-xs font-medium leading-tight text-foreground ${isMissed ? "line-through" : ""}`}
+          >
+            {title || <span className="font-normal text-muted">{t("newTask")}</span>}
+          </div>
         )}
 
         {/* carryCount badge: hidden at 0–1, muted `·N` at 2–3, amber at 4+
@@ -255,6 +291,25 @@ export function CalendarBlock({
           >
             ·{carryCount}
           </span>
+        )}
+
+        {/* ⤢ — open the task detail modal (title/notes/plans/actions). Lives on a
+            button now that double-click edits the title. Real blocks only; a
+            ghost has no detail of its own (it's a projection of a plan). */}
+        {!isGhost && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenDetail?.();
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            aria-label={t("openDetail")}
+            title={t("openDetail")}
+            className="shrink-0 text-muted opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+          >
+            ⤢
+          </button>
         )}
 
         {/* ✕ — a ghost carries its plan to the next day (manual carry-over);

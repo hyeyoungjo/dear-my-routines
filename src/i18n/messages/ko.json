@@ -34,6 +34,7 @@
     "noProject": "프로젝트 없음",
     "projectFallback": "프로젝트",
     "titleLabel": "제목",
+    "openDetail": "상세 보기",
     "carriedOver": "{count}회 이월",
     "carryOverToNext": "다음 날로 이월",
     "deleteAction": "실행 삭제",
