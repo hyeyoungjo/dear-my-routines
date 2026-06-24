@@ -81,10 +81,6 @@ const fontVariables = [
 export const metadata: Metadata = {
   title: "Dear My Routines",
   description: "예상 vs. 실제를 측정해 시간 과소예측을 교정하는 개인용 시간관리 앱.",
-  icons: {
-    icon: "/favicon.png",
-    apple: "/favicon.png",
-  },
 };
 
 export default function RootLayout({
