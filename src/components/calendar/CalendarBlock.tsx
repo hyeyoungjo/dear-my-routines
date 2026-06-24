@@ -135,6 +135,15 @@ export function CalendarBlock({
     ? { backgroundColor: `${color}26`, borderColor: `${color}66` }
     : undefined;
 
+  // Missed plans get a red border + diagonal hatch overlay.
+  const missedStyle = isMissed
+    ? {
+        borderColor: "rgb(239 68 68 / 0.55)",
+        backgroundImage:
+          "repeating-linear-gradient(135deg, transparent, transparent 5px, rgb(239 68 68 / 0.09) 5px, rgb(239 68 68 / 0.09) 8px)",
+      }
+    : undefined;
+
   return (
     <div
       // A click on a ghost confirms it (spawns the action); a real block swallows
@@ -153,7 +162,7 @@ export function CalendarBlock({
         e.stopPropagation();
         onOpenDetail?.();
       }}
-      style={{ ...style, ...tintStyle }}
+      style={{ ...style, ...tintStyle, ...missedStyle }}
       className={`group absolute flex select-none flex-col gap-0.5 overflow-hidden rounded-md border p-1 shadow-sm transition-shadow ${
         color ? "" : "border-accent/50 bg-accent-soft"
       } ${
@@ -162,7 +171,7 @@ export function CalendarBlock({
         isGhost
           ? "border-dashed opacity-60"
           : isMissed
-            ? "border-dashed opacity-70"
+            ? "opacity-75"
             : ""
       }`}
     >
@@ -230,7 +239,7 @@ export function CalendarBlock({
             // overflow-hidden crops it once it exceeds the box. overflow-hidden
             // here also kills the textarea's own scrollbar, which otherwise
             // appears when a font's line metrics overflow the box by a hair.
-            className="min-h-0 flex-1 resize-none overflow-hidden break-words [field-sizing:content] bg-transparent text-xs font-medium leading-tight text-foreground placeholder:font-normal placeholder:text-muted focus:outline-none"
+            className={`min-h-0 flex-1 resize-none overflow-hidden break-words [field-sizing:content] bg-transparent text-xs font-medium leading-tight text-foreground placeholder:font-normal placeholder:text-muted focus:outline-none ${isMissed ? "line-through" : ""}`}
           />
         )}
 
