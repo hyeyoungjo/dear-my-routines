@@ -15,7 +15,7 @@ function hourLabel(h: number): string {
   const actual = h % 24;
   const period = actual < 12 ? "AM" : "PM";
   const h12 = actual === 0 ? 12 : actual > 12 ? actual - 12 : actual;
-  return h >= 24 ? `${h12}:00 ${period} (+1)` : `${h12}:00 ${period}`;
+  return `${h12} ${period}`;
 }
 
 /** Gear button (top-right) that opens settings: theme, AI model, language, undo limit. */
@@ -171,28 +171,33 @@ export function ThemeMenu() {
 
             {/* Grid time range */}
             <p className="px-2 py-1 text-xs font-medium text-muted">{t("gridHours")}</p>
-            <div className="flex items-center gap-1 px-2 py-1">
-              <select
-                value={currentGridStart}
-                onChange={(e) => updateSettings.mutate({ gridStartTime: Number(e.target.value) })}
-                aria-label="Grid start hour"
-                className="flex-1 rounded border border-border bg-transparent py-0.5 text-sm text-foreground focus:border-accent focus:outline-none"
-              >
-                {[4,5,6,7,8,9,10,11].map((h) => (
-                  <option key={h} value={h}>{hourLabel(h)}</option>
-                ))}
-              </select>
-              <span className="text-xs text-muted">–</span>
-              <select
-                value={currentGridEnd}
-                onChange={(e) => updateSettings.mutate({ gridEndTime: Number(e.target.value) })}
-                aria-label="Grid end hour"
-                className="flex-1 rounded border border-border bg-transparent py-0.5 text-sm text-foreground focus:border-accent focus:outline-none"
-              >
-                {[18,19,20,21,22,23,24,25,26,27,28,29,30].map((h) => (
-                  <option key={h} value={h}>{hourLabel(h)}</option>
-                ))}
-              </select>
+            <div className="flex flex-col gap-0.5 px-2 pb-1">
+              <label className="flex items-center justify-between gap-2 text-sm text-foreground">
+                <span className="text-xs text-muted">From</span>
+                <select
+                  value={currentGridStart}
+                  onChange={(e) => updateSettings.mutate({ gridStartTime: Number(e.target.value) })}
+                  aria-label="Grid start hour"
+                  className="rounded border border-border bg-transparent py-0.5 pl-1 text-sm text-foreground focus:border-accent focus:outline-none"
+                >
+                  {Array.from({length: 24}, (_, i) => i).map((h) => (
+                    <option key={h} value={h}>{hourLabel(h)}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex items-center justify-between gap-2 text-sm text-foreground">
+                <span className="text-xs text-muted">To</span>
+                <select
+                  value={currentGridEnd}
+                  onChange={(e) => updateSettings.mutate({ gridEndTime: Number(e.target.value) })}
+                  aria-label="Grid end hour"
+                  className="rounded border border-border bg-transparent py-0.5 pl-1 text-sm text-foreground focus:border-accent focus:outline-none"
+                >
+                  {Array.from({length: 24}, (_, i) => currentGridStart + 1 + i).map((h) => (
+                    <option key={h} value={h}>{hourLabel(h)}</option>
+                  ))}
+                </select>
+              </label>
             </div>
 
             <div className="my-1 border-t border-border" />
