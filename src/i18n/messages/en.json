@@ -112,7 +112,11 @@
     "sendMagicLink": "Send magic link",
     "sending": "Sending…",
     "emailPlaceholder": "you@example.com",
-    "or": "or"
+    "or": "or",
+    "headline": "A personal time-management app that measures planned vs. actual time to fix chronic under-estimation.",
+    "feature1": "Side-by-side Plan vs. Act calendar — see overruns at a glance",
+    "feature2": "Carry-over tracking — spot tasks that keep getting pushed",
+    "feature3": "Daily AI review — pattern insights from your journal and time data"
   },
   "auth": {
     "signOut": "Sign out"

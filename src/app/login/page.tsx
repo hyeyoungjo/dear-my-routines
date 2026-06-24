@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { createClient } from "@/services/supabase/client";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { LANGUAGES } from "@/lib/languages";
+import { GUEST_LOCALE_EVENT } from "@/i18n/provider";
 
 // Magic-link login stays in the code (ADR-011) but is hidden in the UI for now —
 // single-user only. Flip SHOW_MAGIC_LINK to true to re-enable the email form.
@@ -105,12 +107,70 @@ export default function LoginPage() {
     }
   }
 
+  const locale = useLocale();
+
+  function switchLocale(id: string) {
+    localStorage.setItem("dmr-locale", id);
+    window.dispatchEvent(new Event(GUEST_LOCALE_EVENT));
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-8">
+    <main className="relative flex min-h-screen flex-col md:flex-row">
+      {/* Language toggle — top-right corner */}
+      <div className="absolute right-4 top-4 z-10 flex items-center gap-1 rounded-full border border-neutral-200 bg-white/80 px-1 py-0.5 text-xs backdrop-blur-sm">
+        {LANGUAGES.map((l, i) => (
+          <>
+            {i > 0 && <span key={`sep-${l.id}`} className="text-neutral-300">/</span>}
+            <button
+              key={l.id}
+              type="button"
+              onClick={() => switchLocale(l.id)}
+              className={`rounded-full px-2 py-0.5 transition-colors ${
+                locale === l.id
+                  ? "bg-neutral-900 text-white"
+                  : "text-neutral-500 hover:text-neutral-900"
+              }`}
+            >
+              {l.label}
+            </button>
+          </>
+        ))}
+      </div>
+      {/* Left: app preview */}
+      <div className="flex flex-col justify-center gap-6 border-b border-neutral-200 bg-neutral-50 px-8 py-12 md:w-[55%] md:border-b-0 md:border-r md:px-12 md:py-16">
+        <div>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-neutral-400">
+            Dear My Routines
+          </p>
+          <h1 className="text-xl font-semibold leading-snug tracking-tight text-neutral-900">
+            {t("headline")}
+          </h1>
+        </div>
+
+        <ul className="flex flex-col gap-2">
+          {([t("feature1"), t("feature2"), t("feature3")] as string[]).map((f, i) => (
+            <li key={i} className="flex items-start gap-2.5 text-sm text-neutral-600">
+              <span className="mt-0.5 shrink-0 text-[10px] font-bold text-neutral-400">✦</span>
+              {f}
+            </li>
+          ))}
+        </ul>
+
+        <div className="overflow-hidden rounded-xl border border-neutral-200 shadow-md">
+          <img
+            src="/screenshots/main-light.png"
+            alt="Dear My Routines — Plan, Act, Reflect"
+            className="w-full"
+          />
+        </div>
+      </div>
+
+      {/* Right: sign-in form */}
+      <div className="flex flex-1 flex-col items-center justify-center px-8 py-12">
       <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Dear My Routines
-        </h1>
+        <h2 className="text-2xl font-semibold tracking-tight">
+          Sign in
+        </h2>
 
         {status === "sent" ? (
           <p className="mt-8 rounded-md bg-neutral-100 p-4 text-sm text-neutral-700">
@@ -223,6 +283,7 @@ export default function LoginPage() {
             )}
           </>
         )}
+      </div>
       </div>
     </main>
   );
