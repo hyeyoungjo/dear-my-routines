@@ -51,7 +51,14 @@
     "resizeBlock": "블록 크기 조절"
   },
   "review": {
-    "placeholder": "오늘 하루 어땠나요?"
+    "placeholder": "오늘 하루 어땠나요?",
+    "aiHeader": "AI 분석",
+    "todaysPattern": "오늘의 패턴",
+    "estVsActual": "예상 → 실제",
+    "suggestions": "제안",
+    "analyzeToday": "오늘 분석하기",
+    "reanalyze": "다시 분석",
+    "analyzing": "분석 중…"
   },
   "projects": {
     "label": "프로젝트",

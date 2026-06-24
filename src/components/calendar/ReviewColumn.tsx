@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSelectedDate } from "@/components/date";
 import { dayKey } from "@/core/time/day";
-import { isDailyAnalysis, type DailyAnalysis } from "@/core/ai/schema";
+import { isDailyAnalysis, type DailyAnalysis, type TaskRatio } from "@/core/ai/schema";
 import {
   useDailyReview,
   useUpsertDailyReview,
@@ -102,30 +102,68 @@ export function ReviewColumn({ className }: { className?: string }) {
 
 function AnalysisResult({ analysis }: { analysis: DailyAnalysis }) {
   const locale = useLocale();
+  const t = useTranslations("review");
   return (
-    <div className="border-t border-grid bg-accent-soft/40 p-3 space-y-2 text-sm">
-      <p className="font-semibold text-accent">{analysis.summary}</p>
+    <div className="mx-2 mb-2 rounded-lg border border-accent/20 bg-accent-soft/50 p-3 space-y-3">
+      {/* Header */}
+      <div className="flex items-center gap-1.5">
+        <span className="text-xs font-semibold uppercase tracking-wider text-accent">
+          ✦ {t("aiHeader")}
+        </span>
+        {analysis.generatedAt && (
+          <span className="ml-auto text-[10px] text-muted tabular-nums">
+            {new Date(analysis.generatedAt).toLocaleTimeString(locale, {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
+        )}
+      </div>
 
-      {analysis.observations.length > 0 && (
-        <ul className="space-y-0.5 text-foreground/80">
-          {analysis.observations.map((obs, i) => (
-            <li key={i} className="flex gap-1.5">
-              <span className="mt-0.5 shrink-0 text-accent">·</span>
-              <span>{obs}</span>
-            </li>
-          ))}
-        </ul>
+      {/* Today's Pattern */}
+      <div className="space-y-1">
+        <p className="text-xs font-semibold text-foreground">{t("todaysPattern")}</p>
+        <p className="text-xs leading-relaxed text-foreground/80">{analysis.summary}</p>
+      </div>
+
+      {/* Est → Actual chips */}
+      {analysis.taskRatios && analysis.taskRatios.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-xs font-semibold text-foreground">{t("estVsActual")}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {analysis.taskRatios.map((r: TaskRatio, i: number) => (
+              <div
+                key={i}
+                className="flex items-center gap-1 rounded bg-accent/10 px-2 py-0.5 text-[11px] tabular-nums"
+              >
+                <span className="text-muted">{r.name}</span>
+                <span className="font-medium text-accent">
+                  {r.estimated} → {r.actual}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
-      <p className="italic text-foreground/70">{analysis.encouragement}</p>
+      {/* Suggestions */}
+      {analysis.observations.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-foreground">{t("suggestions")}</p>
+          <ul className="space-y-1">
+            {analysis.observations.map((obs: string, i: number) => (
+              <li key={i} className="flex gap-1.5 text-xs leading-relaxed text-foreground/80">
+                <span className="mt-0.5 shrink-0 text-accent">•</span>
+                <span>{obs}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
-      {analysis.generatedAt && (
-        <p className="text-xs text-muted">
-          {new Date(analysis.generatedAt).toLocaleTimeString(locale, {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </p>
+      {/* Encouragement */}
+      {analysis.encouragement && (
+        <p className="text-xs italic text-foreground/60">{analysis.encouragement}</p>
       )}
     </div>
   );

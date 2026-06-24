@@ -1,20 +1,90 @@
 # Dear My Routines
 
-A personal time-tracking web app for measuring estimated vs. actual time to correct time under-prediction.
+A personal time-tracking web app for measuring **estimated vs. actual** time — built to correct the chronic habit of under-predicting how long things take.
+
+Plan your day in the morning → record what actually happened → get a daily AI review that spots your patterns over time.
+
+---
+
+## Screenshots
+
+### Desktop — Plan · Act · Review (light mode)
+
+![Desktop overview, light mode](public/screenshots/main-light.png)
+
+### Desktop — dark mode
+
+![Desktop overview, dark mode](public/screenshots/main-dark.png)
+
+### Mobile — Act tab
+
+![Mobile Act view](public/screenshots/mobile-act.png)
+
+---
+
+## How it works
+
+The day is divided into three moments:
+
+| Column | When | What you do |
+|--------|------|-------------|
+| **Plan** | Morning | Brain-dump tasks, assign them to time slots, enter your *estimated* duration |
+| **Act** | During the day | Drag blocks to reorder, resize to adjust time, add new tasks as they appear |
+| **Review** | Evening | Write a short journal → hit **Analyze with AI** for a daily pattern report |
+
+**Plan and Act share the same time axis**, so over-runs are immediately visible — a block that was planned for 1 h but took 1.5 h is taller on the right side than the left.
+
+### Key features
+
+- **Estimated vs. actual comparison** — plan blocks and action blocks sit side-by-side on a shared vertical time scale, making time debt visible at a glance.
+- **Ghost blocks** — an unacted plan appears as a faint dashed outline in the Act column. Click to confirm it, or dismiss (×) to carry it to the next day.
+- **Carry-over tracking** — tasks that get pushed repeatedly earn a quiet badge (·2, ·3 …) that turns amber at 4+ carries, signaling it might be a project in disguise.
+- **Ongoing highlight** — the block currently spanning *now* gets a colored ring so you always know what you're supposed to be doing.
+- **Daily AI review** — your journal + today's and past time data feed into a structured AI analysis: pattern summary, est → actual ratios per task, and concrete suggestions.
+- **Project color coding** — tasks inherit their project's color. The legend at the top lets you quickly read which project each block belongs to.
+- **Dark / light themes** — switchable from the header.
+- **Mobile-responsive** — three tabs (Plan · Act · Review) replace the side-by-side layout on small screens.
+
+---
 
 ## Stack
 
-- Next.js 15 (App Router) + TypeScript
-- Tailwind CSS + shadcn/ui
-- Supabase (Postgres + Auth)
-- Drizzle ORM
-- Vercel AI SDK
-- Railway (hosting)
+- **Next.js 15** (App Router) + **TypeScript** (strict)
+- **Tailwind CSS** + shadcn/ui
+- **dnd-kit** + Framer Motion for block interactions
+- **TanStack Query** with optimistic updates (the UI never waits on the server)
+- **Supabase** — Postgres + magic-link auth + RLS
+- **Drizzle ORM**
+- **Vercel AI SDK** — model-agnostic (OpenAI / Gemini swappable)
+- **Railway** (hosting), **Vitest** (tests)
 
-## Dev
+---
+
+## Dev setup
 
 ```bash
-npm run dev    # development server
-npm run build  # production build
-npm run test   # run tests
+npm install
+npm run dev     # development server  →  http://localhost:3000
+npm run build   # production build
+npm run test    # Vitest unit tests
+npm run lint    # ESLint
 ```
+
+Copy `.env.example` → `.env.local` and fill in your Supabase and AI API keys.
+
+---
+
+## Architecture notes
+
+- All AI calls go through the Vercel AI SDK — never call provider SDKs directly (keeps the model swappable).
+- Every DB table has a `user_id` with RLS enabled — safe for direct client queries.
+- Business logic (time math, statistics, carry-over, AI prompt construction) lives in `src/core/` as pure functions, separate from UI.
+- Server Components by default; `'use client'` only where interaction is needed.
+
+See [`docs/ADR.md`](docs/ADR.md) for architectural decisions and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full structure.
+
+---
+
+## Korean version
+
+[한국어 README →](README.ko.md)

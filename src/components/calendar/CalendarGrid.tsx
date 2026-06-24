@@ -119,7 +119,12 @@ export function CalendarGrid() {
 
   const slots = gridSlots(gridStartHour, gridEndHour);
   const bodyHeight = gridTotalMinutes * PX_PER_MINUTE;
-  const now = new Date();
+  const [now, setNow] = useState(() => new Date());
+  // Tick once per minute so the now-line stays accurate without a re-render storm.
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
   const allPlans = planData ?? [];
   const allActions = actionData ?? [];
 
@@ -435,6 +440,21 @@ export function CalendarGrid() {
             />
           );
         });
+      })()}
+
+      {/* Current time indicator — only shown when now falls within the grid range. */}
+      {(() => {
+        const mins = (now.getHours() - gridStartHour) * 60 + now.getMinutes();
+        if (mins < 0 || mins > gridTotalMinutes) return null;
+        return (
+          <div
+            className="pointer-events-none absolute inset-x-0 z-10 flex items-center"
+            style={{ top: mins * PX_PER_MINUTE }}
+          >
+            <span className="h-2 w-2 shrink-0 rounded-full bg-accent" />
+            <div className="h-px flex-1 bg-accent" />
+          </div>
+        );
       })()}
     </div>
   );

@@ -51,7 +51,14 @@
     "resizeBlock": "Resize block"
   },
   "review": {
-    "placeholder": "How was your day?"
+    "placeholder": "How was your day?",
+    "aiHeader": "AI Analysis",
+    "todaysPattern": "Today's Pattern",
+    "estVsActual": "Est → Actual",
+    "suggestions": "Suggestions",
+    "analyzeToday": "Analyze today",
+    "reanalyze": "Re-analyze",
+    "analyzing": "Analyzing…"
   },
   "projects": {
     "label": "Projects",

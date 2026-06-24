@@ -5,6 +5,7 @@ import { dayKey } from "@/core/time/day";
 import { isDailyAnalysis } from "@/core/ai/schema";
 import { useAnalyzeDay, useDailyReview } from "@/hooks/dailyReviews";
 import { useUserSettings } from "@/hooks/userSettings";
+import { useTranslations } from "next-intl";
 
 /**
  * Analyze control that lives at the foot of the review panel (ADR-020), so the
@@ -19,25 +20,27 @@ export function AnalyzeButton() {
   const analyze = useAnalyzeDay();
   const { data: review } = useDailyReview(date);
 
+  const t = useTranslations("review");
   const role = settings?.role ?? "user";
   const canAnalyze = role === "admin" || role === "tester" || settings?.aiEnabled;
   if (!canAnalyze) return null;
 
   const hasAnalysis = isDailyAnalysis(review?.aiAnalysis);
   const label = analyze.isPending
-    ? "Analyzing…"
+    ? t("analyzing")
     : hasAnalysis
-      ? "Re-analyze"
-      : "Analyze today";
+      ? t("reanalyze")
+      : t("analyzeToday");
 
   return (
-    <div className="flex justify-end border-t border-grid p-2">
+    <div className="p-2">
       <button
         type="button"
         onClick={() => analyze.mutate({ date })}
         disabled={analyze.isPending}
-        className="rounded-md px-2.5 py-1 text-xs font-medium text-accent transition-colors hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-accent/35 py-2 text-xs font-medium text-accent transition-colors hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-50"
       >
+        <span className={analyze.isPending ? "animate-spin" : ""}>✦</span>
         {label}
       </button>
     </div>

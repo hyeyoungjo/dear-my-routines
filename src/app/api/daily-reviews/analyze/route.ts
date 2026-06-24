@@ -1,6 +1,7 @@
 import { and, eq, gte, inArray, lte } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 import { buildDailyReviewPrompt, type ReviewTaskInput } from "@/core/ai/dailyReviewPrompt";
+import type { TaskRatio } from "@/core/ai/schema";
 import { clampHistoryDays, summarizeReviewHistory } from "@/core/ai/reviewHistory";
 import { dailyAnalysisSchema, type DailyAnalysis } from "@/core/ai/schema";
 import { buildExportRows } from "@/core/export";
@@ -138,6 +139,7 @@ export async function POST(request: NextRequest) {
 
   const stored: DailyAnalysis = {
     ...analysis,
+    taskRatios: computeTaskRatios(reviewTasks),
     generatedAt: new Date().toISOString(),
   };
 
@@ -250,4 +252,39 @@ async function buildReviewTasks(
         endAt: a.endAt ? a.endAt.toISOString() : null,
       })),
   }));
+}
+
+/** Format a duration in minutes to a human-readable string ("1h", "45m", "1h 30m"). */
+function formatMins(mins: number): string {
+  if (mins < 60) return `${Math.round(mins)}m`;
+  const h = Math.floor(mins / 60);
+  const m = Math.round(mins % 60);
+  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+}
+
+/**
+ * Compute per-task estimated vs. actual durations from plan/action timestamps.
+ * Calculated server-side so the numbers are exact, not AI-hallucinated.
+ * Tasks with no plans are skipped; tasks with no completed actions show "—".
+ */
+function computeTaskRatios(tasks: ReviewTaskInput[]): TaskRatio[] {
+  return tasks.flatMap((task) => {
+    if (!task.plans.length) return [];
+    const estMins = task.plans.reduce((sum, p) => {
+      return sum + (new Date(p.endAt).getTime() - new Date(p.startAt).getTime()) / 60_000;
+    }, 0);
+    if (estMins <= 0) return [];
+    const actMins = task.actions
+      .filter((a) => a.endAt !== null)
+      .reduce((sum, a) => {
+        return sum + (new Date(a.endAt!).getTime() - new Date(a.startAt).getTime()) / 60_000;
+      }, 0);
+    return [
+      {
+        name: task.taskTitle || "Untitled",
+        estimated: formatMins(estMins),
+        actual: actMins > 0 ? formatMins(actMins) : "—",
+      },
+    ];
+  });
 }
