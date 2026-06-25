@@ -5,6 +5,8 @@
     "groupAI": "AI",
     "groupAccount": "Account",
     "groupData": "Data",
+    "groupInteraction": "Interaction",
+    "exportJpeg": "Export as JPEG",
     "theme": "Theme",
     "themeLight": "Light",
     "themeDark": "Dark",
@@ -125,6 +127,14 @@
     "feature1": "Side-by-side Plan vs. Act calendar — see overruns at a glance",
     "feature2": "Carry-over tracking — spot tasks that keep getting pushed",
     "feature3": "Daily AI review — pattern insights from your journal and time data"
+  },
+  "feedback": {
+    "title": "Send Feedback",
+    "placeholder": "What's on your mind?",
+    "send": "Send",
+    "sending": "Sending…",
+    "sent": "Sent!",
+    "error": "Failed. Try again."
   },
   "auth": {
     "signOut": "Sign out"

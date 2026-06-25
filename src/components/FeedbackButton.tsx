@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faComment } from "@fortawesome/free-solid-svg-icons";
+import { useTranslations } from "next-intl";
 
 export function FeedbackButton({ userEmail }: { userEmail: string }) {
+  const t = useTranslations("feedback");
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
@@ -56,7 +58,7 @@ export function FeedbackButton({ userEmail }: { userEmail: string }) {
             className="fixed left-1/2 top-1/2 z-40 w-80 max-w-[92vw] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-panel p-4 shadow-xl"
           >
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-medium text-foreground">Send Feedback</h2>
+              <h2 className="text-sm font-medium text-foreground">{t("title")}</h2>
               <button
                 type="button"
                 onClick={close}
@@ -69,16 +71,16 @@ export function FeedbackButton({ userEmail }: { userEmail: string }) {
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="What's on your mind?"
+              placeholder={t("placeholder")}
               rows={4}
               className="w-full resize-none rounded border border-border bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-accent focus:outline-none"
             />
             <div className="mt-3 flex items-center justify-end gap-2">
               {status === "sent" && (
-                <span className="text-xs text-muted">Sent!</span>
+                <span className="text-xs text-muted">{t("sent")}</span>
               )}
               {status === "error" && (
-                <span className="text-xs text-red-400">Failed. Try again.</span>
+                <span className="text-xs text-red-400">{t("error")}</span>
               )}
               <button
                 type="button"
@@ -86,7 +88,7 @@ export function FeedbackButton({ userEmail }: { userEmail: string }) {
                 disabled={status === "sending" || status === "sent" || !message.trim()}
                 className="rounded-md bg-accent px-3 py-1.5 text-xs text-white transition-opacity disabled:opacity-50"
               >
-                {status === "sending" ? "Sending…" : "Send"}
+                {status === "sending" ? t("sending") : t("send")}
               </button>
             </div>
           </div>

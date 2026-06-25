@@ -41,12 +41,14 @@ export default async function Home() {
         </div>
       </header>
       <main className="mx-auto w-full max-w-5xl flex-1 p-4">
-        <DateBar />
-        <div className="no-scrollbar mt-3 overflow-x-auto">
-          <ProjectLegend />
-        </div>
-        <div className="mt-3">
-          <CalendarGrid />
+        <div id="snapshot-area" className="overflow-hidden rounded-xl p-4">
+          <DateBar />
+          <div className="no-scrollbar mt-3 overflow-x-auto">
+            <ProjectLegend />
+          </div>
+          <div className="mt-3">
+            <CalendarGrid />
+          </div>
         </div>
       </main>
     </div>

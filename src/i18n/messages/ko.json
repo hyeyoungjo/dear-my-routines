@@ -5,6 +5,8 @@
     "groupAI": "AI",
     "groupAccount": "계정",
     "groupData": "데이터",
+    "groupInteraction": "인터랙션",
+    "exportJpeg": "JPEG로 내보내기",
     "theme": "테마",
     "themeLight": "라이트",
     "themeDark": "다크",
@@ -125,6 +127,14 @@
     "feature1": "계획과 실행을 나란히 보기 — 시간이 어디서 초과됐는지 한눈에 확인",
     "feature2": "자꾸 미뤄지는 작업 추적 — 반복해서 밀리는 일을 쉽게 파악",
     "feature3": "데일리 AI 리뷰 — 일기와 시간 기록을 바탕으로 패턴 분석"
+  },
+  "feedback": {
+    "title": "피드백 보내기",
+    "placeholder": "어떤 생각이든 자유롭게 적어주세요.",
+    "send": "보내기",
+    "sending": "전송 중…",
+    "sent": "전송됐어요!",
+    "error": "실패했어요. 다시 시도해주세요."
   },
   "auth": {
     "signOut": "로그아웃"

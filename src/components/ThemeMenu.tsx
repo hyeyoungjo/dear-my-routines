@@ -395,14 +395,9 @@ export function ThemeMenu({ isAdmin = false }: { isAdmin?: boolean }) {
                 </Section>
               </Group>
 
-              {/* Data */}
-              <Group
-                title={t("groupData")}
-                open={openGroups.has("data")}
-                onToggle={() => toggleGroup("data")}
-              >
-                {/* Undo/redo history depth (Cmd/Ctrl+Z) — persisted in localStorage. */}
-                <label className="flex items-center justify-between gap-2 px-2 text-sm text-foreground">
+              <div className="border-t border-border py-2 space-y-0.5">
+                {/* Undo limit */}
+                <label className="flex items-center justify-between gap-2 rounded px-2 py-1.5 text-sm text-foreground">
                   <span>{t("undoLimit")}</span>
                   <input
                     type="number"
@@ -415,6 +410,33 @@ export function ThemeMenu({ isAdmin = false }: { isAdmin?: boolean }) {
                   />
                 </label>
 
+                {/* Export as JPEG */}
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setOpen(false);
+                    await new Promise((r) => setTimeout(r, 300));
+                    const el = document.getElementById("snapshot-area");
+                    if (!el) return;
+                    const { width, height } = el.getBoundingClientRect();
+                    const { toJpeg } = await import("html-to-image");
+                    const dataUrl = await toJpeg(el, {
+                      quality: 0.92,
+                      pixelRatio: window.devicePixelRatio ?? 2,
+                      width,
+                      height,
+                    });
+                    const link = document.createElement("a");
+                    link.download = "dear-my-routines.jpg";
+                    link.href = dataUrl;
+                    link.click();
+                  }}
+                  className="flex w-full items-center rounded px-2 py-1.5 text-sm text-foreground transition-colors hover:bg-accent-soft"
+                >
+                  {t("exportJpeg")}
+                </button>
+
+                {/* Export CSV — admin only */}
                 {isAdmin && (
                   <button
                     type="button"
@@ -427,7 +449,7 @@ export function ThemeMenu({ isAdmin = false }: { isAdmin?: boolean }) {
                     {t("exportData")}
                   </button>
                 )}
-              </Group>
+              </div>
             </div>
           </div>
         </>
