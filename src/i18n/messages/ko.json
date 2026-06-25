@@ -66,7 +66,8 @@
     "suggestions": "제안",
     "analyzeToday": "오늘 분석하기",
     "reanalyze": "다시 분석",
-    "analyzing": "분석 중…"
+    "analyzing": "분석 중…",
+    "continuesTomorrow": "내일 이어서"
   },
   "projects": {
     "label": "프로젝트",
@@ -137,6 +138,9 @@
     "step2Desc": "실제로 한 것을 기록해요 — 블록 드래그, 시간 조정.",
     "step3Label": "Reflect",
     "step3Desc": "Analyze를 눌러 AI가 요약해주는 하루 패턴을 확인해요."
+  },
+  "kofi": {
+    "support": "후원하기 (Ko-fi)"
   },
   "feedback": {
     "title": "피드백 보내기",

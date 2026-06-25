@@ -140,6 +140,11 @@ function AnalysisResult({ analysis }: { analysis: DailyAnalysis }) {
                 <span className="font-medium text-accent">
                   {r.estimated} → {r.actual}
                 </span>
+                {r.isPartial && (
+                  <span className="rounded bg-accent/20 px-1 py-px text-[10px] font-medium text-accent">
+                    {t("continuesTomorrow")}
+                  </span>
+                )}
               </div>
             ))}
           </div>

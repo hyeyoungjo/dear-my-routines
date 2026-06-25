@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMugHot, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { useTranslations } from "next-intl";
 
 /**
  * Header ☕ button that opens the Ko-fi donation form in a popover anchored
@@ -16,6 +17,7 @@ const KOFI_EMBED_SRC =
 const KOFI_PAGE_URL = "https://ko-fi.com/heyyoungsoul";
 
 export function KofiButton() {
+  const t = useTranslations("kofi");
   const [open, setOpen] = useState(false);
 
   return (
@@ -23,8 +25,8 @@ export function KofiButton() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        aria-label="Support on Ko-fi"
-        title="Support on Ko-fi"
+        aria-label={t("support")}
+        title={t("support")}
         className="rounded-md p-1 text-xl leading-none text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
       >
         <FontAwesomeIcon icon={faMugHot} fixedWidth />

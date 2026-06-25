@@ -16,6 +16,7 @@ export type TaskRatio = {
   name: string;
   estimated: string;
   actual: string;
+  isPartial?: boolean;
 };
 
 export type DailyAnalysis = z.infer<typeof dailyAnalysisSchema> & {

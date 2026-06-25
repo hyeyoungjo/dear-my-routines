@@ -280,11 +280,14 @@ function computeTaskRatios(tasks: ReviewTaskInput[]): TaskRatio[] {
       .reduce((sum, a) => {
         return sum + (new Date(a.endAt!).getTime() - new Date(a.startAt).getTime()) / 60_000;
       }, 0);
+    const isPartial = task.actions.some((a) => a.status === "partial") &&
+      !task.actions.some((a) => a.status === "done");
     return [
       {
         name: task.taskTitle || "Untitled",
         estimated: formatMins(estMins),
         actual: actMins > 0 ? formatMins(actMins) : "—",
+        ...(isPartial ? { isPartial: true } : {}),
       },
     ];
   });
