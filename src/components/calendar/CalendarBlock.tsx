@@ -257,13 +257,13 @@ export function CalendarBlock({
               const v = e.currentTarget.value;
               e.currentTarget.setSelectionRange(v.length, v.length);
             }}
-            // Blur is the single commit+exit path: Enter and Escape both blur.
+            // Blur commits; Shift+Enter also commits; Escape reverts.
             onBlur={(e) => {
               commitTitle(e.target.value);
               setEditing(false);
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
+              if (e.key === "Enter" && e.shiftKey) {
                 e.preventDefault();
                 e.currentTarget.blur();
               } else if (e.key === "Escape") {
@@ -272,6 +272,7 @@ export function CalendarBlock({
                 e.currentTarget.value = title;
                 e.currentTarget.blur();
               }
+              // Plain Enter falls through → textarea inserts a newline naturally.
             }}
             onClick={(e) => e.stopPropagation()}
             onDoubleClick={(e) => e.stopPropagation()}
@@ -286,7 +287,7 @@ export function CalendarBlock({
           />
         ) : (
           <div
-            className={`min-h-0 flex-1 break-words text-xs font-medium leading-tight text-foreground ${isMissed ? "line-through" : ""}`}
+            className={`min-h-0 flex-1 whitespace-pre-line break-words text-xs font-medium leading-tight text-foreground ${isMissed ? "line-through" : ""}`}
           >
             {title || <span className="font-normal text-muted">{t("newTask")}</span>}
           </div>
