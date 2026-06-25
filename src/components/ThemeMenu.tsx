@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { THEMES, useTheme, type Theme } from "@/components/theme";
 import { useUndo } from "@/components/undo";
 import { AI_MODELS, DEFAULT_MODEL_ID } from "@/services/ai/models";
@@ -97,6 +97,13 @@ export function ThemeMenu({ isAdmin = false }: { isAdmin?: boolean }) {
   const apiKeyRef = useRef<HTMLInputElement>(null);
   const currentLanguageId = settings?.language ?? DEFAULT_LANGUAGE_ID;
   const currentFontId = settings?.font ?? DEFAULT_FONT_ID;
+
+  // Sync theme from DB on load — overrides localStorage so it stays consistent across devices.
+  useEffect(() => {
+    if (settings?.theme && THEMES.includes(settings.theme as Theme)) {
+      setTheme(settings.theme as Theme);
+    }
+  }, [settings?.theme]);
   const currentGridStart = settings?.gridStartTime ?? DEFAULT_GRID_START_HOUR;
   const currentGridEnd = settings?.gridEndTime ?? DEFAULT_GRID_END_HOUR;
   const currentHistoryDays = settings?.reviewHistoryDays ?? REVIEW_HISTORY_DAYS_DEFAULT;
@@ -178,7 +185,14 @@ export function ThemeMenu({ isAdmin = false }: { isAdmin?: boolean }) {
                 onToggle={() => toggleGroup("theme")}
               >
                 {THEMES.map((tm) => (
-                  <OptionRow key={tm} selected={theme === tm} onClick={() => setTheme(tm)}>
+                  <OptionRow
+                    key={tm}
+                    selected={theme === tm}
+                    onClick={() => {
+                      setTheme(tm);
+                      updateSettings.mutate({ theme: tm });
+                    }}
+                  >
                     {LABELS[tm]}
                   </OptionRow>
                 ))}

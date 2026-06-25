@@ -339,6 +339,8 @@ export const userSettings = pgTable(
     language: text("language"),
     // UI font preference (FontId). null = fall back to 'nanum-gothic' default.
     font: text("font"),
+    // UI theme preference ('light' | 'dark'). null = fall back to 'light' default.
+    theme: text("theme"),
     // Grid time range (hour integers; values ≥ 24 are next-day, e.g. 26 = 2 AM).
     // null = fall back to defaults (7 AM start, midnight end).
     gridStartTime: integer("grid_start_time"),

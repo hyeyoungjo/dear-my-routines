@@ -30,6 +30,7 @@ export type UpdateSettingsInput = {
   aiEnabled?: boolean;
   language?: string | null;
   font?: string | null;
+  theme?: string | null;
   gridStartTime?: number | null;
   gridEndTime?: number | null;
   // Free-text style guidance for the AI review; null clears, undefined leaves unchanged.
@@ -94,6 +95,7 @@ export function useUpdateUserSettings() {
           aiEnabled: input.aiEnabled ?? false,
           language: input.language ?? null,
           font: input.font ?? null,
+          theme: input.theme ?? null,
           gridStartTime: input.gridStartTime ?? null,
           gridEndTime: input.gridEndTime ?? null,
           reviewStylePrompt: input.reviewStylePrompt ?? null,

@@ -5,6 +5,7 @@ import { userSettings, allowedEmails } from "@/db/schema";
 import { isAllowedModel } from "@/services/ai/models";
 import { isAllowedLanguage } from "@/lib/languages";
 import { isAllowedFont } from "@/lib/fonts";
+import { THEMES } from "@/components/theme";
 import { encryptApiKey } from "@/lib/apiKeyEncryption";
 import { createClient } from "@/services/supabase/server";
 
@@ -64,6 +65,7 @@ export async function PUT(request: NextRequest) {
     aiEnabled,
     language,
     font,
+    theme,
     gridStartTime,
     gridEndTime,
     apiKey,
@@ -138,6 +140,15 @@ export async function PUT(request: NextRequest) {
     }
   }
 
+  if (theme !== undefined && theme !== null) {
+    if (typeof theme !== "string" || !THEMES.includes(theme as "light" | "dark")) {
+      return NextResponse.json(
+        { error: `theme "${theme}" is not supported` },
+        { status: 400 },
+      );
+    }
+  }
+
   if (gridStartTime !== undefined && gridStartTime !== null) {
     if (typeof gridStartTime !== "number" || !Number.isInteger(gridStartTime) || gridStartTime < 0 || gridStartTime > 23) {
       return NextResponse.json({ error: "gridStartTime must be an integer 0–23" }, { status: 400 });
@@ -173,6 +184,7 @@ export async function PUT(request: NextRequest) {
       aiEnabled: (aiEnabled as boolean | undefined) ?? false,
       language: (language as string | null | undefined) ?? null,
       font: (font as string | null | undefined) ?? null,
+      theme: (theme as string | null | undefined) ?? null,
       gridStartTime: (gridStartTime as number | null | undefined) ?? null,
       gridEndTime: (gridEndTime as number | null | undefined) ?? null,
       reviewStylePrompt: (reviewStylePrompt as string | null | undefined) ?? null,
@@ -186,6 +198,7 @@ export async function PUT(request: NextRequest) {
         ...(aiEnabled !== undefined && { aiEnabled: aiEnabled as boolean }),
         ...(language !== undefined && { language: language as string | null }),
         ...(font !== undefined && { font: font as string | null }),
+        ...(theme !== undefined && { theme: theme as string | null }),
         ...(gridStartTime !== undefined && { gridStartTime: gridStartTime as number | null }),
         ...(gridEndTime !== undefined && { gridEndTime: gridEndTime as number | null }),
         ...(reviewStylePrompt !== undefined && { reviewStylePrompt: reviewStylePrompt as string | null }),
