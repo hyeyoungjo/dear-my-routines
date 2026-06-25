@@ -37,12 +37,15 @@ The day is divided into three moments:
 ### Key features
 
 - **Estimated vs. actual comparison** — plan blocks and action blocks sit side-by-side on a shared vertical time scale, making time debt visible at a glance.
-- **Ghost blocks** — an unacted plan appears as a faint dashed outline in the Act column. Click to confirm it, or dismiss (×) to carry it to the next day.
+- **Ghost blocks** — an unacted plan appears as a faint dashed outline in the Act column. Click to confirm it, or dismiss to carry it to the next day.
 - **Carry-over tracking** — tasks that get pushed repeatedly earn a quiet badge (·2, ·3 …) that turns amber at 4+ carries, signaling it might be a project in disguise.
+- **Continue tomorrow** — hit the ↻ button on an Act block to mark it partial: the block gets a dashed bottom edge and tomorrow's plan is created automatically at the same time slot.
 - **Ongoing highlight** — the block currently spanning *now* gets a colored ring so you always know what you're supposed to be doing.
-- **Daily AI review** — your journal + today's and past time data feed into a structured AI analysis: pattern summary, est → actual ratios per task, and concrete suggestions.
+- **Daily AI review** — your journal + today's and past time data feed into a structured AI analysis: pattern summary, est → actual ratios per task with **continues tomorrow** and **deferred** badges, and concrete suggestions.
+- **Task detail modal** — double-click any block to open its detail card: edit title, notes, category, project, move the Originally / Done dates, and see today's planned vs. actual times at a glance.
+- **Multi-line task titles** — press Enter while editing a block title to add a line break; Shift+Enter saves and exits.
 - **Project color coding** — tasks inherit their project's color. The legend at the top lets you quickly read which project each block belongs to.
-- **Dark / light themes** — switchable from the header.
+- **Dark / light / system themes + font choice** — switchable from the settings panel (⚙).
 - **Mobile-responsive** — three tabs (Plan · Act · Review) replace the side-by-side layout on small screens.
 
 ---
