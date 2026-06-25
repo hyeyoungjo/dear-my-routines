@@ -66,7 +66,6 @@ export function FeedbackButton({ userEmail }: { userEmail: string }) {
                 ✕
               </button>
             </div>
-            <p className="mb-3 text-xs text-muted">From: {userEmail}</p>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
