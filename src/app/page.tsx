@@ -6,6 +6,7 @@ import { DateBar } from "@/components/DateBar";
 import { ThemeMenu } from "@/components/ThemeMenu";
 import { SignOutButton } from "@/components/SignOutButton";
 import { KofiButton } from "@/components/KofiButton";
+import { FeedbackButton } from "@/components/FeedbackButton";
 import { getUserRole } from "@/lib/userRole";
 
 async function signOut() {
@@ -30,6 +31,7 @@ export default async function Home() {
           Dear My Routines
         </h1>
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+          <FeedbackButton userEmail={user?.email ?? ""} />
           <KofiButton />
           <ThemeMenu isAdmin={isAdmin} />
           <SignOutButton
