@@ -24,7 +24,7 @@ const baseInput: DailyReviewPromptInput = {
       projectTitle: "Work",
       category: "deep-work",
       plans: [{ startAt: "2026-06-24T09:00:00Z", endAt: "2026-06-24T09:30:00Z" }],
-      actions: [{ startAt: "2026-06-24T09:00:00Z", endAt: "2026-06-24T11:05:00Z" }],
+      actions: [{ startAt: "2026-06-24T09:00:00Z", endAt: "2026-06-24T11:05:00Z", status: "done" as const }],
     },
   ],
 };
@@ -69,7 +69,7 @@ describe("buildDailyReviewPrompt", () => {
       tasks: [
         {
           ...baseInput.tasks[0],
-          actions: [{ startAt: "2026-06-24T09:00:00Z", endAt: null }],
+          actions: [{ startAt: "2026-06-24T09:00:00Z", endAt: null, status: "done" as const }],
         },
       ],
     };

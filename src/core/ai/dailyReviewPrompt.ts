@@ -18,7 +18,7 @@ export type ReviewTaskInput = {
   /** Plan spans for the day — both edges always present (plan_blocks notNull). */
   plans: { startAt: string; endAt: string }[];
   /** Action spans — `endAt` null while still running (contributes no minutes). */
-  actions: { startAt: string; endAt: string | null }[];
+  actions: { startAt: string; endAt: string | null; status: "done" | "partial" }[];
 };
 
 export type DailyReviewPromptInput = {
@@ -42,7 +42,7 @@ type TaskSummary = {
   category: string | null;
   plannedMinutes: number;
   actualMinutes: number;
-  done: boolean;
+  completionStatus: "done" | "partial" | "not done";
 };
 
 function summarizeTask(task: ReviewTaskInput): TaskSummary {
@@ -55,13 +55,17 @@ function summarizeTask(task: ReviewTaskInput): TaskSummary {
       a.endAt ? sum + durationMinutes(new Date(a.startAt), new Date(a.endAt)) : sum,
     0,
   );
+  const hasPartial = task.actions.some((a) => a.status === "partial");
+  const hasDone = task.actions.some((a) => a.status === "done");
+  const completionStatus =
+    task.actions.length === 0 ? "not done" : hasPartial && !hasDone ? "partial" : "done";
   return {
     taskTitle: task.taskTitle,
     projectTitle: task.projectTitle,
     category: task.category,
     plannedMinutes,
     actualMinutes,
-    done: task.actions.length > 0,
+    completionStatus,
   };
 }
 
@@ -79,7 +83,12 @@ export function formatMinutes(total: number): string {
 function renderTaskLine(s: TaskSummary): string {
   const tags = [s.projectTitle, s.category].filter(Boolean).join(" · ");
   const context = tags ? ` (${tags})` : "";
-  const state = s.done ? "done" : "not done";
+  const state =
+    s.completionStatus === "partial"
+      ? "partial (will continue tomorrow)"
+      : s.completionStatus === "done"
+        ? "done"
+        : "not done";
   return `- "${s.taskTitle}"${context}: planned ${formatMinutes(
     s.plannedMinutes,
   )} → actual ${formatMinutes(s.actualMinutes)} — ${state}`;

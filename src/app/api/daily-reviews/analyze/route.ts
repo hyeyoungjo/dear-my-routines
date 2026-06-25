@@ -212,7 +212,7 @@ async function buildReviewHistory(
 }
 
 type PlanRow = { taskId: string; startAt: Date; endAt: Date };
-type ActionRow = { taskId: string; startAt: Date; endAt: Date | null };
+type ActionRow = { taskId: string; startAt: Date; endAt: Date | null; status: "done" | "partial" };
 
 /**
  * Join the day's plan/action rows with task identity (title, category, project)
@@ -250,6 +250,7 @@ async function buildReviewTasks(
       .map((a) => ({
         startAt: a.startAt.toISOString(),
         endAt: a.endAt ? a.endAt.toISOString() : null,
+        status: a.status,
       })),
   }));
 }
