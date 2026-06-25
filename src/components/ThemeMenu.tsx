@@ -14,6 +14,7 @@ import {
   REVIEW_HISTORY_DAYS_MAX,
 } from "@/core/ai/reviewHistory";
 import { ExportModal } from "@/components/ExportModal";
+import { ChangePasswordSection } from "@/components/ChangePasswordSection";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGear } from "@fortawesome/free-solid-svg-icons";
 import { useTranslations } from "next-intl";
@@ -340,6 +341,11 @@ export function ThemeMenu() {
                   className="w-12 rounded border border-border bg-transparent px-1 py-0.5 text-right text-foreground focus:border-accent focus:outline-none"
                 />
               </label>
+
+              {/* Password — set/change a reusable email + password login */}
+              <Section title={t("password")}>
+                <ChangePasswordSection />
+              </Section>
 
               <div className="border-t border-border pt-2">
                 <button

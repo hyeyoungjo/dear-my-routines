@@ -7,6 +7,7 @@
     "aiAnalysis": "AI Analysis",
     "aiModel": "AI Model",
     "undoLimit": "Undo limit",
+    "password": "Password",
     "exportData": "Export data",
     "language": "Language",
     "font": "Font",
@@ -134,6 +135,7 @@
     "mismatch": "Passwords don't match.",
     "tooShort": "Password must be at least 8 characters.",
     "success": "Password saved. Redirecting…",
+    "saved": "Password saved.",
     "invalidSession": "This reset link is invalid or has expired. Request a new one from the login page."
   }
 }
