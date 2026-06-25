@@ -57,23 +57,5 @@ export async function updateSession(request: NextRequest) {
     return redirectResponse;
   }
 
-  if (user && !isPublicRoute) {
-    const { data } = await supabase
-      .from("allowed_emails")
-      .select("id")
-      .eq("email", user.email)
-      .maybeSingle();
-
-    if (data === null) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/unauthorized";
-      const redirectResponse = NextResponse.redirect(url);
-      supabaseResponse.cookies.getAll().forEach((cookie) =>
-        redirectResponse.cookies.set(cookie),
-      );
-      return redirectResponse;
-    }
-  }
-
   return supabaseResponse;
 }
