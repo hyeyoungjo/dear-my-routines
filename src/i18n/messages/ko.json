@@ -94,7 +94,9 @@
     "notDone": "미완료 · 날짜 선택",
     "markDoneDay": "완료일 지정",
     "carried": "이월",
-    "carriedTitle": "이 작업의 이월 횟수"
+    "carriedTitle": "이 작업의 이월 횟수",
+    "planTime": "계획",
+    "actionTime": "실행"
   },
   "export": {
     "title": "데이터 내보내기",

@@ -94,7 +94,9 @@
     "notDone": "Not done · pick a day",
     "markDoneDay": "Mark done on a day",
     "carried": "Carried",
-    "carriedTitle": "Times this task was carried over"
+    "carriedTitle": "Times this task was carried over",
+    "planTime": "Plan",
+    "actionTime": "Actual"
   },
   "export": {
     "title": "Export data",

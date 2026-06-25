@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { MiniCalendar } from "@/components/MiniCalendar";
+import { useSelectedDate } from "@/components/date";
 import { dayFromKey, dayKey } from "@/core/time/day";
 import {
   type ActionEdit,
@@ -41,6 +42,12 @@ import { useTranslations } from "next-intl";
  * on close. All date math lives in `core/time`.
  */
 
+/** HH:MM from an ISO timestamp (local time). */
+const fmtTime = (iso: string) => {
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+};
+
 /** Display-only date formatting — locale-independent (OS-agnostic). */
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = [
@@ -57,6 +64,7 @@ export function TaskDetailModal({
   taskId: string;
   onClose: () => void;
 }) {
+  const { selectedDate } = useSelectedDate();
   const { data: allTasks } = useTasks();
   const { data: allPlans } = usePlanBlocks();
   const { data: allActions } = useActionBlocks();
@@ -166,6 +174,13 @@ export function TaskDetailModal({
   const originallyKey = barStartDay(taskPlans);
   const originallyDate = originallyKey ? dayFromKey(originallyKey) : null;
   const doneDate = liveAction ? dayFromKey(liveAction.date) : null;
+
+  // Plan and action times for the currently viewed date.
+  const viewDateKey = dayKey(selectedDate);
+  const viewPlan = taskPlans.find(
+    (p) => p.date === viewDateKey && p.status !== "missed",
+  ) ?? null;
+  const viewAction = taskActions.find((a) => a.date === viewDateKey) ?? null;
 
   const rowLabel = "w-24 shrink-0 text-sm text-muted";
   const dateBtn =
@@ -333,6 +348,31 @@ export function TaskDetailModal({
                   {carryCount}×
                 </span>
               </div>
+            )}
+
+            {/* Plan / Action times for the currently viewed date */}
+            {(viewPlan || viewAction) && (
+              <>
+                <div className="my-1 border-t border-border" />
+                {viewPlan && (
+                  <div className="flex items-center">
+                    <span className={rowLabel}>{t("planTime")}</span>
+                    <span className="text-sm tabular-nums text-foreground">
+                      {fmtTime(viewPlan.startAt)}
+                      {viewPlan.endAt ? ` – ${fmtTime(viewPlan.endAt)}` : ""}
+                    </span>
+                  </div>
+                )}
+                {viewAction && (
+                  <div className="flex items-center">
+                    <span className={rowLabel}>{t("actionTime")}</span>
+                    <span className="text-sm tabular-nums text-foreground">
+                      {fmtTime(viewAction.startAt)}
+                      {viewAction.endAt ? ` – ${fmtTime(viewAction.endAt)}` : ""}
+                    </span>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
