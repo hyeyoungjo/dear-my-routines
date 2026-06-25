@@ -282,12 +282,14 @@ function computeTaskRatios(tasks: ReviewTaskInput[]): TaskRatio[] {
       }, 0);
     const isPartial = task.actions.some((a) => a.status === "partial") &&
       !task.actions.some((a) => a.status === "done");
+    const isDeferred = task.actions.length === 0;
     return [
       {
         name: task.taskTitle || "Untitled",
         estimated: formatMins(estMins),
         actual: actMins > 0 ? formatMins(actMins) : "—",
         ...(isPartial ? { isPartial: true } : {}),
+        ...(isDeferred ? { isDeferred: true } : {}),
       },
     ];
   });

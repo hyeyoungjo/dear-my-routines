@@ -67,7 +67,8 @@
     "analyzeToday": "Analyze today",
     "reanalyze": "Re-analyze",
     "analyzing": "Analyzing…",
-    "continuesTomorrow": "continues tomorrow"
+    "continuesTomorrow": "continues tomorrow",
+    "deferred": "deferred"
   },
   "projects": {
     "label": "Projects",

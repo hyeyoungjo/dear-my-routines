@@ -137,13 +137,24 @@ function AnalysisResult({ analysis }: { analysis: DailyAnalysis }) {
                 className="flex items-center gap-1 rounded bg-accent/10 px-2 py-0.5 text-[11px] tabular-nums"
               >
                 <span className="text-muted">{r.name}</span>
-                <span className="font-medium text-accent">
-                  {r.estimated} → {r.actual}
-                </span>
-                {r.isPartial && (
-                  <span className="rounded bg-accent/20 px-1 py-px text-[10px] font-medium text-accent">
-                    {t("continuesTomorrow")}
-                  </span>
+                {r.isDeferred ? (
+                  <>
+                    <span className="font-medium text-accent">{r.estimated}</span>
+                    <span className="rounded bg-muted/20 px-1 py-px text-[10px] font-medium text-muted">
+                      {t("deferred")}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-medium text-accent">
+                      {r.estimated} → {r.actual}
+                    </span>
+                    {r.isPartial && (
+                      <span className="rounded bg-accent/20 px-1 py-px text-[10px] font-medium text-accent">
+                        {t("continuesTomorrow")}
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
             ))}

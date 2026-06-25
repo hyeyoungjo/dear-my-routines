@@ -67,7 +67,8 @@
     "analyzeToday": "오늘 분석하기",
     "reanalyze": "다시 분석",
     "analyzing": "분석 중…",
-    "continuesTomorrow": "내일 이어서"
+    "continuesTomorrow": "내일 이어서",
+    "deferred": "다음에"
   },
   "projects": {
     "label": "프로젝트",
