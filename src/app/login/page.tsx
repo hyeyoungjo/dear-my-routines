@@ -1,6 +1,8 @@
 "use client";
 
 import { Fragment, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faGoogle } from "@fortawesome/free-brands-svg-icons";
 import { createClient } from "@/services/supabase/client";
 import { useTranslations, useLocale } from "next-intl";
 import { LANGUAGES } from "@/lib/languages";
@@ -10,9 +12,9 @@ import { GUEST_LOCALE_EVENT } from "@/i18n/provider";
 // single-user only. Flip SHOW_MAGIC_LINK to true to re-enable the email form.
 const SHOW_MAGIC_LINK = false;
 
-// Google OAuth works but is hidden in the UI for now (kept the code so it can be
-// flipped back on). Set SHOW_GOOGLE to true to show the "Continue with Google" button.
-const SHOW_GOOGLE = false;
+// Toggles the "Continue with Google" button (rendered below the email form).
+// The OAuth code stays regardless, so this is purely a UI switch.
+const SHOW_GOOGLE = true;
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -214,27 +216,9 @@ export default function LoginPage() {
           </p>
         ) : (
           <>
-            {SHOW_GOOGLE && (
-              <>
-                <button
-                  type="button"
-                  onClick={handleGoogleSignIn}
-                  className="mt-8 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium transition-colors hover:bg-neutral-50"
-                >
-                  {t("continueWithGoogle")}
-                </button>
-
-                <div className="my-4 flex items-center gap-3 text-xs text-neutral-400">
-                  <span className="h-px flex-1 bg-neutral-200" />
-                  {t("or")}
-                  <span className="h-px flex-1 bg-neutral-200" />
-                </div>
-              </>
-            )}
-
             <form
               onSubmit={handlePasswordSubmit}
-              className={`flex flex-col gap-3 ${SHOW_GOOGLE ? "" : "mt-8"}`}
+              className="mt-8 flex flex-col gap-3"
             >
               <input
                 type="email"
@@ -282,6 +266,25 @@ export default function LoginPage() {
 
             {status === "error" && (
               <p className="mt-3 text-sm text-red-600">{errorMessage}</p>
+            )}
+
+            {SHOW_GOOGLE && (
+              <>
+                <div className="my-5 flex items-center gap-3 text-xs text-neutral-400">
+                  <span className="h-px flex-1 bg-neutral-200" />
+                  {t("or")}
+                  <span className="h-px flex-1 bg-neutral-200" />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleGoogleSignIn}
+                  className="flex w-full items-center justify-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium transition-colors hover:bg-neutral-50"
+                >
+                  <FontAwesomeIcon icon={faGoogle} />
+                  {t("continueWithGoogle")}
+                </button>
+              </>
             )}
 
             <button
