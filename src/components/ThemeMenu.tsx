@@ -16,7 +16,7 @@ import {
 import { ExportModal } from "@/components/ExportModal";
 import { ChangePasswordSection } from "@/components/ChangePasswordSection";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faGear } from "@fortawesome/free-solid-svg-icons";
+import { faGear, faChevronDown } from "@fortawesome/free-solid-svg-icons";
 import { useTranslations } from "next-intl";
 
 function hourLabel(h: number): string {
@@ -36,6 +36,37 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+/** A collapsible top-level group that holds related sections. */
+function Group({
+  title,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="border-b border-border last:border-0">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between py-3 text-sm font-medium text-foreground"
+      >
+        <span>{title}</span>
+        <FontAwesomeIcon
+          icon={faChevronDown}
+          className={`text-xs text-muted transition-transform ${open ? "" : "-rotate-90"}`}
+        />
+      </button>
+      {open && <div className="space-y-4 pb-4">{children}</div>}
+    </div>
+  );
+}
+
 /** Gear button (top-right) that opens a centered settings modal. */
 export function ThemeMenu() {
   const t = useTranslations("settings");
@@ -43,6 +74,18 @@ export function ThemeMenu() {
   const { max, setMax } = useUndo();
   const [open, setOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  // Which accordion groups are expanded. Appearance starts open so the modal
+  // shows something useful without a click; the rest stay collapsed.
+  const [openGroups, setOpenGroups] = useState<Set<string>>(
+    () => new Set(["appearance"]),
+  );
+  const toggleGroup = (id: string) =>
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   const { data: settings } = useUserSettings();
   const updateSettings = useUpdateUserSettings();
 
@@ -127,227 +170,251 @@ export function ThemeMenu() {
               </button>
             </div>
 
-            <div className="space-y-4 overflow-y-auto p-4">
-              {/* Theme */}
-              <Section title={t("theme")}>
-                {THEMES.map((tm) => (
-                  <OptionRow key={tm} selected={theme === tm} onClick={() => setTheme(tm)}>
-                    {LABELS[tm]}
-                  </OptionRow>
-                ))}
-              </Section>
-
-              {/* AI Analysis toggle */}
-              <button
-                type="button"
-                onClick={() => updateSettings.mutate({ aiEnabled: !aiEnabled })}
-                className="flex w-full items-center justify-between rounded px-2 py-1.5 text-sm text-foreground transition-colors hover:bg-accent-soft"
+            <div className="overflow-y-auto px-4">
+              {/* Appearance */}
+              <Group
+                title={t("groupAppearance")}
+                open={openGroups.has("appearance")}
+                onToggle={() => toggleGroup("appearance")}
               >
-                <span>{t("aiAnalysis")}</span>
-                <span
-                  className={`inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                    aiEnabled ? "bg-accent" : "bg-border"
-                  }`}
-                >
-                  <span
-                    className={`h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${
-                      aiEnabled ? "translate-x-4" : "translate-x-1"
-                    }`}
-                  />
-                </span>
-              </button>
-
-              {/* API key — only for regular users (admin/tester use env key) */}
-              {role === "user" && (
-                <Section title={t("geminiApiKey")}>
-                  {hasApiKey ? (
-                    <div className="flex items-center justify-between gap-1 px-2">
-                      <span className="text-xs text-muted">●●●●●●●●●●●●</span>
-                      <button
-                        type="button"
-                        onClick={() => updateSettings.mutate({ apiKey: null })}
-                        className="text-xs text-red-500 hover:underline"
-                      >
-                        {t("removeKey")}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex gap-1 px-2">
-                      <input
-                        ref={apiKeyRef}
-                        type="password"
-                        value={apiKeyInput}
-                        onChange={(e) => setApiKeyInput(e.target.value)}
-                        placeholder="AIza..."
-                        className="min-w-0 flex-1 rounded border border-border bg-transparent px-1.5 py-0.5 text-xs text-foreground placeholder:text-muted focus:border-accent focus:outline-none"
-                      />
-                      <button
-                        type="button"
-                        disabled={!apiKeyInput.trim()}
-                        onClick={() => {
-                          updateSettings.mutate({ apiKey: apiKeyInput.trim() });
-                          setApiKeyInput("");
-                        }}
-                        className="rounded bg-accent px-2 py-0.5 text-xs text-white disabled:opacity-40"
-                      >
-                        {t("saveKey")}
-                      </button>
-                    </div>
-                  )}
+                <Section title={t("theme")}>
+                  {THEMES.map((tm) => (
+                    <OptionRow key={tm} selected={theme === tm} onClick={() => setTheme(tm)}>
+                      {LABELS[tm]}
+                    </OptionRow>
+                  ))}
                 </Section>
-              )}
 
-              {/* AI-only options */}
-              {aiEnabled && (
-                <>
-                  <Section title={t("aiModel")}>
-                    {AI_MODELS.map((m) => (
-                      <OptionRow
-                        key={m.id}
-                        selected={currentModelId === m.id}
-                        onClick={() => updateSettings.mutate({ aiModel: m.id })}
+                <Section title={t("language")}>
+                  {LANGUAGES.map((l) => (
+                    <OptionRow
+                      key={l.id}
+                      selected={currentLanguageId === l.id}
+                      onClick={() => updateSettings.mutate({ language: l.id })}
+                    >
+                      {l.label}
+                    </OptionRow>
+                  ))}
+                </Section>
+
+                {/* Font — each option previewed in its own typeface */}
+                <Section title={t("font")}>
+                  {FONTS.map((f) => (
+                    <OptionRow
+                      key={f.id}
+                      selected={currentFontId === f.id}
+                      onClick={() => updateSettings.mutate({ font: f.id })}
+                      style={{ fontFamily: `var(${f.variable})` }}
+                    >
+                      {f.label}
+                    </OptionRow>
+                  ))}
+                </Section>
+
+                {/* Grid time range */}
+                <Section title={t("gridHours")}>
+                  <div className="flex flex-col gap-0.5 px-2">
+                    <label className="flex items-center justify-between gap-2 text-sm text-foreground">
+                      <span className="text-xs text-muted">From</span>
+                      <select
+                        value={currentGridStart}
+                        onChange={(e) => updateSettings.mutate({ gridStartTime: Number(e.target.value) })}
+                        aria-label="Grid start hour"
+                        className="rounded border border-border bg-transparent py-0.5 pl-1 text-sm text-foreground focus:border-accent focus:outline-none"
                       >
-                        {m.label}
-                      </OptionRow>
-                    ))}
-                  </Section>
+                        {Array.from({ length: 24 }, (_, i) => i).map((h) => (
+                          <option key={h} value={h}>{hourLabel(h)}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="flex items-center justify-between gap-2 text-sm text-foreground">
+                      <span className="text-xs text-muted">To</span>
+                      <select
+                        value={currentGridEnd}
+                        onChange={(e) => updateSettings.mutate({ gridEndTime: Number(e.target.value) })}
+                        aria-label="Grid end hour"
+                        className="rounded border border-border bg-transparent py-0.5 pl-1 text-sm text-foreground focus:border-accent focus:outline-none"
+                      >
+                        {Array.from({ length: 24 }, (_, i) => currentGridStart + 1 + i).map((h) => (
+                          <option key={h} value={h}>{hourLabel(h)}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                </Section>
+              </Group>
 
-                  {/* Custom review style guidance */}
-                  <Section title={t("reviewStyle")}>
-                    <p className="px-2 text-xs text-muted">{t("reviewStyleHint")}</p>
-                    <div className="px-2">
-                      <textarea
-                        value={styleValue}
-                        onChange={(e) => setStyleInput(e.target.value)}
-                        placeholder={t("reviewStylePlaceholder")}
-                        rows={3}
-                        maxLength={2000}
-                        className="w-full resize-y rounded border border-border bg-transparent px-2 py-1 text-sm text-foreground placeholder:text-muted focus:border-accent focus:outline-none"
-                      />
-                      <div className="mt-1 flex justify-end">
+              {/* AI */}
+              <Group
+                title={t("groupAI")}
+                open={openGroups.has("ai")}
+                onToggle={() => toggleGroup("ai")}
+              >
+                {/* AI Analysis toggle */}
+                <button
+                  type="button"
+                  onClick={() => updateSettings.mutate({ aiEnabled: !aiEnabled })}
+                  className="flex w-full items-center justify-between rounded px-2 py-1.5 text-sm text-foreground transition-colors hover:bg-accent-soft"
+                >
+                  <span>{t("aiAnalysis")}</span>
+                  <span
+                    className={`inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                      aiEnabled ? "bg-accent" : "bg-border"
+                    }`}
+                  >
+                    <span
+                      className={`h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${
+                        aiEnabled ? "translate-x-4" : "translate-x-1"
+                      }`}
+                    />
+                  </span>
+                </button>
+
+                {/* API key — only for regular users (admin/tester use env key) */}
+                {role === "user" && (
+                  <Section title={t("geminiApiKey")}>
+                    {hasApiKey ? (
+                      <div className="flex items-center justify-between gap-1 px-2">
+                        <span className="text-xs text-muted">●●●●●●●●●●●●</span>
                         <button
                           type="button"
-                          onClick={() =>
-                            updateSettings.mutate({
-                              reviewStylePrompt: styleValue.trim() || null,
-                            })
-                          }
-                          className="rounded bg-accent px-2 py-0.5 text-xs text-white"
+                          onClick={() => updateSettings.mutate({ apiKey: null })}
+                          className="text-xs text-red-500 hover:underline"
                         >
-                          {t("save")}
+                          {t("removeKey")}
                         </button>
                       </div>
-                    </div>
-                  </Section>
-
-                  {/* Review history window */}
-                  <Section title={t("reviewHistory")}>
-                    <div className="flex items-center justify-between gap-2 px-2">
-                      <span className="text-xs text-muted">{t("reviewHistoryHint")}</span>
-                      <span className="flex items-center gap-1">
+                    ) : (
+                      <div className="flex gap-1 px-2">
                         <input
-                          type="number"
-                          min={REVIEW_HISTORY_DAYS_MIN}
-                          max={REVIEW_HISTORY_DAYS_MAX}
-                          value={currentHistoryDays}
-                          onChange={(e) => {
-                            const n = Math.round(Number(e.target.value));
-                            if (!Number.isFinite(n)) return;
-                            const clamped = Math.max(
-                              REVIEW_HISTORY_DAYS_MIN,
-                              Math.min(REVIEW_HISTORY_DAYS_MAX, n),
-                            );
-                            updateSettings.mutate({ reviewHistoryDays: clamped });
-                          }}
-                          aria-label={t("reviewHistory")}
-                          className="w-14 rounded border border-border bg-transparent px-1 py-0.5 text-right text-sm text-foreground focus:border-accent focus:outline-none"
+                          ref={apiKeyRef}
+                          type="password"
+                          value={apiKeyInput}
+                          onChange={(e) => setApiKeyInput(e.target.value)}
+                          placeholder="AIza..."
+                          className="min-w-0 flex-1 rounded border border-border bg-transparent px-1.5 py-0.5 text-xs text-foreground placeholder:text-muted focus:border-accent focus:outline-none"
                         />
-                        <span className="text-xs text-muted">{t("daysUnit")}</span>
-                      </span>
-                    </div>
+                        <button
+                          type="button"
+                          disabled={!apiKeyInput.trim()}
+                          onClick={() => {
+                            updateSettings.mutate({ apiKey: apiKeyInput.trim() });
+                            setApiKeyInput("");
+                          }}
+                          className="rounded bg-accent px-2 py-0.5 text-xs text-white disabled:opacity-40"
+                        >
+                          {t("saveKey")}
+                        </button>
+                      </div>
+                    )}
                   </Section>
-                </>
-              )}
+                )}
 
-              {/* Language */}
-              <Section title={t("language")}>
-                {LANGUAGES.map((l) => (
-                  <OptionRow
-                    key={l.id}
-                    selected={currentLanguageId === l.id}
-                    onClick={() => updateSettings.mutate({ language: l.id })}
-                  >
-                    {l.label}
-                  </OptionRow>
-                ))}
-              </Section>
-
-              {/* Font — each option previewed in its own typeface */}
-              <Section title={t("font")}>
-                {FONTS.map((f) => (
-                  <OptionRow
-                    key={f.id}
-                    selected={currentFontId === f.id}
-                    onClick={() => updateSettings.mutate({ font: f.id })}
-                    style={{ fontFamily: `var(${f.variable})` }}
-                  >
-                    {f.label}
-                  </OptionRow>
-                ))}
-              </Section>
-
-              {/* Grid time range */}
-              <Section title={t("gridHours")}>
-                <div className="flex flex-col gap-0.5 px-2">
-                  <label className="flex items-center justify-between gap-2 text-sm text-foreground">
-                    <span className="text-xs text-muted">From</span>
-                    <select
-                      value={currentGridStart}
-                      onChange={(e) => updateSettings.mutate({ gridStartTime: Number(e.target.value) })}
-                      aria-label="Grid start hour"
-                      className="rounded border border-border bg-transparent py-0.5 pl-1 text-sm text-foreground focus:border-accent focus:outline-none"
-                    >
-                      {Array.from({ length: 24 }, (_, i) => i).map((h) => (
-                        <option key={h} value={h}>{hourLabel(h)}</option>
+                {/* AI-only options */}
+                {aiEnabled && (
+                  <>
+                    <Section title={t("aiModel")}>
+                      {AI_MODELS.map((m) => (
+                        <OptionRow
+                          key={m.id}
+                          selected={currentModelId === m.id}
+                          onClick={() => updateSettings.mutate({ aiModel: m.id })}
+                        >
+                          {m.label}
+                        </OptionRow>
                       ))}
-                    </select>
-                  </label>
-                  <label className="flex items-center justify-between gap-2 text-sm text-foreground">
-                    <span className="text-xs text-muted">To</span>
-                    <select
-                      value={currentGridEnd}
-                      onChange={(e) => updateSettings.mutate({ gridEndTime: Number(e.target.value) })}
-                      aria-label="Grid end hour"
-                      className="rounded border border-border bg-transparent py-0.5 pl-1 text-sm text-foreground focus:border-accent focus:outline-none"
-                    >
-                      {Array.from({ length: 24 }, (_, i) => currentGridStart + 1 + i).map((h) => (
-                        <option key={h} value={h}>{hourLabel(h)}</option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-              </Section>
+                    </Section>
 
-              {/* Undo/redo history depth (Cmd/Ctrl+Z) — persisted in localStorage. */}
-              <label className="flex items-center justify-between gap-2 px-2 text-sm text-foreground">
-                <span>{t("undoLimit")}</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={50}
-                  value={max}
-                  onChange={(e) => setMax(Number(e.target.value))}
-                  aria-label="Undo history limit"
-                  className="w-12 rounded border border-border bg-transparent px-1 py-0.5 text-right text-foreground focus:border-accent focus:outline-none"
-                />
-              </label>
+                    {/* Custom review style guidance */}
+                    <Section title={t("reviewStyle")}>
+                      <p className="px-2 text-xs text-muted">{t("reviewStyleHint")}</p>
+                      <div className="px-2">
+                        <textarea
+                          value={styleValue}
+                          onChange={(e) => setStyleInput(e.target.value)}
+                          placeholder={t("reviewStylePlaceholder")}
+                          rows={3}
+                          maxLength={2000}
+                          className="w-full resize-y rounded border border-border bg-transparent px-2 py-1 text-sm text-foreground placeholder:text-muted focus:border-accent focus:outline-none"
+                        />
+                        <div className="mt-1 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateSettings.mutate({
+                                reviewStylePrompt: styleValue.trim() || null,
+                              })
+                            }
+                            className="rounded bg-accent px-2 py-0.5 text-xs text-white"
+                          >
+                            {t("save")}
+                          </button>
+                        </div>
+                      </div>
+                    </Section>
 
-              {/* Password — set/change a reusable email + password login */}
-              <Section title={t("password")}>
-                <ChangePasswordSection />
-              </Section>
+                    {/* Review history window */}
+                    <Section title={t("reviewHistory")}>
+                      <div className="flex items-center justify-between gap-2 px-2">
+                        <span className="text-xs text-muted">{t("reviewHistoryHint")}</span>
+                        <span className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            min={REVIEW_HISTORY_DAYS_MIN}
+                            max={REVIEW_HISTORY_DAYS_MAX}
+                            value={currentHistoryDays}
+                            onChange={(e) => {
+                              const n = Math.round(Number(e.target.value));
+                              if (!Number.isFinite(n)) return;
+                              const clamped = Math.max(
+                                REVIEW_HISTORY_DAYS_MIN,
+                                Math.min(REVIEW_HISTORY_DAYS_MAX, n),
+                              );
+                              updateSettings.mutate({ reviewHistoryDays: clamped });
+                            }}
+                            aria-label={t("reviewHistory")}
+                            className="w-14 rounded border border-border bg-transparent px-1 py-0.5 text-right text-sm text-foreground focus:border-accent focus:outline-none"
+                          />
+                          <span className="text-xs text-muted">{t("daysUnit")}</span>
+                        </span>
+                      </div>
+                    </Section>
+                  </>
+                )}
+              </Group>
 
-              <div className="border-t border-border pt-2">
+              {/* Account */}
+              <Group
+                title={t("groupAccount")}
+                open={openGroups.has("account")}
+                onToggle={() => toggleGroup("account")}
+              >
+                {/* Password — set/change a reusable email + password login */}
+                <Section title={t("password")}>
+                  <ChangePasswordSection />
+                </Section>
+              </Group>
+
+              {/* Data */}
+              <Group
+                title={t("groupData")}
+                open={openGroups.has("data")}
+                onToggle={() => toggleGroup("data")}
+              >
+                {/* Undo/redo history depth (Cmd/Ctrl+Z) — persisted in localStorage. */}
+                <label className="flex items-center justify-between gap-2 px-2 text-sm text-foreground">
+                  <span>{t("undoLimit")}</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={max}
+                    onChange={(e) => setMax(Number(e.target.value))}
+                    aria-label="Undo history limit"
+                    className="w-12 rounded border border-border bg-transparent px-1 py-0.5 text-right text-foreground focus:border-accent focus:outline-none"
+                  />
+                </label>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -358,7 +425,7 @@ export function ThemeMenu() {
                 >
                   {t("exportData")}
                 </button>
-              </div>
+              </Group>
             </div>
           </div>
         </>

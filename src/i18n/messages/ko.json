@@ -1,6 +1,10 @@
 {
   "settings": {
     "buttonLabel": "설정",
+    "groupAppearance": "화면",
+    "groupAI": "AI",
+    "groupAccount": "계정",
+    "groupData": "데이터",
     "theme": "테마",
     "themeLight": "라이트",
     "themeDark": "다크",

@@ -1,6 +1,10 @@
 {
   "settings": {
     "buttonLabel": "Settings",
+    "groupAppearance": "Appearance",
+    "groupAI": "AI",
+    "groupAccount": "Account",
+    "groupData": "Data",
     "theme": "Theme",
     "themeLight": "Light",
     "themeDark": "Dark",
