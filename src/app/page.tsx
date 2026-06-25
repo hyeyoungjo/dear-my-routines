@@ -27,9 +27,14 @@ export default async function Home() {
   return (
     <div className="flex flex-1 flex-col">
       <header className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 sm:px-6">
-        <h1 className="shrink-0 whitespace-nowrap text-base font-semibold tracking-tight text-foreground">
+        <a
+          href="https://dearmyroutines.hyeyoungjo.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 whitespace-nowrap text-base font-semibold tracking-tight text-foreground hover:opacity-70 transition-opacity"
+        >
           Dear My Routines
-        </h1>
+        </a>
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <FeedbackButton userEmail={user?.email ?? ""} />
           <KofiButton />

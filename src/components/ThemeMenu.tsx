@@ -77,7 +77,7 @@ export function ThemeMenu({ isAdmin = false }: { isAdmin?: boolean }) {
   // Which accordion groups are expanded. Appearance starts open so the modal
   // shows something useful without a click; the rest stay collapsed.
   const [openGroups, setOpenGroups] = useState<Set<string>>(
-    () => new Set(["appearance"]),
+    () => new Set(["theme"]),
   );
   const toggleGroup = (id: string) =>
     setOpenGroups((prev) => {
@@ -171,47 +171,17 @@ export function ThemeMenu({ isAdmin = false }: { isAdmin?: boolean }) {
             </div>
 
             <div className="overflow-y-auto px-4">
-              {/* Appearance */}
+              {/* Theme */}
               <Group
-                title={t("groupAppearance")}
-                open={openGroups.has("appearance")}
-                onToggle={() => toggleGroup("appearance")}
+                title={t("theme")}
+                open={openGroups.has("theme")}
+                onToggle={() => toggleGroup("theme")}
               >
-                <Section title={t("theme")}>
-                  {THEMES.map((tm) => (
-                    <OptionRow key={tm} selected={theme === tm} onClick={() => setTheme(tm)}>
-                      {LABELS[tm]}
-                    </OptionRow>
-                  ))}
-                </Section>
-
-                <Section title={t("language")}>
-                  {LANGUAGES.map((l) => (
-                    <OptionRow
-                      key={l.id}
-                      selected={currentLanguageId === l.id}
-                      onClick={() => updateSettings.mutate({ language: l.id })}
-                    >
-                      {l.label}
-                    </OptionRow>
-                  ))}
-                </Section>
-
-                {/* Font — each option previewed in its own typeface */}
-                <Section title={t("font")}>
-                  {FONTS.map((f) => (
-                    <OptionRow
-                      key={f.id}
-                      selected={currentFontId === f.id}
-                      onClick={() => updateSettings.mutate({ font: f.id })}
-                      style={{ fontFamily: `var(${f.variable})` }}
-                    >
-                      {f.label}
-                    </OptionRow>
-                  ))}
-                </Section>
-
-                {/* Grid time range */}
+                {THEMES.map((tm) => (
+                  <OptionRow key={tm} selected={theme === tm} onClick={() => setTheme(tm)}>
+                    {LABELS[tm]}
+                  </OptionRow>
+                ))}
                 <Section title={t("gridHours")}>
                   <div className="flex flex-col gap-0.5 px-2">
                     <label className="flex items-center justify-between gap-2 text-sm text-foreground">
@@ -242,6 +212,41 @@ export function ThemeMenu({ isAdmin = false }: { isAdmin?: boolean }) {
                     </label>
                   </div>
                 </Section>
+              </Group>
+
+              {/* Language */}
+              <Group
+                title={t("language")}
+                open={openGroups.has("language")}
+                onToggle={() => toggleGroup("language")}
+              >
+                {LANGUAGES.map((l) => (
+                  <OptionRow
+                    key={l.id}
+                    selected={currentLanguageId === l.id}
+                    onClick={() => updateSettings.mutate({ language: l.id })}
+                  >
+                    {l.label}
+                  </OptionRow>
+                ))}
+              </Group>
+
+              {/* Font */}
+              <Group
+                title={t("font")}
+                open={openGroups.has("font")}
+                onToggle={() => toggleGroup("font")}
+              >
+                {FONTS.map((f) => (
+                  <OptionRow
+                    key={f.id}
+                    selected={currentFontId === f.id}
+                    onClick={() => updateSettings.mutate({ font: f.id })}
+                    style={{ fontFamily: `var(${f.variable})` }}
+                  >
+                    {f.label}
+                  </OptionRow>
+                ))}
               </Group>
 
               {/* AI */}

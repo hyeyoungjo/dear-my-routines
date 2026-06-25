@@ -102,7 +102,15 @@ export default function RootLayout({
         <Providers>
           <div className="flex flex-1 flex-col">{children}</div>
           <footer className="py-4 text-center text-xs text-muted">
-            © {new Date().getFullYear()} Hye-Young Jo
+            © {new Date().getFullYear()}{" "}
+            <a
+              href="https://hyeyoungjo.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground hover:underline underline-offset-2 transition-colors"
+            >
+              Hye-Young Jo
+            </a>
           </footer>
         </Providers>
       </body>
