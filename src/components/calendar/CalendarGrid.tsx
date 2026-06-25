@@ -448,12 +448,9 @@ export function CalendarGrid() {
         if (mins < 0 || mins > gridTotalMinutes) return null;
         return (
           <div
-            className="pointer-events-none absolute inset-x-0 z-10 flex items-center"
+            className="pointer-events-none absolute inset-x-0 z-10 h-px bg-accent"
             style={{ top: mins * PX_PER_MINUTE }}
-          >
-            <span className="h-2 w-2 shrink-0 rounded-full bg-accent" />
-            <div className="h-px flex-1 bg-accent" />
-          </div>
+          />
         );
       })()}
     </div>
