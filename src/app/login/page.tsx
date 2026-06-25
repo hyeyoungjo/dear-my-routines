@@ -186,6 +186,33 @@ export default function LoginPage() {
           ))}
         </ul>
 
+        {/* How it works */}
+        <div>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-neutral-400">
+            {t("howToUse")}
+          </p>
+          <ol className="flex flex-col gap-2">
+            {(
+              [
+                { label: t("step1Label"), desc: t("step1Desc") },
+                { label: t("step2Label"), desc: t("step2Desc") },
+                { label: t("step3Label"), desc: t("step3Desc") },
+              ] as { label: string; desc: string }[]
+            ).map((step, i) => (
+              <li key={i} className="flex items-start gap-3 text-sm text-neutral-600">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-[10px] font-bold text-white">
+                  {i + 1}
+                </span>
+                <span>
+                  <span className="font-semibold text-neutral-900">{step.label}</span>
+                  {" — "}
+                  {step.desc}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+
         <div className="overflow-hidden rounded-xl border border-neutral-200 shadow-md">
           <img
             src="/screenshots/main-light.png"

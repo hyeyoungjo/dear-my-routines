@@ -129,7 +129,14 @@
     "headline": "A personal time-management app that measures planned vs. actual time to fix chronic under-estimation.",
     "feature1": "Side-by-side Plan vs. Act calendar — see overruns at a glance",
     "feature2": "Carry-over tracking — spot tasks that keep getting pushed",
-    "feature3": "Daily AI review — pattern insights from your journal and time data"
+    "feature3": "Daily AI review — pattern insights from your journal and time data",
+    "howToUse": "How it works",
+    "step1Label": "Plan",
+    "step1Desc": "Add tasks and time-block your day in the calendar.",
+    "step2Label": "Act",
+    "step2Desc": "Log what you actually did — drag blocks, adjust times.",
+    "step3Label": "Reflect",
+    "step3Desc": "Hit Analyze for an AI-powered daily pattern review."
   },
   "feedback": {
     "title": "Send Feedback",
