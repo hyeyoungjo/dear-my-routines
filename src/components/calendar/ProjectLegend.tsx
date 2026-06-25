@@ -1,5 +1,7 @@
 "use client";
 
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faXmark } from "@fortawesome/free-solid-svg-icons";
 import { projectColor } from "@/lib/projectColor";
 import { ColorPicker } from "@/components/ColorPicker";
 import {
@@ -81,7 +83,7 @@ export function ProjectLegend() {
               title={t("delete")}
               className="rounded px-1 text-muted/70 hover:text-red-500"
             >
-              ✕
+              <FontAwesomeIcon icon={faXmark} />
             </button>
           </div>
         );

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faComment } from "@fortawesome/free-solid-svg-icons";
+import { faComment, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { useTranslations } from "next-intl";
 
 export function FeedbackButton({ userEmail }: { userEmail: string }) {
@@ -42,8 +42,8 @@ export function FeedbackButton({ userEmail }: { userEmail: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Send feedback"
-        title="Send feedback"
+        aria-label={t("title")}
+        title={t("title")}
         className="rounded-md p-1 text-xl leading-none text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
       >
         <FontAwesomeIcon icon={faComment} fixedWidth />
@@ -65,7 +65,7 @@ export function FeedbackButton({ userEmail }: { userEmail: string }) {
                 aria-label="Close"
                 className="rounded p-1 text-base leading-none text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
               >
-                ✕
+                <FontAwesomeIcon icon={faXmark} />
               </button>
             </div>
             <textarea

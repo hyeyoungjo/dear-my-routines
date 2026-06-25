@@ -16,7 +16,7 @@ import {
 import { ExportModal } from "@/components/ExportModal";
 import { ChangePasswordSection } from "@/components/ChangePasswordSection";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faGear, faChevronDown } from "@fortawesome/free-solid-svg-icons";
+import { faGear, faChevronDown, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { useTranslations } from "next-intl";
 
 function hourLabel(h: number): string {
@@ -151,6 +151,7 @@ export function ThemeMenu({ isAdmin = false }: { isAdmin?: boolean }) {
         type="button"
         onClick={() => setOpen(true)}
         aria-label={t("buttonLabel")}
+        title={t("buttonLabel")}
         className="rounded-md p-1 text-xl leading-none text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
       >
         <FontAwesomeIcon icon={faGear} fixedWidth />
@@ -171,9 +172,10 @@ export function ThemeMenu({ isAdmin = false }: { isAdmin?: boolean }) {
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label={t("close")}
+                title={t("close")}
                 className="rounded p-1 text-lg leading-none text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
               >
-                ✕
+                <FontAwesomeIcon icon={faXmark} />
               </button>
             </div>
 

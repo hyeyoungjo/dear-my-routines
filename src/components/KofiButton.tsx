@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faMugHot } from "@fortawesome/free-solid-svg-icons";
+import { faMugHot, faXmark } from "@fortawesome/free-solid-svg-icons";
 
 /**
  * Header ☕ button that opens the Ko-fi donation form in a popover anchored
@@ -59,7 +59,7 @@ export function KofiButton() {
                 aria-label="Close"
                 className="rounded p-1 text-base leading-none text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
               >
-                ✕
+                <FontAwesomeIcon icon={faXmark} />
               </button>
             </div>
             {/* Scale the whole form down (not resize it) so nothing reflows and
