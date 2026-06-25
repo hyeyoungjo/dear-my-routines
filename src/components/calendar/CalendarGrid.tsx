@@ -392,6 +392,20 @@ export function CalendarGrid() {
     return result;
   };
 
+  // Current-time line, shared by every column body and the time axis so it reads
+  // as one continuous line across Plan / axis / Act. null when now is off-grid.
+  const nowLineTop = (() => {
+    const mins = (now.getHours() - gridStartHour) * 60 + now.getMinutes();
+    return mins < 0 || mins > gridTotalMinutes ? null : mins * PX_PER_MINUTE;
+  })();
+  const nowLine =
+    nowLineTop === null ? null : (
+      <div
+        className="pointer-events-none absolute inset-x-0 z-10 h-px bg-accent"
+        style={{ top: nowLineTop }}
+      />
+    );
+
   /** Render one column's grid body: hour lines, click-to-create, and blocks. */
   const renderColumn = (kind: ColumnKind) => (
     <div
@@ -443,16 +457,7 @@ export function CalendarGrid() {
       })()}
 
       {/* Current time indicator — only shown when now falls within the grid range. */}
-      {(() => {
-        const mins = (now.getHours() - gridStartHour) * 60 + now.getMinutes();
-        if (mins < 0 || mins > gridTotalMinutes) return null;
-        return (
-          <div
-            className="pointer-events-none absolute inset-x-0 z-10 h-px bg-accent"
-            style={{ top: mins * PX_PER_MINUTE }}
-          />
-        );
-      })()}
+      {nowLine}
     </div>
   );
 
@@ -467,6 +472,8 @@ export function CalendarGrid() {
           {slot.label}
         </span>
       ))}
+      {/* Bridge the now-line across the axis so it connects Plan and Act. */}
+      {nowLine}
     </div>
   );
 
