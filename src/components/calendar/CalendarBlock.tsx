@@ -13,8 +13,8 @@ import { useTranslations } from "next-intl";
 /** Which list a column reads/writes (ADR-017 PLAN vs. ACT). */
 export type ColumnKind = "plan" | "action";
 
-/** Move shifts the whole block in time; resize drags only its bottom edge. */
-export type DragMode = "move" | "resize";
+/** Move shifts the whole block in time; resize-start/resize drag the top or bottom edge. */
+export type DragMode = "move" | "resize-start" | "resize";
 
 /**
  * One block drawn on a calendar column (ADR-016/017). A PLAN-column block is a
@@ -374,6 +374,20 @@ export function CalendarBlock({
         >
           <FontAwesomeIcon icon={faCircleArrowRight} />
         </button>
+      )}
+
+      {/* Top edge — drag to resize the block's start time (real blocks only). */}
+      {!isGhost && (
+        <div
+          onPointerDown={(e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            e.stopPropagation();
+            onDragStart(blockId, kind, "resize-start", e.clientY);
+          }}
+          aria-label={t("resizeBlockStart")}
+          className="absolute inset-x-0 top-0 h-2 cursor-ns-resize"
+        />
       )}
 
       {/* Bottom edge — drag to resize the block's duration (real blocks only). */}

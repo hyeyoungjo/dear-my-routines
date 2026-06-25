@@ -10,6 +10,7 @@ import {
   layoutOverlaps,
   moveBlock,
   resizeBlockEnd,
+  resizeBlockStart,
   slotDate,
   snapMinutes,
   snapToSlot,
@@ -261,11 +262,15 @@ export function CalendarGrid() {
     const span =
       d.mode === "move"
         ? moveBlock(base.start, base.end, d.deltaMinutes)
-        : resizeBlockEnd(base.start, base.end, d.deltaMinutes);
+        : d.mode === "resize-start"
+          ? resizeBlockStart(base.start, base.end, d.deltaMinutes)
+          : resizeBlockEnd(base.start, base.end, d.deltaMinutes);
     const patch =
       d.mode === "move"
         ? { startAt: span.start.toISOString(), endAt: span.end.toISOString() }
-        : { endAt: span.end.toISOString() };
+        : d.mode === "resize-start"
+          ? { startAt: span.start.toISOString() }
+          : { endAt: span.end.toISOString() };
     // Optimistic — the screen never waits (ADR-007). Each list owns its own row.
     if (d.kind === "plan") {
       updatePlanBlock.mutate({ planBlockId: d.blockId, patch });
@@ -323,7 +328,9 @@ export function CalendarGrid() {
     if (!drag || drag.kind !== kind || drag.blockId !== blockId) return base;
     return drag.mode === "move"
       ? moveBlock(base.start, base.end, drag.deltaMinutes)
-      : resizeBlockEnd(base.start, base.end, drag.deltaMinutes);
+      : drag.mode === "resize-start"
+        ? resizeBlockStart(base.start, base.end, drag.deltaMinutes)
+        : resizeBlockEnd(base.start, base.end, drag.deltaMinutes);
   };
 
   /** Title/colour/carryCount join for a task, or null for an orphan block.

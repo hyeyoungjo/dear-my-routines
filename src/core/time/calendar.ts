@@ -133,6 +133,17 @@ export function resizeBlockEnd(start: Date, end: Date, deltaMinutes: number): Sp
   return { start, end: addMinutes(start, duration) };
 }
 
+/**
+ * Resize a block's top edge by a minute delta. The start is clamped so the
+ * block never becomes shorter than MIN_BLOCK_MINUTES — dragging the top edge
+ * down too far can't push start past (end - minimum).
+ */
+export function resizeBlockStart(start: Date, end: Date, deltaMinutes: number): Span {
+  const proposed = durationMinutes(start, end) - deltaMinutes;
+  const duration = Math.max(MIN_BLOCK_MINUTES, proposed);
+  return { start: addMinutes(end, -duration), end };
+}
+
 // --- Parent / child nesting (phase 3) -------------------------------------
 
 /**

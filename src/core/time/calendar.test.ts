@@ -14,6 +14,7 @@ import {
   minutesFromGridStart,
   moveBlock,
   resizeBlockEnd,
+  resizeBlockStart,
   slotDate,
   snapMinutes,
   snapToSlot,
@@ -135,6 +136,31 @@ describe("resizeBlockEnd", () => {
     const end = new Date(2026, 5, 21, 10, 0);
     const resized = resizeBlockEnd(start, end, -120); // would invert
     expect(durationMinutes(start, resized.end)).toBe(MIN_BLOCK_MINUTES);
+  });
+});
+
+describe("resizeBlockStart", () => {
+  it("moves the start earlier by the delta, keeping the end fixed", () => {
+    const start = new Date(2026, 5, 21, 9, 0);
+    const end = new Date(2026, 5, 21, 10, 0);
+    const resized = resizeBlockStart(start, end, -30); // drag up 30 min
+    expect(resized.end).toBe(end);
+    expect(durationMinutes(resized.start, end)).toBe(90);
+  });
+
+  it("moves the start later by the delta, keeping the end fixed", () => {
+    const start = new Date(2026, 5, 21, 9, 0);
+    const end = new Date(2026, 5, 21, 10, 0);
+    const resized = resizeBlockStart(start, end, 30); // drag down 30 min
+    expect(resized.end).toBe(end);
+    expect(durationMinutes(resized.start, end)).toBe(30);
+  });
+
+  it("never shrinks below the minimum length (no inversion)", () => {
+    const start = new Date(2026, 5, 21, 9, 0);
+    const end = new Date(2026, 5, 21, 10, 0);
+    const resized = resizeBlockStart(start, end, 120); // would invert
+    expect(durationMinutes(resized.start, end)).toBe(MIN_BLOCK_MINUTES);
   });
 });
 
