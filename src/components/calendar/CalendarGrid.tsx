@@ -191,6 +191,28 @@ export function CalendarGrid() {
    * duration kept (`carryOverPlan`) — the same mechanism the day-boundary sweep
    * uses, just triggered by hand. Both writes are optimistic.
    */
+  /**
+   * Mark an action as `partial` (user will continue tomorrow) and create a fresh
+   * `planned` plan on the next day at the same time slot.
+   */
+  const continueTomorrow = (block: CalBlock) => {
+    updateActionBlock.mutate({
+      actionBlockId: block.blockId,
+      patch: { status: "partial" },
+    });
+    const tomorrow = addDays(selectedDate, 1);
+    const tomorrowStart = new Date(tomorrow);
+    tomorrowStart.setHours(block.span.start.getHours(), block.span.start.getMinutes(), 0, 0);
+    const tomorrowEnd = new Date(tomorrow);
+    tomorrowEnd.setHours(block.span.end.getHours(), block.span.end.getMinutes(), 0, 0);
+    addPlanBlock.mutate({
+      taskId: block.taskId,
+      date: dayKey(tomorrow),
+      startAt: tomorrowStart.toISOString(),
+      endAt: tomorrowEnd.toISOString(),
+    });
+  };
+
   const carryGhost = (block: CalBlock) => {
     const plan = allPlans.find((p) => p.planBlockId === block.blockId);
     if (!plan) return;
@@ -368,6 +390,7 @@ export function CalendarGrid() {
         taskId: action.taskId,
         span: withPreview("action", action.actionBlockId, base),
         isOngoing: isOngoing(action, now),
+        isPartial: action.status === "partial",
         ...d,
       });
     }
@@ -443,6 +466,11 @@ export function CalendarGrid() {
               onConfirm={block.isGhost ? () => confirmGhost(block) : undefined}
               onCarryOver={block.isGhost ? () => carryGhost(block) : undefined}
               onOpenDetail={() => setDetailTaskId(block.taskId)}
+              onContinueTomorrow={
+                kind === "action" && !block.isGhost
+                  ? () => continueTomorrow(block)
+                  : undefined
+              }
               onDragStart={handleDragStart}
               isDragging={isDragging}
               style={{

@@ -9,6 +9,8 @@ import { createClient } from "@/services/supabase/server";
  * `userId`, and `taskId` are never accepted. `startAt` can move (not clear);
  * `endAt` can be set or cleared to null (finishing or reopening a span).
  */
+const ACTION_STATUSES = ["done", "partial"] as const;
+
 function parseActionPatchInput(
   body: Record<string, unknown>,
 ): Partial<NewActionBlock> {
@@ -21,6 +23,12 @@ function parseActionPatchInput(
     values.endAt = new Date(body.endAt);
   } else if (body.endAt === null) {
     values.endAt = null;
+  }
+  if (
+    typeof body.status === "string" &&
+    ACTION_STATUSES.includes(body.status as never)
+  ) {
+    values.status = body.status as NewActionBlock["status"];
   }
 
   return values;

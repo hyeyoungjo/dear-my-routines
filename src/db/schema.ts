@@ -248,6 +248,13 @@ export const planBlocks = pgTable(
   (t) => ownerPolicies("plan_blocks", t.userId),
 );
 
+// An action_block's completion state. `done` = task fully completed for now;
+// `partial` = user worked on it but explicitly chose to continue tomorrow.
+export const actionBlockStatus = pgEnum("action_block_status", [
+  "done",
+  "partial",
+]);
+
 // --- action_blocks: per-day *actual execution* of a task (ADR-015) ---------
 
 /**
@@ -256,6 +263,8 @@ export const planBlocks = pgTable(
  * the plan) and whether it is *doing* (now within its span) are derived, never
  * stored (see core/time). Stats join plan_blocks + action_blocks by `task_id`;
  * the estimate-vs-actual comparison is computed there, never on a calendar block.
+ * `status` distinguishes a fully-done session (`done`, default) from one where
+ * the user explicitly continues the task tomorrow (`partial`).
  */
 export const actionBlocks = pgTable(
   "action_blocks",
@@ -269,6 +278,7 @@ export const actionBlocks = pgTable(
     startAt: timestamp("start_at", { withTimezone: true }).notNull(),
     // Nullable: a still-running span has no end time yet (future timer).
     endAt: timestamp("end_at", { withTimezone: true }),
+    status: actionBlockStatus("status").notNull().default("done"),
     createdOn: timestamp("created_on", { withTimezone: true })
       .notNull()
       .defaultNow(),

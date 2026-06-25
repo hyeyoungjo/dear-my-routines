@@ -24,6 +24,8 @@ export type ActionBlock = {
   startAt: string;
   /** Null while still running — the span has not finished yet. */
   endAt: string | null;
+  /** `done` = fully completed; `partial` = user explicitly continues tomorrow. */
+  status: "done" | "partial";
 };
 
 /**

@@ -55,7 +55,8 @@
     "carryOverToNext": "Carry over to next day",
     "deleteAction": "Delete action",
     "deletePlan": "Delete plan",
-    "resizeBlock": "Resize block"
+    "resizeBlock": "Resize block",
+    "continueTomorrow": "Continue tomorrow"
   },
   "review": {
     "placeholder": "How was your day?",

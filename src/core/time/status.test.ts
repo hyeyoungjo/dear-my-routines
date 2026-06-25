@@ -25,6 +25,7 @@ function action(partial: Partial<ActionBlock>): ActionBlock {
     date: "2026-06-20",
     startAt: new Date(2026, 5, 20, 9, 0).toISOString(),
     endAt: new Date(2026, 5, 20, 10, 0).toISOString(),
+    status: "done",
     ...partial,
   };
 }

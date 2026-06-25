@@ -113,6 +113,7 @@ function optimisticAction(input: AddActionInput): ActionBlock {
     date: input.date,
     startAt: input.startAt,
     endAt: input.endAt ?? null,
+    status: "done",
   };
 }
 

@@ -175,6 +175,7 @@ export function setDoneDay(
         date: newDoneDay,
         startAt: aStart.toISOString(),
         endAt: aEnd ? aEnd.toISOString() : null,
+        status: "done" as const,
       },
     };
   }

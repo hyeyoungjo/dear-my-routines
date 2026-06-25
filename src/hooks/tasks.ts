@@ -228,6 +228,7 @@ export function useCreateTaskWithBlock() {
             date: action.date,
             startAt: action.startAt,
             endAt: action.endAt,
+            status: "done" as const,
           },
         ]);
       }

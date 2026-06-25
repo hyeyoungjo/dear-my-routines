@@ -55,7 +55,8 @@
     "carryOverToNext": "다음 날로 이월",
     "deleteAction": "실행 삭제",
     "deletePlan": "계획 삭제",
-    "resizeBlock": "블록 크기 조절"
+    "resizeBlock": "블록 크기 조절",
+    "continueTomorrow": "내일 이어서"
   },
   "review": {
     "placeholder": "오늘 하루 어땠나요?",

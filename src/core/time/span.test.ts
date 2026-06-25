@@ -52,6 +52,7 @@ describe("bar ends", () => {
       date: "2026-06-23",
       startAt: at("2026-06-23", 9, 0),
       endAt: at("2026-06-23", 10, 0),
+      status: "done",
     };
     expect(barEndDay(BAR, action)).toBe("2026-06-23");
   });
@@ -104,6 +105,7 @@ describe("setDoneDay — move the right end", () => {
       date: "2026-06-24",
       startAt: at("2026-06-24", 9, 0),
       endAt: at("2026-06-24", 10, 0),
+      status: "done",
     };
     const plansWithLater = [...BAR, plan("2026-06-23", "missed")];
     const { plan: pe, action: ae } = setDoneDay(

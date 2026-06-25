@@ -55,6 +55,7 @@ function mkActionBlock(overrides: Partial<ExportInput["actionBlocks"][0]> = {}):
     date: "2026-06-21",
     startAt: new Date("2026-06-21T09:00:00Z"),
     endAt: new Date("2026-06-21T10:00:00Z"),   // 60 min
+    status: "done",
     createdOn: NOW,
     updatedOn: NOW,
     ...overrides,

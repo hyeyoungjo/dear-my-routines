@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faMaximize, faXmark, faCircleArrowRight } from "@fortawesome/free-solid-svg-icons";
 import type { Span } from "@/core/time/calendar";
 import { useProjects } from "@/hooks/projects";
 import { useUpdateTask } from "@/hooks/tasks";
@@ -39,6 +41,8 @@ export type CalBlock = {
   isMissed?: boolean;
   /** Action spanning now → the in-progress highlight (ADR-017). */
   isOngoing?: boolean;
+  /** ACT-column action with status `partial` — user will continue tomorrow. */
+  isPartial?: boolean;
   /** How many times the owning task was carried (count of missed plans). */
   carryCount: number;
 };
@@ -68,6 +72,7 @@ export function CalendarBlock({
   onConfirm,
   onCarryOver,
   onOpenDetail,
+  onContinueTomorrow,
   onDragStart,
   isDragging,
 }: {
@@ -80,6 +85,8 @@ export function CalendarBlock({
   onCarryOver?: () => void;
   /** Open the owning task's detail modal (title/notes/plans/actions). */
   onOpenDetail?: () => void;
+  /** Mark this action partial and create a plan for tomorrow (action only). */
+  onContinueTomorrow?: () => void;
   /** Begin a pointer drag (move/resize) — the grid owns the drag state. */
   onDragStart: (
     blockId: string,
@@ -100,6 +107,7 @@ export function CalendarBlock({
     isGhost,
     isMissed,
     isOngoing,
+    isPartial,
     carryCount,
   } = block;
   const t = useTranslations("block");
@@ -167,7 +175,12 @@ export function CalendarBlock({
         e.stopPropagation();
         setEditing(true);
       }}
-      style={{ ...style, ...tintStyle, ...missedStyle }}
+      style={{
+        ...style,
+        ...tintStyle,
+        ...missedStyle,
+        ...(isPartial ? { borderBottomStyle: "dashed" } : {}),
+      }}
       className={`group absolute flex select-none flex-col gap-0.5 overflow-hidden rounded-md border p-1 shadow-sm transition-shadow ${
         color ? "" : "border-accent/50 bg-accent-soft"
       } ${
@@ -293,9 +306,7 @@ export function CalendarBlock({
           </span>
         )}
 
-        {/* ⤢ — open the task detail modal (title/notes/plans/actions). Lives on a
-            button now that double-click edits the title. Real blocks only; a
-            ghost has no detail of its own (it's a projection of a plan). */}
+        {/* Detail button — opens task detail modal. Real blocks only. */}
         {!isGhost && (
           <button
             type="button"
@@ -306,14 +317,13 @@ export function CalendarBlock({
             onPointerDown={(e) => e.stopPropagation()}
             aria-label={t("openDetail")}
             title={t("openDetail")}
-            className="shrink-0 text-muted opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+            className="shrink-0 text-[10px] text-muted opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
           >
-            ⤢
+            <FontAwesomeIcon icon={faMaximize} />
           </button>
         )}
 
-        {/* ✕ — a ghost carries its plan to the next day (manual carry-over);
-            a real block deletes its own row (ADR-017). */}
+        {/* Delete / carry-over button. Ghost: carry plan to next day. Real: delete row. */}
         <button
           type="button"
           onClick={(e) => {
@@ -336,13 +346,34 @@ export function CalendarBlock({
                 ? t("deleteAction")
                 : t("deletePlan")
           }
-          className={`shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100 ${
+          className={`shrink-0 text-[10px] text-muted opacity-0 transition-opacity group-hover:opacity-100 ${
             isGhost ? "hover:text-amber-600" : "hover:text-red-500"
           }`}
         >
-          ✕
+          <FontAwesomeIcon icon={faXmark} />
         </button>
       </div>
+
+      {/* Continue tomorrow — action blocks only. Dashed bottom = already partial. */}
+      {kind === "action" && !isGhost && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onContinueTomorrow?.();
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+          aria-label={t("continueTomorrow")}
+          title={t("continueTomorrow")}
+          className={`absolute bottom-2 right-1 text-[10px] transition-opacity ${
+            isPartial
+              ? "text-accent opacity-100"
+              : "text-muted opacity-0 group-hover:opacity-100 hover:text-accent"
+          }`}
+        >
+          <FontAwesomeIcon icon={faCircleArrowRight} />
+        </button>
+      )}
 
       {/* Bottom edge — drag to resize the block's duration (real blocks only). */}
       {!isGhost && (
