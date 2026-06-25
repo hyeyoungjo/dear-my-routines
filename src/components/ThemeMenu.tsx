@@ -30,7 +30,7 @@ function hourLabel(h: number): string {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
-      <p className="text-xs font-medium text-muted">{title}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">{title}</p>
       {children}
     </div>
   );
@@ -62,7 +62,7 @@ function Group({
           className={`text-xs text-muted transition-transform ${open ? "" : "-rotate-90"}`}
         />
       </button>
-      {open && <div className="space-y-4 pb-4">{children}</div>}
+      {open && <div className="space-y-3 pb-4">{children}</div>}
     </div>
   );
 }
@@ -184,18 +184,20 @@ export function ThemeMenu({ isAdmin = false }: { isAdmin?: boolean }) {
                 open={openGroups.has("theme")}
                 onToggle={() => toggleGroup("theme")}
               >
-                {THEMES.map((tm) => (
-                  <OptionRow
-                    key={tm}
-                    selected={theme === tm}
-                    onClick={() => {
-                      setTheme(tm);
-                      updateSettings.mutate({ theme: tm });
-                    }}
-                  >
-                    {LABELS[tm]}
-                  </OptionRow>
-                ))}
+                <div className="flex flex-col">
+                  {THEMES.map((tm) => (
+                    <OptionRow
+                      key={tm}
+                      selected={theme === tm}
+                      onClick={() => {
+                        setTheme(tm);
+                        updateSettings.mutate({ theme: tm });
+                      }}
+                    >
+                      {LABELS[tm]}
+                    </OptionRow>
+                  ))}
+                </div>
                 <Section title={t("gridHours")}>
                   <div className="flex flex-col gap-0.5 px-2">
                     <label className="flex items-center justify-between gap-2 text-sm text-foreground">
@@ -234,15 +236,17 @@ export function ThemeMenu({ isAdmin = false }: { isAdmin?: boolean }) {
                 open={openGroups.has("language")}
                 onToggle={() => toggleGroup("language")}
               >
-                {LANGUAGES.map((l) => (
-                  <OptionRow
-                    key={l.id}
-                    selected={currentLanguageId === l.id}
-                    onClick={() => updateSettings.mutate({ language: l.id })}
-                  >
-                    {l.label}
-                  </OptionRow>
-                ))}
+                <div className="flex flex-col">
+                  {LANGUAGES.map((l) => (
+                    <OptionRow
+                      key={l.id}
+                      selected={currentLanguageId === l.id}
+                      onClick={() => updateSettings.mutate({ language: l.id })}
+                    >
+                      {l.label}
+                    </OptionRow>
+                  ))}
+                </div>
               </Group>
 
               {/* Font */}
@@ -251,16 +255,18 @@ export function ThemeMenu({ isAdmin = false }: { isAdmin?: boolean }) {
                 open={openGroups.has("font")}
                 onToggle={() => toggleGroup("font")}
               >
-                {FONTS.map((f) => (
-                  <OptionRow
-                    key={f.id}
-                    selected={currentFontId === f.id}
-                    onClick={() => updateSettings.mutate({ font: f.id })}
-                    style={{ fontFamily: `var(${f.variable})` }}
-                  >
-                    {f.label}
-                  </OptionRow>
-                ))}
+                <div className="flex flex-col">
+                  {FONTS.map((f) => (
+                    <OptionRow
+                      key={f.id}
+                      selected={currentFontId === f.id}
+                      onClick={() => updateSettings.mutate({ font: f.id })}
+                      style={{ fontFamily: `var(${f.variable})` }}
+                    >
+                      {f.label}
+                    </OptionRow>
+                  ))}
+                </div>
               </Group>
 
               {/* AI */}
@@ -333,15 +339,17 @@ export function ThemeMenu({ isAdmin = false }: { isAdmin?: boolean }) {
                 {aiEnabled && (
                   <>
                     <Section title={t("aiModel")}>
-                      {AI_MODELS.map((m) => (
-                        <OptionRow
-                          key={m.id}
-                          selected={currentModelId === m.id}
-                          onClick={() => updateSettings.mutate({ aiModel: m.id })}
-                        >
-                          {m.label}
-                        </OptionRow>
-                      ))}
+                      <div className="flex flex-col">
+                        {AI_MODELS.map((m) => (
+                          <OptionRow
+                            key={m.id}
+                            selected={currentModelId === m.id}
+                            onClick={() => updateSettings.mutate({ aiModel: m.id })}
+                          >
+                            {m.label}
+                          </OptionRow>
+                        ))}
+                      </div>
                     </Section>
 
                     {/* Custom review style guidance */}
