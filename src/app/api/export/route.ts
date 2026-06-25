@@ -11,6 +11,7 @@ import {
 import { buildExportRows } from "@/core/export";
 import type { ExportRow } from "@/core/export";
 import { createClient } from "@/services/supabase/server";
+import { getUserRole } from "@/lib/userRole";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -61,6 +62,11 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const role = user.email ? await getUserRole(user.email) : "user";
+  if (role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const from = request.nextUrl.searchParams.get("from");

@@ -98,8 +98,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={fontVariables}>
-      <body className="antialiased">
-        <Providers>{children}</Providers>
+      <body className="flex min-h-screen flex-col antialiased">
+        <Providers>
+          <div className="flex flex-1 flex-col">{children}</div>
+          <footer className="py-4 text-center text-xs text-muted">
+            © {new Date().getFullYear()} Hye-Young Jo
+          </footer>
+        </Providers>
       </body>
     </html>
   );

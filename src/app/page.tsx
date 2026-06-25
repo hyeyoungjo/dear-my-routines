@@ -6,6 +6,7 @@ import { DateBar } from "@/components/DateBar";
 import { ThemeMenu } from "@/components/ThemeMenu";
 import { SignOutButton } from "@/components/SignOutButton";
 import { KofiButton } from "@/components/KofiButton";
+import { getUserRole } from "@/lib/userRole";
 
 async function signOut() {
   "use server";
@@ -14,16 +15,23 @@ async function signOut() {
   redirect("/login");
 }
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const role = user?.email ? await getUserRole(user.email) : "user";
+  const isAdmin = role === "admin";
+
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex flex-1 flex-col">
       <header className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 sm:px-6">
         <h1 className="shrink-0 whitespace-nowrap text-base font-semibold tracking-tight text-foreground">
           Dear My Routines
         </h1>
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <KofiButton />
-          <ThemeMenu />
+          <ThemeMenu isAdmin={isAdmin} />
           <SignOutButton
             action={signOut}
             className="whitespace-nowrap rounded-md border border-border px-3 py-1.5 text-sm text-muted transition-colors hover:bg-accent-soft hover:text-foreground"

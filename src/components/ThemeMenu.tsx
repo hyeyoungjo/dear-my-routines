@@ -68,7 +68,7 @@ function Group({
 }
 
 /** Gear button (top-right) that opens a centered settings modal. */
-export function ThemeMenu() {
+export function ThemeMenu({ isAdmin = false }: { isAdmin?: boolean }) {
   const t = useTranslations("settings");
   const { theme, setTheme } = useTheme();
   const { max, setMax } = useUndo();
@@ -415,22 +415,24 @@ export function ThemeMenu() {
                   />
                 </label>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setExportOpen(true);
-                    setOpen(false);
-                  }}
-                  className="flex w-full items-center rounded px-2 py-1.5 text-sm text-foreground transition-colors hover:bg-accent-soft"
-                >
-                  {t("exportData")}
-                </button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExportOpen(true);
+                      setOpen(false);
+                    }}
+                    className="flex w-full items-center rounded px-2 py-1.5 text-sm text-foreground transition-colors hover:bg-accent-soft"
+                  >
+                    {t("exportData")}
+                  </button>
+                )}
               </Group>
             </div>
           </div>
         </>
       )}
-      <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} />
+      {isAdmin && <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} />}
     </div>
   );
 }
