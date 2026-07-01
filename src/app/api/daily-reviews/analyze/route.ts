@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 import { buildDailyReviewPrompt, type ReviewTaskInput } from "@/core/ai/dailyReviewPrompt";
 import type { TaskRatio } from "@/core/ai/schema";
@@ -174,7 +174,12 @@ async function buildReviewHistory(
 
   const [taskRows, projectRows, planRows, actionRows, allPlanRows] =
     await Promise.all([
-      db.select().from(tasks).where(eq(tasks.userId, userId)),
+      // Shelved tasks (ADR-026) are excluded from stats/review — parked work
+      // shouldn't skew the history patterns.
+      db
+        .select()
+        .from(tasks)
+        .where(and(eq(tasks.userId, userId), isNull(tasks.shelvedAt))),
       db.select().from(projects).where(eq(projects.userId, userId)),
       db
         .select()
@@ -236,7 +241,14 @@ async function buildReviewTasks(
     })
     .from(tasks)
     .leftJoin(projects, eq(tasks.projectId, projects.projectId))
-    .where(and(eq(tasks.userId, userId), inArray(tasks.taskId, taskIds)));
+    // Exclude shelved tasks from the reviewed-day table (ADR-026).
+    .where(
+      and(
+        eq(tasks.userId, userId),
+        inArray(tasks.taskId, taskIds),
+        isNull(tasks.shelvedAt),
+      ),
+    );
 
   return taskRows.map((t) => ({
     taskTitle: t.title,
