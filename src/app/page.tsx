@@ -38,8 +38,10 @@ export default async function Home() {
           href="https://dearmyroutines.hyeyoungjo.com/"
           target="_blank"
           rel="noopener noreferrer"
-          className="shrink-0 whitespace-nowrap text-base font-semibold tracking-tight text-foreground hover:opacity-70 transition-opacity"
+          className="flex shrink-0 items-center gap-2 whitespace-nowrap text-base font-semibold tracking-tight text-foreground hover:opacity-70 transition-opacity"
         >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/favicon.png" alt="" className="size-6 rounded-md" />
           Dear My Routines
         </a>
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">

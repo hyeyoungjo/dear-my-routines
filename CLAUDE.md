@@ -38,6 +38,17 @@
 - 코드·코드 코멘트·식별자·커밋 메시지, **그리고 UI 텍스트(화면에 보이는 문구)는 영어**.
   프로젝트 문서(`docs/`)는 **한글**. (글로벌 규칙 + 이 프로젝트의 UI 영어 관습)
 - 커밋은 conventional commits 형식 (feat:, fix:, docs:, refactor:, chore:).
+- CRITICAL: **되돌리기 어려운 설계 결정은 구현 전에 상의한다** — 데이터 삭제 동작·스키마 변경·
+  데이터 모델 선택(hide vs delete 등)·마이그레이션이 필요한 변경은 (1) 원인/트레이드오프 설명 →
+  (2) 옵션+추천 제시 → (3) 유저 선택 → (4) 구현 순서로. 유저가 "이게 낫지 않아?"처럼 방향을
+  제시해도 그건 논의 시작이지 구현 승인이 아니다. 순수 UI 미세조정·명백한 오타 수정은 바로 해도 된다.
+- **DB 마이그레이션 주의(이 프로젝트 고유)**: 이 DB는 과거 `drizzle-kit push`로 관리돼
+  `drizzle.__drizzle_migrations` 추적이 저널(`drizzle/meta/_journal.json`)보다 뒤처져 있다.
+  그래서 (a) `drizzle-kit generate`가 그동안 push로만 반영된 누적 드리프트를 새 마이그레이션 한
+  파일에 몽땅 묶고, (b) `drizzle-kit migrate`는 이미 DB에 있는 옛 마이그레이션을 재적용하려다
+  "already exists"로 조용히 실패(EXIT 1)한다. → 새 마이그레이션 SQL은 **이번 변경분만 남기도록
+  트리밍**하고, 필요하면 추적 테이블에 "마지막 적용 지점"을 나타내는 행을 seed해(created_at =
+  직전 저널 항목의 `when`) `migrate`가 신규분만 적용하게 한다.
 
 ## 명령어
 npm run dev      # 개발 서버
