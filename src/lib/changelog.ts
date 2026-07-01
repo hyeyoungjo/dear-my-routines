@@ -17,8 +17,8 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     date: "2026-07-02",
     text: {
-      en: "Continue a task later today, tomorrow, or another day",
-      ko: "task 이어서 하기 — 오늘 이따가·내일·다른 날",
+      en: "Added Continue-later — resume a task later today, tomorrow, or another day",
+      ko: "이어서 하기 추가 — task를 오늘 이따가·내일·다른 날로",
     },
   },
   {
