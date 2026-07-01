@@ -1,0 +1,39 @@
+{
+  "project": "Dear My Routines",
+  "phase": "14-project-states",
+  "steps": [
+    {
+      "step": 0,
+      "name": "docs-adr",
+      "status": "completed",
+      "started_at": "2026-07-02T04:41:33+0900",
+      "summary": "ADR-028 — projects.deactivatedAt(→shelf)·hiddenAt(캘린더 필터) 두 상태, shelf 패턴 미러, DB 저장. localStorage 이전은 phase15로 분리"
+    },
+    {
+      "step": 1,
+      "name": "schema-migration",
+      "status": "pending"
+    },
+    {
+      "step": 2,
+      "name": "core-project",
+      "status": "pending"
+    },
+    {
+      "step": 3,
+      "name": "legend-icons",
+      "status": "pending"
+    },
+    {
+      "step": 4,
+      "name": "calendar-filter",
+      "status": "pending"
+    },
+    {
+      "step": 5,
+      "name": "shelf-projects",
+      "status": "pending"
+    }
+  ],
+  "created_at": "2026-07-02T04:41:33+0900"
+}

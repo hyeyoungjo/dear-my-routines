@@ -494,3 +494,40 @@ plan과 겹쳐 **블록이 중복 생성되는 버그**가 있었다. → **"pla
 **비고**: 손대는 코드는 `core/time/plan.ts`(신규 `continueLaterSpan`)·`CalendarBlock.tsx`·
 `CalendarGrid.tsx`·i18n(en/ko). phase `13-continue-later`(step 0~2). **스키마 변경 없음** →
 `DATA-STRUCTURE.md`는 수정하지 않는다.
+
+### ADR-028: 프로젝트 상태 — active/inactive(Shelf)와 visibility(캘린더 필터) 두 직교 축 (2026-07-02)
+**맥락**: 프로젝트는 지금 "존재 vs 하드삭제"뿐이라 중간 상태가 없다. 삭제하면 그 프로젝트의 task가
+`projectId=null`(미배정)로 풀려 그룹핑이 깨진다. 사용자가 원한 건 두 가지 다른 행위다 — ① 프로젝트를
+당장 안 굴리지만 지우긴 아까워 **잠깐 치워두기**, ② 지금 집중하려고 다른 프로젝트를 캘린더에서 **잠깐
+숨기기**. 이 둘은 성격이 달라 한 상태로 뭉뚱그릴 수 없다.
+**결정**:
+- `projects`에 **nullable timestamptz 2개**를 추가한다(shelf `tasks.shelvedAt`(ADR-026) 패턴 미러 —
+  "언제 그렇게 뒀는가"의 시각도 함께 기록):
+  - **`deactivatedAt`** (active/inactive, 라이프사이클 축): null=활성. 값 있으면=비활성 → 프로젝트가
+    **Shelf 컬럼에 표시**되고(이미 shelved task가 사는 곳), top legend와 task의 프로젝트 지정 픽커에서
+    제외된다. **task에는 무영향** — 그 프로젝트의 task는 `projectId`·색·통계를 그대로 유지하고 자기
+    상태대로 캘린더에 남는다. 비활성은 *프로젝트 자체*를 치우는 것이지 task를 건드리지 않는다.
+  - **`hiddenAt`** (visibility, 화면 포커스 축): null=표시. 값 있으면=숨김 → 그 프로젝트에 속한 task의
+    **plan/action/ghost 블록을 캘린더 렌더에서 필터**한다. **task에 영향을 주는 건 이 축뿐**이다. 단
+    legend 칩은 남아(eye-slash 상태로) 언제든 다시 켤 수 있다.
+- **두 축은 직교(orthogonal)** 한다: 활성인데 잠깐 숨김(집중), 비활성인데 참고로 표시 — 네 조합이 모두
+  유효하다. deactivatedAt은 *프로젝트를 어디에 두나*(캘린더 영역 vs Shelf), hiddenAt은 *그 task 블록을
+  그리나 마나*를 정한다.
+- **"상태는 derive"가 이 프로젝트 원칙**(ADR-016: task/project 현재 상태는 plan/action에서 파생, 저장
+  안 함)이지만, **"내가 비활성/숨김으로 뒀다"는 사용자 의도라 plan/action만으로 derive 불가** → shelf와
+  똑같이 저장 컬럼을 두는 예외다(ADR-026과 동일 논리 — 의도는 새 차원이므로 파생 불가).
+- **프로젝트 칩 아이콘 3개**: activate(활성↔비활성 토글) · eye(표시↔숨김 토글) · trash(하드삭제, 기존
+  동작 유지). 세 동작이 각각 위 세 축(deactivatedAt / hiddenAt / DELETE)에 1:1 대응한다.
+- **binary만 둔다** — completed/paused/archived 같은 세분화는 하지 않는다. 이 앱에선 그 구분에 따른
+  동작 차이가 없어 상태 차원만 늘 뿐이다(YAGNI, ADR-001). 필요해지면 나중에 확장한다.
+**이유**: 기존 shelf 인프라(Shelf 컬럼·shelvedAt 필터 패턴)와 derive 로직을 재사용하고 데이터 모델을
+**최소로**(컬럼 2개) 건드린다. visibility는 본래 "화면 해석"(ADR-025)이라 localStorage 같은 클라 뷰
+상태에 둘 수도 있으나, **멀티 디바이스 일관성**(폰·노트북 어디서든 같은 숨김 상태, ADR-002)을 위해
+**DB에 저장**한다.
+**트레이드오프**: "상태는 derive" 순수성에 저장 플래그 2개(deactivatedAt/hiddenAt) 예외가 는다.
+visibility를 DB에 둬서 순수 뷰 상태가 데이터 레이어에 섞인다(ADR-025의 "데이터는 사실, 화면은 해석"과
+약한 긴장) — 대신 기기 간 일관성을 얻는다. 1인·소량 데이터라 감수한다.
+**비고**: 손대는 곳 — `db/schema.ts`(+마이그레이션), 신규 `core/project.ts`(상태 판정 순수 함수),
+`ProjectLegend.tsx`(칩 아이콘 3개), `CalendarGrid.tsx`/`CalendarBlock.tsx`(hidden 필터),
+`ShelfColumn.tsx`(inactive 프로젝트 표시), i18n(en/ko). **localStorage → DB 이전(rail/undo/guide-seen)은
+본 ADR 범위 밖 — 성격이 다른 별도 phase 15**. phase `14-project-states`(step 0~5)로 구현.
