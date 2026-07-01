@@ -7,7 +7,8 @@
       "name": "docs-adr",
       "status": "completed",
       "started_at": "2026-07-02T05:56:54+0900",
-      "summary": "ADR-029 — email_unsubscribes(email PK) 테이블, RLS 켜고 정책없음(서버만), HMAC 서명링크, /api/unsubscribe GET+POST, List-Unsubscribe, UNSUBSCRIBE_SECRET"
+      "summary": "ADR-029 — email_unsubscribes(email PK) 테이블, RLS 켜고 정책없음(서버만), HMAC 서명링크, /api/unsubscribe GET+POST, List-Unsubscribe, UNSUBSCRIBE_SECRET",
+      "completed_at": "2026-07-02T05:58:14+0900"
     },
     {
       "step": 1,
