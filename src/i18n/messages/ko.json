@@ -185,16 +185,25 @@
   },
   "guide": {
     "title": "사용 안내",
-    "back": "앱으로 돌아가기",
-    "howTo": "사용법",
+    "close": "닫기",
     "whatsNew": "새 소식",
-    "intro": "매일 예상과 실제를 재서, 그 숫자로 시간 예측을 교정해요.",
-    "step1Title": "계획하기",
-    "step1Body": "Plan 열의 빈 칸을 클릭해 할 일과 언제 할지를 계획해요.",
-    "step2Title": "실천하기",
-    "step2Body": "일하면서 Act 열에 실제 시간을 기록해요 — 계획의 유령 블록을 한 번 클릭하면 시작돼요.",
-    "step3Title": "돌아보기",
-    "step3Body": "짧게 일기를 쓰고, 데일리 AI 리뷰를 돌려 예상 vs 실제 패턴을 확인해요.",
-    "newBadge": "새 소식"
+    "newBadge": "새 소식",
+    "interface": {
+      "heading": "인터페이스",
+      "settings": "설정",
+      "shelf": "선반",
+      "plan": "계획",
+      "act": "실천",
+      "reflect": "돌아보기",
+      "timeline": "공유 타임라인"
+    },
+    "flow": {
+      "heading": "워크플로우",
+      "optional": "선택",
+      "project": { "label": "프로젝트", "desc": "관련 일을 묶어요" },
+      "plan": { "label": "계획", "desc": "언제 할지 잡아요" },
+      "act": { "label": "실천", "desc": "실제 시간을 기록해요" },
+      "reflect": { "label": "돌아보기", "desc": "일기 + AI 리뷰" }
+    }
   }
 }

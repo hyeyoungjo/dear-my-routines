@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRotateLeft } from "@fortawesome/free-solid-svg-icons";
+import { faArrowRotateLeft, faBoxArchive } from "@fortawesome/free-solid-svg-icons";
 import { useTranslations } from "next-intl";
 import { isShelved } from "@/core/time/shelf";
 import { projectColor } from "@/lib/projectColor";
@@ -46,6 +46,7 @@ export function ShelfColumn({ className }: { className?: string }) {
     <div className={`flex min-h-0 flex-col ${className ?? ""}`}>
       <div className="mb-3 flex items-baseline gap-1.5">
         <h2 className="text-base font-semibold tracking-tight text-foreground">
+          <FontAwesomeIcon icon={faBoxArchive} className="mr-1.5 text-sm text-accent" />
           {t("title")}
         </h2>
         {shelved.length > 0 && (

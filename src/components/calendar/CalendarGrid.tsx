@@ -39,6 +39,12 @@ import {
 import { useTasks, useCreateTaskWithBlock } from "@/hooks/tasks";
 import { useProjects } from "@/hooks/projects";
 import { useUserSettings } from "@/hooks/userSettings";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faCalendarDay,
+  faPersonRunning,
+  faPenToSquare,
+} from "@fortawesome/free-solid-svg-icons";
 import { useTranslations } from "next-intl";
 
 /** Pixel height of one hour row; the whole grid scales off this. */
@@ -548,13 +554,16 @@ export function CalendarGrid() {
         {/* Desktop: column headers */}
         <div className="mb-4 hidden items-baseline sm:flex">
           <h2 className="flex-1 text-center text-base font-semibold tracking-tight text-foreground">
+            <FontAwesomeIcon icon={faCalendarDay} className="mr-1.5 text-sm text-accent" />
             {t("plan")}
           </h2>
           <div className="w-14 shrink-0" aria-hidden />
           <h2 className="flex-1 text-center text-base font-semibold tracking-tight text-foreground">
+            <FontAwesomeIcon icon={faPersonRunning} className="mr-1.5 text-sm text-accent" />
             {t("action")}
           </h2>
           <h2 className="flex-1 text-center text-base font-semibold tracking-tight text-foreground">
+            <FontAwesomeIcon icon={faPenToSquare} className="mr-1.5 text-sm text-accent" />
             {t("review")}
           </h2>
         </div>
