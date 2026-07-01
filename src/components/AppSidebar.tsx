@@ -37,13 +37,14 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
-    // Stored preference wins; if never set, default OPEN on desktop (discoverable)
-    // and CLOSED on mobile (an overlay drawer would cover the calendar on load).
+    // On MOBILE the rails are overlay drawers, so they always start CLOSED on load
+    // (an open drawer would cover the calendar) — the toggle opens them per session,
+    // ignoring any stored preference. On DESKTOP they're inline columns: default
+    // OPEN for discoverability, and a stored preference (explicit close) wins.
     const isDesktop = window.matchMedia("(min-width: 640px)").matches;
-    const left = localStorage.getItem(LEFT_KEY);
-    const right = localStorage.getItem(RIGHT_KEY);
-    setLeftOpen(left === null ? isDesktop : left === "true");
-    setRightOpen(right === null ? isDesktop : right === "true");
+    if (!isDesktop) return; // mobile keeps the closed initial state
+    setLeftOpen(localStorage.getItem(LEFT_KEY) !== "false");
+    setRightOpen(localStorage.getItem(RIGHT_KEY) !== "false");
   }, []);
 
   const toggleLeft = () =>
