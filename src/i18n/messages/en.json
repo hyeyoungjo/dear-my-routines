@@ -72,7 +72,6 @@
     "analyzing": "Analyzing…",
     "continuesTomorrow": "continues tomorrow",
     "deferred": "deferred",
-    "aiEmpty": "No analysis yet. Analyze the day to see your plan-vs-actual.",
     "aiToggle": "Toggle AI panel"
   },
   "projects": {
@@ -137,9 +136,6 @@
     "emailPlaceholder": "you@example.com",
     "or": "or",
     "headline": "A personal time-management app that measures planned vs. actual time to fix chronic under-estimation.",
-    "feature1": "Side-by-side Plan vs. Act calendar — see overruns at a glance",
-    "feature2": "Carry-over tracking — spot tasks that keep getting pushed",
-    "feature3": "Daily AI review — pattern insights from your journal and time data",
     "howToUse": "How it works",
     "step1Label": "Plan",
     "step1Desc": "Add tasks and time-block your day in the calendar.",
@@ -177,7 +173,6 @@
   },
   "shelf": {
     "title": "Shelf",
-    "empty": "Nothing shelved",
     "bringBack": "Bring back",
     "untitled": "Untitled",
     "toggle": "Toggle shelf"
@@ -188,7 +183,7 @@
   "guide": {
     "title": "Guide",
     "close": "Close",
-    "whatsNew": "What's new",
+    "whatsNew": "Update",
     "newBadge": "New",
     "interface": {
       "heading": "Interface",

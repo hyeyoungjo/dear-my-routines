@@ -177,15 +177,6 @@ export default function LoginPage() {
           </h1>
         </div>
 
-        <ul className="flex flex-col gap-2">
-          {([t("feature1"), t("feature2"), t("feature3")] as string[]).map((f, i) => (
-            <li key={i} className="flex items-start gap-2.5 text-sm text-neutral-600">
-              <span className="mt-0.5 shrink-0 text-[10px] font-bold text-neutral-400">✦</span>
-              {f}
-            </li>
-          ))}
-        </ul>
-
         {/* How it works */}
         <div>
           <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-neutral-400">

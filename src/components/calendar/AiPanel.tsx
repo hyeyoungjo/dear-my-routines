@@ -35,11 +35,7 @@ export function AiPanel() {
 
       <AnalyzeButton />
 
-      {analysis ? (
-        <AnalysisResult analysis={analysis} />
-      ) : (
-        <p className="px-2 pt-2 text-xs leading-relaxed text-muted">{t("aiEmpty")}</p>
-      )}
+      {analysis && <AnalysisResult analysis={analysis} />}
     </div>
   );
 }

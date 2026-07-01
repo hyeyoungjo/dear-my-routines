@@ -12,9 +12,9 @@ import { AiPanel } from "@/components/calendar/AiPanel";
  * without lifting the whole page into one client tree.
  *
  * One button per side, every size: on desktop each rail is an inline column; on
- * mobile it opens as an overlay drawer. Both start open on desktop but auto-close
- * on mobile at mount (so a drawer never covers the screen on load), and drawers
- * only render after mount to avoid a hydration flash.
+ * mobile it opens as an overlay drawer. Both start closed — the calendar is the
+ * focus, and the rails are opened on demand from their toggles. Drawers only
+ * render after mount to avoid a hydration flash.
  */
 const SidebarContext = createContext<{
   leftOpen: boolean;
@@ -25,17 +25,12 @@ const SidebarContext = createContext<{
 } | null>(null);
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
-  const [leftOpen, setLeftOpen] = useState(true);
-  const [rightOpen, setRightOpen] = useState(true);
+  const [leftOpen, setLeftOpen] = useState(false);
+  const [rightOpen, setRightOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    // Start collapsed on mobile so an overlay drawer doesn't cover the screen.
-    if (window.matchMedia("(max-width: 639px)").matches) {
-      setLeftOpen(false);
-      setRightOpen(false);
-    }
   }, []);
 
   return (
@@ -130,18 +125,22 @@ export function RightPanelToggle({ variant = "icon" }: { variant?: "icon" | "men
   return <PanelToggle side="right" open={rightOpen} toggle={toggleRight} label={t("aiToggle")} variant={variant} />;
 }
 
-/** The Shelf rail: inline column on desktop, overlay drawer (from the left) on mobile. */
+/**
+ * The Shelf rail: on desktop a fixed-width slot that stays reserved even when
+ * closed, so the centre content never reflows when the panel toggles; on mobile
+ * an overlay drawer from the left.
+ */
 export function LeftRail() {
   const { leftOpen, mounted, toggleLeft } = useSidebar();
   return (
     <>
-      {leftOpen && (
-        <aside className="hidden w-52 shrink-0 sm:block">
+      <aside className="hidden w-52 shrink-0 sm:block">
+        {leftOpen && (
           <div className="rounded-xl border border-border bg-panel p-4">
             <ShelfColumn />
           </div>
-        </aside>
-      )}
+        )}
+      </aside>
       {mounted && leftOpen && (
         <div className="fixed inset-0 z-40 sm:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={toggleLeft} role="presentation" />
@@ -154,18 +153,18 @@ export function LeftRail() {
   );
 }
 
-/** The AI rail: inline column on desktop, overlay drawer (from the right) on mobile. */
+/** The AI rail: mirror of the Shelf rail — reserved slot on desktop, right drawer on mobile. */
 export function RightRail() {
   const { rightOpen, mounted, toggleRight } = useSidebar();
   return (
     <>
-      {rightOpen && (
-        <aside className="hidden w-52 shrink-0 sm:block">
+      <aside className="hidden w-52 shrink-0 sm:block">
+        {rightOpen && (
           <div className="rounded-xl border border-border bg-panel p-4">
             <AiPanel />
           </div>
-        </aside>
-      )}
+        )}
+      </aside>
       {mounted && rightOpen && (
         <div className="fixed inset-0 z-40 sm:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={toggleRight} role="presentation" />

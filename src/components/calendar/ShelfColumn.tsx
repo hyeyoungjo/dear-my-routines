@@ -54,9 +54,7 @@ export function ShelfColumn({ className }: { className?: string }) {
         )}
       </div>
 
-      {shelved.length === 0 ? (
-        <p className="text-xs leading-relaxed text-muted">{t("empty")}</p>
-      ) : (
+      {shelved.length > 0 && (
         <ul className="flex min-h-0 flex-col gap-1.5 overflow-y-auto pr-0.5">
           {shelved.map((task) => (
             <li

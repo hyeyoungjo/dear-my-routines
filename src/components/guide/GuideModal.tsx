@@ -138,39 +138,27 @@ export function GuideModal({ onClose }: { onClose: () => void }) {
             </div>
           </section>
 
-          {/* 5. What's new */}
+          {/* 5. Update */}
           <section>
             <h3 className="mb-3 text-lg font-semibold tracking-tight">
               {t("whatsNew")}
             </h3>
-            <div className="flex flex-col gap-5">
+            <ul className="flex flex-col gap-2">
               {CHANGELOG.map((entry) => (
-                <article
+                <li
                   key={entry.date}
-                  className="rounded-xl border border-border bg-panel p-4"
+                  className="flex items-start gap-2 text-sm leading-relaxed text-muted"
                 >
-                  <div className="mb-2 flex items-baseline justify-between gap-2">
-                    <h4 className="text-sm font-semibold">
-                      {entry.content[loc].title}
-                    </h4>
-                    <time className="shrink-0 text-xs tabular-nums text-muted">
-                      {entry.date}
-                    </time>
-                  </div>
-                  <ul className="flex flex-col gap-1.5">
-                    {entry.content[loc].items.map((item, i) => (
-                      <li
-                        key={i}
-                        className="flex items-start gap-2 text-sm leading-relaxed text-muted"
-                      >
-                        <span className="mt-1.5 size-1 shrink-0 rounded-full bg-accent" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </article>
+                  <span className="mt-1.5 size-1 shrink-0 rounded-full bg-accent" />
+                  <span>
+                    {entry.text[loc]}{" "}
+                    <span className="text-xs tabular-nums text-muted/70">
+                      ({entry.date})
+                    </span>
+                  </span>
+                </li>
               ))}
-            </div>
+            </ul>
           </section>
         </div>
       </div>
