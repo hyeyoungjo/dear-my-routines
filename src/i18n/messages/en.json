@@ -184,7 +184,8 @@
     "bringBack": "Bring back",
     "delete": "Delete",
     "untitled": "Untitled",
-    "inactiveProjects": "Inactive projects",
+    "sectionProjects": "Projects",
+    "sectionTasks": "Tasks",
     "toggle": "Toggle shelf"
   },
   "nav": {

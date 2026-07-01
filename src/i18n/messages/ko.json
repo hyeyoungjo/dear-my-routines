@@ -184,7 +184,8 @@
     "bringBack": "다시 꺼내기",
     "delete": "삭제",
     "untitled": "제목 없음",
-    "inactiveProjects": "비활성 프로젝트",
+    "sectionProjects": "프로젝트",
+    "sectionTasks": "태스크",
     "toggle": "선반 열기/닫기"
   },
   "nav": {

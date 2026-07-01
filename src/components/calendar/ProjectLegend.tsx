@@ -85,7 +85,7 @@ export function ProjectLegend() {
                 if (e.key === "Enter") e.currentTarget.blur();
               }}
               aria-label={t("nameLabel")}
-              className="w-24 bg-transparent text-foreground placeholder:text-muted focus:outline-none"
+              className="w-16 bg-transparent text-foreground placeholder:text-muted focus:outline-none"
             />
             {/* Deactivate: park the project in the Shelf (same box-archive
                 metaphor as shelving a task, ADR-026/028). Optimistic. */}

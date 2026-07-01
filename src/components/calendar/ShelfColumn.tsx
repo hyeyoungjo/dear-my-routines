@@ -6,7 +6,6 @@ import {
   faArrowRotateLeft,
   faBoxArchive,
   faTrashCan,
-  faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { useTranslations } from "next-intl";
 import { isShelved } from "@/core/time/shelf";
@@ -68,60 +67,13 @@ export function ShelfColumn({ className }: { className?: string }) {
           <FontAwesomeIcon icon={faBoxArchive} className="mr-1.5 text-sm text-accent" />
           {t("title")}
         </h2>
-        {shelved.length > 0 && (
-          <span className="text-xs tabular-nums text-muted">{shelved.length}</span>
-        )}
       </div>
 
-      {shelved.length > 0 && (
-        <ul className="flex min-h-0 flex-col gap-1.5 overflow-y-auto pr-0.5">
-          {shelved.map((task) => (
-            <li
-              key={task.taskId}
-              className="group/chip flex items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5 shadow-sm"
-            >
-              <span
-                className="size-2 shrink-0 rounded-full"
-                style={{ backgroundColor: dotColor(task.projectId) }}
-                aria-hidden
-              />
-              <button
-                type="button"
-                onClick={() => setDetailTaskId(task.taskId)}
-                className="min-w-0 flex-1 truncate text-left text-xs font-medium text-foreground hover:text-accent"
-                title={task.title || t("untitled")}
-              >
-                {task.title || (
-                  <span className="font-normal text-muted">{t("untitled")}</span>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => unshelve(task.taskId)}
-                aria-label={t("bringBack")}
-                title={t("bringBack")}
-                className="shrink-0 text-[10px] text-muted opacity-0 transition-opacity hover:text-accent group-hover/chip:opacity-100"
-              >
-                <FontAwesomeIcon icon={faArrowRotateLeft} />
-              </button>
-              <button
-                type="button"
-                onClick={() => removeTask.mutate(task.taskId)}
-                aria-label={t("delete")}
-                title={t("delete")}
-                className="shrink-0 text-[10px] text-muted opacity-0 transition-opacity hover:text-red-500 group-hover/chip:opacity-100"
-              >
-                <FontAwesomeIcon icon={faXmark} />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-
+      {/* Projects on top, shelved tasks below (two kinds of parked things). */}
       {inactiveProjects.length > 0 && (
-        <div className={shelved.length > 0 ? "mt-4 border-t border-border pt-3" : ""}>
+        <div>
           <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
-            {t("inactiveProjects")}
+            {t("sectionProjects")} ({inactiveProjects.length})
           </h3>
           <ul className="flex flex-col gap-1.5">
             {inactiveProjects.map((p) => {
@@ -173,6 +125,60 @@ export function ShelfColumn({ className }: { className?: string }) {
                 </li>
               );
             })}
+          </ul>
+        </div>
+      )}
+
+      {shelved.length > 0 && (
+        <div
+          className={`flex min-h-0 flex-col${
+            inactiveProjects.length > 0 ? " mt-4 border-t border-border pt-3" : ""
+          }`}
+        >
+          <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
+            {t("sectionTasks")} ({shelved.length})
+          </h3>
+          <ul className="flex min-h-0 flex-col gap-1.5 overflow-y-auto pr-0.5">
+            {shelved.map((task) => (
+              <li
+                key={task.taskId}
+                className="group/chip flex items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5 shadow-sm"
+              >
+                <span
+                  className="size-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: dotColor(task.projectId) }}
+                  aria-hidden
+                />
+                <button
+                  type="button"
+                  onClick={() => setDetailTaskId(task.taskId)}
+                  className="min-w-0 flex-1 truncate text-left text-xs font-medium text-foreground hover:text-accent"
+                  title={task.title || t("untitled")}
+                >
+                  {task.title || (
+                    <span className="font-normal text-muted">{t("untitled")}</span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => unshelve(task.taskId)}
+                  aria-label={t("bringBack")}
+                  title={t("bringBack")}
+                  className="shrink-0 text-[10px] text-muted opacity-0 transition-opacity hover:text-accent group-hover/chip:opacity-100"
+                >
+                  <FontAwesomeIcon icon={faArrowRotateLeft} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeTask.mutate(task.taskId)}
+                  aria-label={t("delete")}
+                  title={t("delete")}
+                  className="shrink-0 text-[10px] text-muted opacity-0 transition-opacity hover:text-red-500 group-hover/chip:opacity-100"
+                >
+                  <FontAwesomeIcon icon={faTrashCan} />
+                </button>
+              </li>
+            ))}
           </ul>
         </div>
       )}
