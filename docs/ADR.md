@@ -531,3 +531,36 @@ visibility를 DB에 둬서 순수 뷰 상태가 데이터 레이어에 섞인다
 `ProjectLegend.tsx`(칩 아이콘 3개), `CalendarGrid.tsx`/`CalendarBlock.tsx`(hidden 필터),
 `ShelfColumn.tsx`(inactive 프로젝트 표시), i18n(en/ko). **localStorage → DB 이전(rail/undo/guide-seen)은
 본 ADR 범위 밖 — 성격이 다른 별도 phase 15**. phase `14-project-states`(step 0~5)로 구현.
+
+### ADR-029: 이메일 원클릭 수신거부 — email 기준 테이블(RLS만, 정책 없음) + HMAC 서명 링크 (2026-07-02)
+**맥락**: 공지/업데이트 이메일(Resend 발신, `noreply@hyeyoungjo.com`)의 수신거부가 지금은 "답장으로 요청"
+이라 수동이다. 수신자가 **원클릭으로 수신거부**하면 그 사실을 DB에 자동 기록하고 이후 발송에서 제외해야
+한다. Gmail·Yahoo가 요구하는 `List-Unsubscribe` / RFC 8058 one-click 관행과도 맞춰야 한다.
+**결정**:
+- **`email_unsubscribes(email PK, created_at)` 테이블 신설** — 키를 **이메일**로 둔다(user_id 아님).
+  수신거부를 누르는 사람이 로그인 상태가 아닐 수 있고, 유저가 아닌 수신자(베타 안내 등)도 있어 user 기반으로
+  못 묶는다. 이메일 기준이라 유저/비유저 무관하게 범용이다.
+- **RLS 공통 규칙(모든 테이블 user_id + owner 4종 정책, ADR-003·DATA-STRUCTURE)의 예외**: 이 테이블은
+  user_id가 없다. **RLS는 켜되 정책을 하나도 두지 않아** 클라이언트(anon/authenticated) 접근을 전부 차단하고,
+  **서버(Drizzle `db` = service role, 서버 라우트)만** 읽고 쓴다. 정책이 없으면 RLS가 기본 deny이므로
+  클라이언트는 자기 이메일조차 조회 못 한다 — 수신거부 여부는 서버만 안다.
+- **서명 토큰(HMAC)**: 수신거부 URL은 `?e=<email>&t=<HMAC-SHA256(email, UNSUBSCRIBE_SECRET)>`.
+  엔드포인트가 `e`로 토큰을 **재계산**하고 `t`와 **상수시간 비교**(timing-safe)해 검증한다 → 서명이 맞아야만
+  그 이메일을 수신거부에 넣을 수 있어 **아무나 남의 이메일을 수신거부시키지 못한다.** 토큰은 파생값이라
+  **DB에 저장하지 않는다**(비밀키만 있으면 언제든 재계산·검증 가능, ADR-013 "파생값 저장 안 함"과 정합).
+- **엔드포인트 `/api/unsubscribe`**: `GET`(사용자가 메일의 링크 클릭 → 검증 → `email_unsubscribes` upsert
+  → 확인 HTML 응답) + `POST`(RFC 8058 one-click, 메일 클라이언트가 `List-Unsubscribe-Post`로 자동 호출 →
+  검증 → upsert → 2xx) 둘 다 지원. upsert는 `email` PK를 conflict target으로 두어 재클릭도 조용히 성공한다.
+- **이메일 발송 측**: 푸터에 unsubscribe 링크를 넣고, 헤더에 `List-Unsubscribe: <https://.../api/unsubscribe?e=..&t=..>`
+  와 `List-Unsubscribe-Post: List-Unsubscribe=One-Click`를 단다. 발송 전 `email_unsubscribes`를 조회해
+  수신거부한 주소를 **제외**한다.
+- **새 env `UNSUBSCRIBE_SECRET`**(서버 전용) — HMAC 키. `.env.example`에 자리를 두고, 운영(Railway)에 설정한다.
+**이유**: 원클릭 수신거부는 이메일 관행/규정(Gmail·Yahoo 발신자 요구사항, RFC 8058)에 부합한다. HMAC 서명이라
+**상태 저장 없이**(토큰 테이블·세션 불필요) 위조를 막는다 — 비밀키를 아는 서버만 유효 링크를 만들 수 있다.
+이메일 기준 테이블이라 로그인하지 않은 수신자·비유저에게도 그대로 확장된다.
+**트레이드오프**: "모든 테이블은 user_id + RLS-owner 정책" 공통 규칙에 **"RLS만 켜고 정책 없음"(서버 전용)
+예외가 하나** 생긴다. 이 예외는 DATA-STRUCTURE.md에 명시해 나중에 혼선을 막는다.
+**비고**: 손대는 곳 — `db/schema.ts`(+마이그레이션), 신규 `lib/unsubscribe.ts`(HMAC 생성·검증),
+`app/api/unsubscribe/route.ts`(GET+POST), `.env.example`. 실제 **발송 스크립트는 리포지토리 밖 one-off**라
+이 phase 범위 밖이다. 단 **엔드포인트가 배포돼 있어야 링크가 동작**하므로, 메일 발송 전에 (1) 배포 +
+(2) `UNSUBSCRIBE_SECRET` 설정 + (3) 마이그레이션 적용이 선행돼야 한다. phase `15-email-unsubscribe`(step 0~3)로 구현.
