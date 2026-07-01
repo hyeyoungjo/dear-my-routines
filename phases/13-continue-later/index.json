@@ -13,7 +13,10 @@
     {
       "step": 1,
       "name": "core-continue",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-07-02T03:44:15+0900",
+      "summary": "core/time/plan.ts에 continueLaterSpan 추가(블록끝+60, 60분, 그리드끝 clamp) + plan.test.ts 테스트. carryOverPlan 무변경",
+      "completed_at": "2026-07-02T14:46:00+0900"
     },
     {
       "step": 2,

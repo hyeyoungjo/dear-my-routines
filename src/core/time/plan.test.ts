@@ -5,6 +5,7 @@ import {
   type PlanBlock,
   carryCountOf,
   carryOverPlan,
+  continueLaterSpan,
   findOverduePlans,
   originalDateOf,
   planBelongsToDay,
@@ -124,6 +125,40 @@ describe("carryOverPlan", () => {
     expect(durationMinutes(start, end)).toBe(90);
     // `nextPlan` has no id — the caller's insert assigns it.
     expect("planBlockId" in nextPlan).toBe(false);
+  });
+});
+
+describe("continueLaterSpan", () => {
+  const day = new Date(2026, 5, 21);
+
+  it("places the new block one gap after the source end (default 60m + 60m)", () => {
+    const span = continueLaterSpan(new Date(2026, 5, 21, 14, 0), day);
+    expect([span.start.getHours(), span.start.getMinutes()]).toEqual([15, 0]);
+    expect([span.end.getHours(), span.end.getMinutes()]).toEqual([16, 0]);
+  });
+
+  it("snaps the start to the nearest 15-minute boundary", () => {
+    // 14:07 + 60m = 15:07 → snaps down to 15:00.
+    const span = continueLaterSpan(new Date(2026, 5, 21, 14, 7), day);
+    expect([span.start.getHours(), span.start.getMinutes()]).toEqual([15, 0]);
+    expect([span.end.getHours(), span.end.getMinutes()]).toEqual([16, 0]);
+  });
+
+  it("clamps against the grid window end, keeping the block length", () => {
+    // 22:30 + 60m = 23:30, end 00:30 next day > 24:00 window end → slide back.
+    const span = continueLaterSpan(new Date(2026, 5, 21, 22, 30), day);
+    expect([span.start.getHours(), span.start.getMinutes()]).toEqual([23, 0]);
+    expect(durationMinutes(span.start, span.end)).toBe(60);
+    // end lands exactly on the window end (00:00 next calendar day).
+    expect(dayKey(span.end)).toBe("2026-06-22");
+    expect([span.end.getHours(), span.end.getMinutes()]).toEqual([0, 0]);
+  });
+
+  it("honors custom gap and duration", () => {
+    // 14:00 + 30m gap = 14:30, + 90m duration = 16:00.
+    const span = continueLaterSpan(new Date(2026, 5, 21, 14, 0), day, 24, 30, 90);
+    expect([span.start.getHours(), span.start.getMinutes()]).toEqual([14, 30]);
+    expect(durationMinutes(span.start, span.end)).toBe(90);
   });
 });
 

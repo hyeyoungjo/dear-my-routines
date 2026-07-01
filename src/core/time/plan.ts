@@ -1,5 +1,10 @@
 import type { Span } from "./calendar";
-import { DEFAULT_GRID_END_HOUR, DEFAULT_GRID_START_HOUR } from "./calendar";
+import {
+  DEFAULT_GRID_END_HOUR,
+  DEFAULT_GRID_START_HOUR,
+  SNAP_MINUTES,
+  snapMinutes,
+} from "./calendar";
 import { shiftSpanOntoGridDay } from "./carry";
 import { dayKey, gridDayOf } from "./day";
 
@@ -105,6 +110,54 @@ export function carryOverPlan(
       status: "planned",
     },
   };
+}
+
+/** Snap a Date to the nearest SNAP_MINUTES boundary of its own calendar day. */
+function snapToNearest(date: Date): Date {
+  const mins = date.getHours() * 60 + date.getMinutes();
+  const result = new Date(date);
+  result.setHours(0, snapMinutes(mins, SNAP_MINUTES), 0, 0);
+  return result;
+}
+
+/**
+ * The span for a "continue later today" plan block: placed one gap after the
+ * source block's END (block-relative, NOT now-relative — this is called from
+ * both plan and action blocks, and a plan block is unrelated to wall-clock now).
+ * Default 60-minute gap + 60-minute block. Clamped so the block's end never
+ * exceeds the grid window end for `day`.
+ */
+export function continueLaterSpan(
+  sourceEnd: Date,
+  day: Date,
+  gridEndHour = DEFAULT_GRID_END_HOUR,
+  gapMinutes = 60,
+  durationMinutes = 60,
+): Span {
+  const durationMs = durationMinutes * 60_000;
+  // 1. start = snap(sourceEnd + gap); 2. end = start + duration.
+  let start = snapToNearest(new Date(sourceEnd.getTime() + gapMinutes * 60_000));
+  let end = new Date(start.getTime() + durationMs);
+
+  // 3. Grid-end clamp: never let the block spill past the window end. Slide it
+  // back (keeping length) so end == windowEnd.
+  const midnight = new Date(day);
+  midnight.setHours(0, 0, 0, 0);
+  const windowEnd = midnight.getTime() + gridEndHour * 3_600_000;
+  if (end.getTime() > windowEnd) {
+    end = new Date(windowEnd);
+    start = new Date(windowEnd - durationMs);
+  }
+
+  // 4. Past-guard: if clamping pushed start before the source's end, anchor at
+  // sourceEnd instead — a "continue later" piece must not precede its origin
+  // (end may then nudge past the window; a rare edge, preferred over going back).
+  if (start.getTime() < sourceEnd.getTime()) {
+    start = new Date(sourceEnd);
+    end = new Date(start.getTime() + durationMs);
+  }
+
+  return { start, end };
 }
 
 /**
