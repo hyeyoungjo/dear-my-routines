@@ -25,6 +25,7 @@ import {
 } from "@/core/time/plan";
 import { actionSpan, actionsForDay, isOngoing } from "@/core/time/action";
 import { isShelved } from "@/core/time/shelf";
+import { hiddenProjectIds, isBlockProjectHidden } from "@/core/project";
 import { addDays, dayKey } from "@/core/time/day";
 import { projectColor } from "@/lib/projectColor";
 import {
@@ -147,6 +148,9 @@ export function CalendarGrid() {
 
   const allTasks = taskData ?? [];
   const allProjects = projectData ?? [];
+  // Projects the user hid from the calendar (ADR-028) — a render-only filter, the
+  // plan/action rows stay untouched (ADR-025 "data is fact, screen is reading").
+  const hiddenSet = hiddenProjectIds(allProjects);
 
   // Index tasks/projects for the title + colour join, and group plans by task so
   // carryCount (count of missed plans) is one lookup per block.
@@ -375,6 +379,9 @@ export function CalendarGrid() {
   const decorate = (taskId: string, beforeDate: string) => {
     const task = taskById.get(taskId);
     if (!task || isShelved(task)) return null;
+    // Task's project hidden from the calendar → drop every block (plan/action/
+    // ghost) at once, same skip-on-null path as shelving (ADR-028).
+    if (isBlockProjectHidden(task.projectId, hiddenSet)) return null;
     return {
       title: task.title,
       projectId: task.projectId,

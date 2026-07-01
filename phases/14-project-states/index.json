@@ -37,7 +37,10 @@
     {
       "step": 4,
       "name": "calendar-filter",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-07-02T04:49:57+0900",
+      "summary": "CalendarGrid가 숨김 프로젝트 블록을 렌더 필터(데이터 보존), CalendarBlock 지정 픽커는 활성만",
+      "completed_at": "2026-07-02T15:51:30+0900"
     },
     {
       "step": 5,

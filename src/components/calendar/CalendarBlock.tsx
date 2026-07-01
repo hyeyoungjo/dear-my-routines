@@ -13,6 +13,7 @@ import {
 import type { Span } from "@/core/time/calendar";
 import { MiniCalendar } from "@/components/MiniCalendar";
 import { useProjects } from "@/hooks/projects";
+import { isProjectActive } from "@/core/project";
 import { useUpdateTask } from "@/hooks/tasks";
 import { useShelf } from "@/hooks/shelf";
 import { useRemovePlanBlock } from "@/hooks/planBlocks";
@@ -199,9 +200,15 @@ export function CalendarBlock({
 
   // Projects for the assign menu — assigning sets the task's projectId (and so
   // the colour it inherits). Membership is a property of the task, not the block.
+  // Only ACTIVE projects are offered (don't attach new tasks to a retired one,
+  // ADR-028), but if this task already sits in a deactivated project keep that
+  // one in the list so its current value stays selected (not a blank).
   const { data: projectData } = useProjects();
-  const projects = (projectData ?? [])
-    .slice()
+  const allProjects = projectData ?? [];
+  const projects = allProjects
+    .filter(
+      (p) => isProjectActive(p) || p.projectId === projectId,
+    )
     .sort(
       (a, b) =>
         new Date(a.createdOn).getTime() - new Date(b.createdOn).getTime(),
