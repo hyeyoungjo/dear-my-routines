@@ -14,8 +14,10 @@ import { AiPanel } from "@/components/calendar/AiPanel";
  * One button per side, every size: on desktop each rail is an inline column; on
  * mobile it opens as an overlay drawer. Each side's open/closed state is
  * remembered in localStorage (written on every toggle), so it restores across
- * sessions — no explicit save. Both default closed until a stored preference
- * says otherwise; drawers only render after mount to avoid a hydration flash.
+ * sessions — no explicit save. First-timers (no stored preference) default OPEN
+ * on desktop so the Shelf/AI are discoverable, but CLOSED on mobile where an
+ * overlay drawer would cover the calendar; a stored preference always wins.
+ * Drawers only render after mount to avoid a hydration flash.
  */
 const LEFT_KEY = "dmr-shelf-open";
 const RIGHT_KEY = "dmr-ai-open";
@@ -35,9 +37,13 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
-    // Restore the last-used open state (default closed if never set).
-    if (localStorage.getItem(LEFT_KEY) === "true") setLeftOpen(true);
-    if (localStorage.getItem(RIGHT_KEY) === "true") setRightOpen(true);
+    // Stored preference wins; if never set, default OPEN on desktop (discoverable)
+    // and CLOSED on mobile (an overlay drawer would cover the calendar on load).
+    const isDesktop = window.matchMedia("(min-width: 640px)").matches;
+    const left = localStorage.getItem(LEFT_KEY);
+    const right = localStorage.getItem(RIGHT_KEY);
+    setLeftOpen(left === null ? isDesktop : left === "true");
+    setRightOpen(right === null ? isDesktop : right === "true");
   }, []);
 
   const toggleLeft = () =>
