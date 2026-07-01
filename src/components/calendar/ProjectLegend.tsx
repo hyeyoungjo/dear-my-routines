@@ -2,7 +2,7 @@
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
-import { projectColor } from "@/lib/projectColor";
+import { projectColor, PROJECT_COLORS } from "@/lib/projectColor";
 import { ColorPicker } from "@/components/ColorPicker";
 import {
   useAddProject,
@@ -91,7 +91,17 @@ export function ProjectLegend() {
 
       <button
         type="button"
-        onClick={() => addProject.mutate({ title: "" })}
+        // Assign a concrete palette colour up front so the chip's colour is a
+        // stored value, not the volatile id-derived fallback: the optimistic row
+        // uses a client uuid that the server replaces on refetch, which would flip
+        // an id-derived colour. Cycling by count spreads hues across projects.
+        onClick={() =>
+          addProject.mutate({
+            title: "",
+            projectColor:
+              PROJECT_COLORS[projects.length % PROJECT_COLORS.length],
+          })
+        }
         className="shrink-0 rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-muted transition-colors hover:border-accent hover:text-foreground"
       >
         {t("add")}
