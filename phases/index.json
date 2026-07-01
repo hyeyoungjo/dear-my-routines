@@ -67,7 +67,8 @@
     },
     {
       "dir": "13-continue-later",
-      "status": "pending"
+      "status": "completed",
+      "completed_at": "2026-07-02T03:50:33+0900"
     }
   ]
 }
