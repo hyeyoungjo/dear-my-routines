@@ -236,7 +236,6 @@
     },
     "ai": {
       "heading": "AI review",
-      "caption": "The daily review runs on a built-in prompt — the app computes the exact numbers, the AI writes the words. Tune it in Settings → AI.",
       "enable": "Turn it on",
       "model": "Pick a model",
       "customPrompt": "Custom prompt (your tone)",

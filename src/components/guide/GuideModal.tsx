@@ -122,10 +122,9 @@ export function GuideModal({ onClose }: { onClose: () => void }) {
 
           {/* 4. AI review */}
           <section>
-            <h3 className="mb-1 text-lg font-semibold tracking-tight">
+            <h3 className="mb-4 text-lg font-semibold tracking-tight">
               {t("ai.heading")}
             </h3>
-            <p className="mb-4 text-sm text-muted">{t("ai.caption")}</p>
             <div className="rounded-xl border border-border p-3">
               <AiSettingsDiagram
                 labels={{

@@ -3,8 +3,8 @@ import { faGear } from "@fortawesome/free-solid-svg-icons";
 /**
  * Panel 4 of the guide: a mock of Settings → AI, with callouts for the parts you
  * can set — turn the review on, pick a model, add a custom prompt (the star),
- * and set the history window. The built-in prompt is explained in the caption
- * above the diagram. Pure SVG, themed with CSS vars; text is i18n'd by the caller.
+ * and set the history window. Pure SVG, themed with CSS vars; text is i18n'd by
+ * the caller.
  */
 type Labels = {
   enable: string;
