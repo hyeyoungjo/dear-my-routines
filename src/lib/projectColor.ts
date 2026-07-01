@@ -10,24 +10,21 @@
 /**
  * Preset palette offered in the colour picker, and the deterministic fallback
  * for projects with no explicit colour. Theme-agnostic, vivid enough to read as
- * a point of colour on either canvas — one full hue wheel, 8 per row.
+ * a point of colour on either canvas. Curated to distinct hues (near-duplicates
+ * like amber/yellow, emerald/teal, violet/fuchsia dropped) so even adjacent
+ * entries are easy to tell apart, then laid out in hue order (a rainbow) — with
+ * duplicates gone, the natural order reads cleanest in the picker.
  */
 export const PROJECT_COLORS = [
   "#ef4444", // red
   "#f97316", // orange
   "#f59e0b", // amber
-  "#eab308", // yellow
   "#84cc16", // lime
   "#22c55e", // green
-  "#10b981", // emerald
-  "#14b8a6", // teal
   "#06b6d4", // cyan
-  "#0ea5e9", // sky
   "#3b82f6", // blue
   "#6366f1", // indigo
-  "#8b5cf6", // violet
   "#a855f7", // purple
-  "#d946ef", // fuchsia
   "#ec4899", // pink
 ] as const;
 

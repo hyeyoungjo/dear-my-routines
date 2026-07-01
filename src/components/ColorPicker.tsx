@@ -88,7 +88,7 @@ export function ColorPicker({
               }}
               className="z-50 w-44 rounded-xl border border-border bg-panel p-2.5 shadow-lg"
             >
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-5 gap-2">
                 {PROJECT_COLORS.map((c) => {
                   const selected = c.toLowerCase() === value.toLowerCase();
                   return (
