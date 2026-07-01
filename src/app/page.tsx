@@ -12,6 +12,7 @@ import { ThemeMenu } from "@/components/ThemeMenu";
 import { SignOutButton } from "@/components/SignOutButton";
 import { KofiButton } from "@/components/KofiButton";
 import { FeedbackButton } from "@/components/FeedbackButton";
+import { GuideButton } from "@/components/GuideButton";
 import { HeaderMenu } from "@/components/HeaderMenu";
 import { getUserRole } from "@/lib/userRole";
 
@@ -47,6 +48,7 @@ export default async function Home() {
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           {/* Desktop: inline icon row. */}
           <div className="hidden items-center gap-1 sm:flex sm:gap-2">
+            <GuideButton />
             <FeedbackButton userEmail={user?.email ?? ""} />
             <KofiButton />
             <LeftPanelToggle />

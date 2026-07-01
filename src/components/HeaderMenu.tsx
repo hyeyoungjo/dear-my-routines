@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { useTranslations } from "next-intl";
 import { FeedbackButton } from "@/components/FeedbackButton";
+import { GuideButton } from "@/components/GuideButton";
 import { KofiButton } from "@/components/KofiButton";
 import { ThemeMenu } from "@/components/ThemeMenu";
 import { SignOutButton } from "@/components/SignOutButton";
@@ -53,6 +54,7 @@ export function HeaderMenu({
             role="presentation"
           />
           <div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-lg border border-border bg-panel p-1 shadow-xl">
+            <GuideButton variant="menu" />
             <FeedbackButton userEmail={userEmail} variant="menu" />
             <KofiButton variant="menu" />
             <LeftPanelToggle variant="menu" />

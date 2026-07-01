@@ -182,5 +182,19 @@
   },
   "nav": {
     "menu": "Menu"
+  },
+  "guide": {
+    "title": "Guide",
+    "back": "Back to app",
+    "howTo": "How to use",
+    "whatsNew": "What's new",
+    "intro": "Measure plan vs. actual every day, and let the numbers correct how you estimate time.",
+    "step1Title": "Plan",
+    "step1Body": "Click an empty slot in the Plan column to add a task and when you mean to do it.",
+    "step2Title": "Act",
+    "step2Body": "As you work, record the real time in the Act column — the ghost of a plan is one click to start.",
+    "step3Title": "Reflect",
+    "step3Body": "Write a short journal, then run the daily AI review to see your plan-vs-actual patterns.",
+    "newBadge": "New"
   }
 }
