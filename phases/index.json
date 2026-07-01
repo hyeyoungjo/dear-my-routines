@@ -72,7 +72,8 @@
     },
     {
       "dir": "14-project-states",
-      "status": "pending"
+      "status": "completed",
+      "completed_at": "2026-07-02T04:53:54+0900"
     }
   ]
 }
