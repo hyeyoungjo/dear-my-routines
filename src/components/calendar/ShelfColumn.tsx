@@ -2,12 +2,22 @@
 
 import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRotateLeft, faBoxArchive, faXmark } from "@fortawesome/free-solid-svg-icons";
+import {
+  faArrowRotateLeft,
+  faBoxArchive,
+  faTrashCan,
+  faXmark,
+} from "@fortawesome/free-solid-svg-icons";
 import { useTranslations } from "next-intl";
 import { isShelved } from "@/core/time/shelf";
+import { deactivatedProjects } from "@/core/project";
 import { projectColor } from "@/lib/projectColor";
 import { TaskDetailModal } from "@/components/calendar/TaskDetailModal";
-import { useProjects } from "@/hooks/projects";
+import {
+  useProjects,
+  useUpdateProject,
+  useRemoveProject,
+} from "@/hooks/projects";
 import { useShelf } from "@/hooks/shelf";
 import { useTasks, useRemoveTask } from "@/hooks/tasks";
 
@@ -25,11 +35,14 @@ import { useTasks, useRemoveTask } from "@/hooks/tasks";
  */
 export function ShelfColumn({ className }: { className?: string }) {
   const t = useTranslations("shelf");
+  const tp = useTranslations("projects");
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null);
   const { data: taskData } = useTasks();
   const { data: projectData } = useProjects();
   const { unshelve } = useShelf();
   const removeTask = useRemoveTask();
+  const updateProject = useUpdateProject();
+  const removeProject = useRemoveProject();
 
   const projectById = new Map((projectData ?? []).map((p) => [p.projectId, p]));
   const shelved = (taskData ?? [])
@@ -37,6 +50,11 @@ export function ShelfColumn({ className }: { className?: string }) {
     .sort((a, b) =>
       String(b.shelvedAt ?? "").localeCompare(String(a.shelvedAt ?? "")),
     );
+
+  // Deactivated projects (ADR-028) live here too — parked in the Shelf, distinct
+  // from shelved tasks. Reactivating one only clears deactivatedAt; its tasks are
+  // untouched (project state never touches task rows, ADR-028).
+  const inactiveProjects = deactivatedProjects(projectData ?? []);
 
   const dotColor = (projectId: string | null): string | undefined =>
     (projectId && projectById.get(projectId)?.projectColor) ||
@@ -98,6 +116,65 @@ export function ShelfColumn({ className }: { className?: string }) {
             </li>
           ))}
         </ul>
+      )}
+
+      {inactiveProjects.length > 0 && (
+        <div className={shelved.length > 0 ? "mt-4 border-t border-border pt-3" : ""}>
+          <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
+            {t("inactiveProjects")}
+          </h3>
+          <ul className="flex flex-col gap-1.5">
+            {inactiveProjects.map((p) => {
+              const c =
+                p.projectColor ?? projectColor(p.projectId) ?? "#94a3b8";
+              return (
+                <li
+                  key={p.projectId}
+                  className="group/chip flex items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5 shadow-sm"
+                >
+                  <span
+                    className="size-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: c }}
+                    aria-hidden
+                  />
+                  <span
+                    className="min-w-0 flex-1 truncate text-xs font-medium text-foreground"
+                    title={p.title || tp("namePlaceholder")}
+                  >
+                    {p.title || (
+                      <span className="font-normal text-muted">
+                        {tp("namePlaceholder")}
+                      </span>
+                    )}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateProject.mutate({
+                        projectId: p.projectId,
+                        patch: { deactivatedAt: null },
+                      })
+                    }
+                    aria-label={tp("reactivate")}
+                    title={tp("reactivate")}
+                    className="shrink-0 text-[10px] text-muted opacity-0 transition-opacity hover:text-accent group-hover/chip:opacity-100"
+                  >
+                    <FontAwesomeIcon icon={faArrowRotateLeft} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeProject.mutate(p.projectId)}
+                    aria-label={tp("delete")}
+                    title={tp("delete")}
+                    className="shrink-0 text-[10px] text-muted opacity-0 transition-opacity hover:text-red-500 group-hover/chip:opacity-100"
+                  >
+                    <FontAwesomeIcon icon={faTrashCan} />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       )}
 
       {detailTaskId && (

@@ -84,6 +84,7 @@
     "nameLabel": "Project name",
     "delete": "Delete project",
     "deactivate": "Deactivate",
+    "reactivate": "Reactivate",
     "hide": "Hide on calendar",
     "show": "Show on calendar",
     "add": "+ Project"
@@ -183,6 +184,7 @@
     "bringBack": "Bring back",
     "delete": "Delete",
     "untitled": "Untitled",
+    "inactiveProjects": "Inactive projects",
     "toggle": "Toggle shelf"
   },
   "nav": {

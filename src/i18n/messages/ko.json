@@ -84,6 +84,7 @@
     "nameLabel": "프로젝트 이름",
     "delete": "프로젝트 삭제",
     "deactivate": "비활성",
+    "reactivate": "다시 활성화",
     "hide": "캘린더에서 숨기기",
     "show": "캘린더에 표시",
     "add": "+ 프로젝트"
@@ -183,6 +184,7 @@
     "bringBack": "다시 꺼내기",
     "delete": "삭제",
     "untitled": "제목 없음",
+    "inactiveProjects": "비활성 프로젝트",
     "toggle": "선반 열기/닫기"
   },
   "nav": {
