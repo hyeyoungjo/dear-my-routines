@@ -433,21 +433,25 @@ night-owl 사용자에게도 올바르게 동작한다.
 - **`tasks.shelvedAt`(nullable timestamp) 한 컬럼 추가.** `null`=활성, 값 있으면=내려놓음(시각도 기록).
   task의 현재 상태는 plan/action에서 derive하는 게 이 프로젝트 원칙(ADR-016)이지만, **"내가 일부러
   내려놨다"는 의도는 plan/action만으로 derive 불가** — shelf가 저장 컬럼을 두는 유일한 예외다.
-- **올리기**: `shelvedAt=now`. sweep이 그 task를 건너뛰고(`findOverduePlans`의 제외 집합에 합류),
-  캘린더에서 해당 task의 plan/action/ghost 블록을 **숨긴다(필터, 삭제 아님)**. `missed` 히스토리는
-  그대로 보존한다(ADR-018 — missed는 데이터). 완전히 되돌릴 수 있다.
-- **보기**: 캘린더 옆 **접히는 사이드 트레이**(`ShelfTray`) — 평소 접힘 + 개수 배지, 펼치면 내려둔
-  task 목록. 이 앱에 task 목록 UI가 없으므로(블록으로만 task가 보임) 보관함을 새로 만든다.
-- **꺼내기(un-shelf)**: `shelvedAt=null` + **오늘 날짜에 새 `planned` 블록 하나 생성**(`freshPlanToday`,
-  옛 시각이 있으면 그 clock 보존). 옛 `missed`들은 부활시키지 않는다(깨끗한 재시작 — bar model 일관).
+- **올리기**: 그 task의 **plan 블록을 삭제**(planned·missed 모두 — 캘린더의 plan 발자국 제거)하고
+  `shelvedAt=now`를 찍는다. **action 블록(실제 실행 기록 = "예상 vs 실제"의 핵심 데이터)은 보존**하고
+  shelvedAt 필터가 캘린더에서만 가린다. sweep도 그 task를 건너뛴다. carry-count는 리셋되는데, 이는
+  shelf의 목적("지연 더미를 의식적으로 리셋")과 맞는다.
+- **보기**: 좌측 **Shelf 패널**(`ShelfColumn`) — 데스크탑은 nav 토글로 접는 좌측 레일, 모바일은
+  오버레이 drawer. 이 앱에 task 목록 UI가 없으므로(블록으로만 task가 보임) 보관함을 새로 만든다.
+- **꺼내기(un-shelf)**: `shelvedAt=null` + **오늘 날짜에 새 `planned` 블록 하나 생성**(`freshPlanToday`).
+  plan이 남아있지 않으므로 항상 정확히 1개 — 중복이 생기지 않는다.
 **이유**: shelf는 carry-over 컨베이어벨트에서 task를 빼내는 의도적 행위다. "rows가 진실, view는 조립"
 (ADR-013) 원칙 위에서, shelf는 *의도*라는 새 차원이라 1개 컬럼으로 저장하되 나머지는 전부 기존 derive
 로직(sweep skip + 렌더 필터)을 재사용한다. 데이터 모델을 최소로 건드리고 UX는 분리한다.
 **트레이드오프**: 활성/내려놓음을 가르는 저장 플래그가 하나 생겨, "상태는 derive" 순수성에 작은 예외를
-둔다. 단 carry-over·캘린더 표시·통계는 여전히 plan/action에서 계산되므로 예외 범위는 의도 플래그 하나로
-국한된다.
-**비고**: phase `12-shelf`(step0~6)로 구현. 손대는 곳 — `db/schema.ts`(컬럼+마이그레이션),
-`core/time/plan.ts`(`freshPlanToday`·테스트), `api/tasks/[id]`(PATCH 화이트리스트에 `shelvedAt`),
-`hooks/useCarryOverSweep.ts`(skip), `components/calendar/CalendarGrid.tsx`(필터),
-`TaskDetailModal.tsx`(Shelf 버튼), 신규 `ShelfTray.tsx` + i18n(en/ko). `useUpdateTask`는 이미
-`Partial<Task>` 낙관적 PATCH라 컬럼만 추가되면 그대로 흐른다.
+둔다. 그리고 shelve가 plan 블록을 **삭제**하므로 그 task의 `missed` 히스토리·carry-count가 사라진다
+(ADR-018 "missed는 리뷰 데이터"와의 긴장) — 단 shelve는 의도적 리셋이라 이를 감수한다. action(실제
+기록)은 절대 지우지 않아 "예상 vs 실제" 데이터는 보존된다.
+**비고**: 최초 설계는 "plan을 숨김(필터, 삭제 아님)"이었으나, un-shelve 때 숨겨진 plan이 되살아나며 새
+plan과 겹쳐 **블록이 중복 생성되는 버그**가 있었다. → **"plan 삭제 + action 보존"으로 개정**(유저 결정):
+캘린더에 있거나 선반에 있거나 둘 중 하나, 되살아날 게 없어 중복이 원천 소멸. phase `12-shelf`(step0~6)로
+구현했고, 손대는 곳 — `db/schema.ts`(컬럼+마이그레이션), `core/time/shelf.ts`+`plan.ts`,
+`api/tasks/[id]`(PATCH `shelvedAt`), `hooks/useCarryOverSweep.ts`(skip)·`hooks/shelf.ts`(shelve/un-shelve),
+`CalendarGrid.tsx`(필터)·`CalendarBlock.tsx`(shelf 버튼)·`TaskDetailModal.tsx`, 신규 `ShelfColumn.tsx`·
+앱셸(`AppSidebar.tsx`/`HeaderMenu.tsx`) + i18n(en/ko).

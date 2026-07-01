@@ -14,6 +14,7 @@ function mkTask(overrides: Partial<ExportInput["tasks"][0]> = {}): ExportInput["
     title: "Write tests",
     notes: null,
     category: null,
+    shelvedAt: null,
     createdOn: NOW,
     updatedOn: NOW,
     ...overrides,

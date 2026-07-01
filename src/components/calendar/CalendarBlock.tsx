@@ -218,7 +218,10 @@ export function CalendarBlock({
             className="size-2 rounded-full"
             style={{
               backgroundColor: color ?? "transparent",
-              boxShadow: color ? undefined : "inset 0 0 0 1px var(--border)",
+              // No project yet → a hollow ring in the same muted tone as the
+              // other block controls (⤢ / ✕), so the swatch reads as "unset"
+              // instead of being nearly invisible.
+              boxShadow: color ? undefined : "inset 0 0 0 1px var(--muted)",
             }}
           />
           {!isGhost && (

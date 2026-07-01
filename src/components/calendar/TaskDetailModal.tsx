@@ -388,7 +388,7 @@ export function TaskDetailModal({
                 <button
                   type="button"
                   onClick={() => {
-                    unshelve(taskId, taskPlans);
+                    unshelve(taskId);
                     close();
                   }}
                   className={dateBtn}

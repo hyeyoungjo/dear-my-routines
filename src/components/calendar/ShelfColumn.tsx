@@ -7,7 +7,6 @@ import { useTranslations } from "next-intl";
 import { isShelved } from "@/core/time/shelf";
 import { projectColor } from "@/lib/projectColor";
 import { TaskDetailModal } from "@/components/calendar/TaskDetailModal";
-import { usePlanBlocks } from "@/hooks/planBlocks";
 import { useProjects } from "@/hooks/projects";
 import { useShelf } from "@/hooks/shelf";
 import { useTasks } from "@/hooks/tasks";
@@ -28,11 +27,9 @@ export function ShelfColumn({ className }: { className?: string }) {
   const t = useTranslations("shelf");
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null);
   const { data: taskData } = useTasks();
-  const { data: planData } = usePlanBlocks();
   const { data: projectData } = useProjects();
   const { unshelve } = useShelf();
 
-  const allPlans = planData ?? [];
   const projectById = new Map((projectData ?? []).map((p) => [p.projectId, p]));
   const shelved = (taskData ?? [])
     .filter(isShelved)
@@ -82,12 +79,7 @@ export function ShelfColumn({ className }: { className?: string }) {
               </button>
               <button
                 type="button"
-                onClick={() =>
-                  unshelve(
-                    task.taskId,
-                    allPlans.filter((p) => p.taskId === task.taskId),
-                  )
-                }
+                onClick={() => unshelve(task.taskId)}
                 aria-label={t("bringBack")}
                 title={t("bringBack")}
                 className="shrink-0 text-[10px] text-muted opacity-0 transition-opacity hover:text-accent group-hover/chip:opacity-100"
