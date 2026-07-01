@@ -3,7 +3,9 @@
 import { useEffect, useRef } from "react";
 import { carryOverPlan, findOverduePlans } from "@/core/time/plan";
 import { startOfDay } from "@/core/time/day";
+import { shelvedTaskIds } from "@/core/time/shelf";
 import { useActionBlocks } from "@/hooks/actionBlocks";
+import { useTasks } from "@/hooks/tasks";
 import {
   useAddPlanBlock,
   usePlanBlocks,
@@ -34,28 +36,42 @@ import {
 export function useCarryOverSweep(): void {
   const { data: plans, isSuccess: plansReady } = usePlanBlocks();
   const { data: actions, isSuccess: actionsReady } = useActionBlocks();
+  const { data: tasks, isSuccess: tasksReady } = useTasks();
   const updatePlanBlock = useUpdatePlanBlock();
   const addPlanBlock = useAddPlanBlock();
   const sweptRef = useRef(false);
 
   useEffect(() => {
     if (sweptRef.current) return;
-    // BOTH lists must be loaded: without actions we can't tell which tasks are
-    // done, and would carry finished tasks forward (the duplicate-task bug).
-    if (!plansReady || !plans || !actionsReady || !actions) return;
+    // ALL THREE lists must be loaded: without actions we can't tell which tasks
+    // are done, and without tasks we can't tell which are shelved — carrying
+    // either forward is a bug (finished task duplicated / shelved task revived).
+    if (!plansReady || !plans || !actionsReady || !actions || !tasksReady || !tasks)
+      return;
     // Guard BEFORE mutating: a re-run on this mount (Strict Mode, cache change)
     // must find the sweep already done and bail — else carryCount balloons.
     sweptRef.current = true;
 
-    // A task with any action_block is executed → its leftover `planned` plan
-    // must not be carried (completion lives on action, not plan).
-    const doneTaskIds = new Set(actions.map((a) => a.taskId));
+    // A task's leftover `planned` plan must NOT be carried when the task is
+    // either executed (has an action_block — completion lives on action) or
+    // shelved (ADR-026: intentionally parked, off the carry-over conveyor).
+    const skipTaskIds = new Set(actions.map((a) => a.taskId));
+    for (const id of shelvedTaskIds(tasks)) skipTaskIds.add(id);
 
     const today = startOfDay(new Date());
-    for (const plan of findOverduePlans(plans, today, doneTaskIds)) {
+    for (const plan of findOverduePlans(plans, today, skipTaskIds)) {
       const { missedPatch, nextPlan } = carryOverPlan(plan, today);
       updatePlanBlock.mutate({ planBlockId: plan.planBlockId, patch: missedPatch });
       addPlanBlock.mutate(nextPlan);
     }
-  }, [plansReady, plans, actionsReady, actions, updatePlanBlock, addPlanBlock]);
+  }, [
+    plansReady,
+    plans,
+    actionsReady,
+    actions,
+    tasksReady,
+    tasks,
+    updatePlanBlock,
+    addPlanBlock,
+  ]);
 }

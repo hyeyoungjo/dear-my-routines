@@ -35,6 +35,7 @@
     "plan": "Plan",
     "action": "Act",
     "review": "Reflect",
+    "shelf": "Shelf",
     "loading": "Loading…",
     "loadFailed": "Failed to load.",
     "today": "Today",
@@ -57,7 +58,8 @@
     "deletePlan": "Delete plan",
     "resizeBlock": "Resize block end",
     "resizeBlockStart": "Resize block start",
-    "continueTomorrow": "Continue tomorrow"
+    "continueTomorrow": "Continue tomorrow",
+    "shelf": "Shelve"
   },
   "review": {
     "placeholder": "How was your day?",
@@ -99,7 +101,10 @@
     "carried": "Carried",
     "carriedTitle": "Times this task was carried over",
     "planTime": "Plan",
-    "actionTime": "Actual"
+    "actionTime": "Actual",
+    "shelf": "Shelf",
+    "unshelve": "Bring back",
+    "shelvedNote": "Shelved — paused from daily carry-over"
   },
   "export": {
     "title": "Export data",
@@ -167,5 +172,15 @@
     "success": "Password saved. Redirecting…",
     "saved": "Password saved.",
     "invalidSession": "This reset link is invalid or has expired. Request a new one from the login page."
+  },
+  "shelf": {
+    "title": "Shelf",
+    "empty": "Nothing shelved",
+    "bringBack": "Bring back",
+    "untitled": "Untitled",
+    "toggle": "Toggle shelf"
+  },
+  "nav": {
+    "menu": "Menu"
   }
 }

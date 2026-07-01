@@ -24,6 +24,8 @@ import {
 } from "@/hooks/planBlocks";
 import { useProjects } from "@/hooks/projects";
 import { useTasks, useUpdateTask } from "@/hooks/tasks";
+import { useShelf } from "@/hooks/shelf";
+import { isShelved } from "@/core/time/shelf";
 import { useTranslations } from "next-intl";
 
 /**
@@ -72,6 +74,7 @@ export function TaskDetailModal({
 
   const t = useTranslations("taskDetail");
   const updateTask = useUpdateTask();
+  const { shelve, unshelve } = useShelf();
   const addPlan = useAddPlanBlock();
   const updatePlan = useUpdatePlanBlock();
   const removePlan = useRemovePlanBlock();
@@ -373,6 +376,37 @@ export function TaskDetailModal({
                   </div>
                 )}
               </>
+            )}
+          </div>
+
+          {/* Shelf — park this task off the daily carry-over, or bring it back
+              (ADR-026). A quiet action, not a destructive delete. */}
+          <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-3">
+            {isShelved(task) ? (
+              <>
+                <span className="text-sm text-muted">{t("shelvedNote")}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    unshelve(taskId, taskPlans);
+                    close();
+                  }}
+                  className={dateBtn}
+                >
+                  {t("unshelve")}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  shelve(taskId);
+                  close();
+                }}
+                className={`${dateBtn} text-muted`}
+              >
+                {t("shelf")}
+              </button>
             )}
           </div>
         </div>

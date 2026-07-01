@@ -16,21 +16,32 @@ const KOFI_EMBED_SRC =
   "https://ko-fi.com/heyyoungsoul/?hidefeed=true&widget=true&embed=true&preview=true";
 const KOFI_PAGE_URL = "https://ko-fi.com/heyyoungsoul";
 
-export function KofiButton() {
+export function KofiButton({ variant = "icon" }: { variant?: "icon" | "menu" }) {
   const t = useTranslations("kofi");
   const [open, setOpen] = useState(false);
 
   return (
     <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-label={t("support")}
-        title={t("support")}
-        className="rounded-md p-1 text-xl leading-none text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
-      >
-        <FontAwesomeIcon icon={faMugHot} fixedWidth />
-      </button>
+      {variant === "menu" ? (
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent-soft"
+        >
+          <FontAwesomeIcon icon={faMugHot} fixedWidth />
+          {t("support")}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-label={t("support")}
+          title={t("support")}
+          className="rounded-md p-1 text-xl leading-none text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
+        >
+          <FontAwesomeIcon icon={faMugHot} fixedWidth />
+        </button>
+      )}
 
       {open && (
         <>

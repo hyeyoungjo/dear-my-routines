@@ -18,6 +18,7 @@ import {
 } from "@/core/time/calendar";
 import { carryCountUpTo, carryOverPlan, planSpan, plansForDay } from "@/core/time/plan";
 import { actionSpan, actionsForDay, isOngoing } from "@/core/time/action";
+import { isShelved } from "@/core/time/shelf";
 import { addDays, dayKey } from "@/core/time/day";
 import { projectColor } from "@/lib/projectColor";
 import {
@@ -109,7 +110,9 @@ export function CalendarGrid() {
   // The task whose detail modal is open (clicking a block's ⤢), null = closed.
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null);
   // Mobile-only: which tab is active. Desktop always shows all three columns.
-  const [activeTab, setActiveTab] = useState<"plan" | "action" | "review">("plan");
+  const [activeTab, setActiveTab] = useState<"plan" | "action" | "review">(
+    "plan",
+  );
   // Mirror the latest drag so the window pointerup handler (registered once per
   // drag) can read the final deltas without re-subscribing on every move.
   const dragRef = useRef<DragPreview | null>(null);
@@ -334,12 +337,15 @@ export function CalendarGrid() {
   };
 
   /** Title/colour/carryCount join for a task, or null for an orphan block.
+   * Returns null for a **shelved** task too (ADR-026): every block builder
+   * (plan / action / ghost) skips on a null decorate, so shelving hides all of a
+   * task's blocks at once — a render-only filter, the rows stay untouched.
    * `beforeDate` scopes the carry count: only missed plans *before* that date
    * are counted, so each day's badge reflects how many times the task was
    * carried to reach that specific day rather than the lifetime total. */
   const decorate = (taskId: string, beforeDate: string) => {
     const task = taskById.get(taskId);
-    if (!task) return null;
+    if (!task || isShelved(task)) return null;
     return {
       title: task.title,
       projectId: task.projectId,
@@ -559,7 +565,7 @@ export function CalendarGrid() {
           <p className="text-sm text-red-500">{t("loadFailed")}</p>
         ) : (
           <>
-            {/* Desktop: 3-column layout */}
+            {/* Desktop: Plan / Act / Reflect */}
             <div className="hidden sm:flex">
               {renderColumn("plan")}
               {timeAxis("w-14")}

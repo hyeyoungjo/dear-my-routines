@@ -5,7 +5,13 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faComment, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { useTranslations } from "next-intl";
 
-export function FeedbackButton({ userEmail }: { userEmail: string }) {
+export function FeedbackButton({
+  userEmail,
+  variant = "icon",
+}: {
+  userEmail: string;
+  variant?: "icon" | "menu";
+}) {
   const t = useTranslations("feedback");
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
@@ -39,15 +45,26 @@ export function FeedbackButton({ userEmail }: { userEmail: string }) {
 
   return (
     <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label={t("title")}
-        title={t("title")}
-        className="rounded-md p-1 text-xl leading-none text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
-      >
-        <FontAwesomeIcon icon={faComment} fixedWidth />
-      </button>
+      {variant === "menu" ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent-soft"
+        >
+          <FontAwesomeIcon icon={faComment} fixedWidth />
+          {t("title")}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label={t("title")}
+          title={t("title")}
+          className="rounded-md p-1 text-xl leading-none text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
+        >
+          <FontAwesomeIcon icon={faComment} fixedWidth />
+        </button>
+      )}
 
       {open && (
         <>

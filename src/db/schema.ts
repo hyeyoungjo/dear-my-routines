@@ -190,7 +190,9 @@ export const projects = pgTable(
  * (intent) and action_blocks (reality), 1:N. `projectId` is nullable so a task
  * can be unassigned ("No project"); deleting a project just unassigns its tasks.
  * `category` stays for PRD category stats; estimate/isBig3/links/sortOrder are
- * dropped (ADR-016 minimal spec). Current status is derived, never stored.
+ * dropped (ADR-016 minimal spec). Current status is derived, never stored —
+ * `shelvedAt` is the one exception (ADR-026): intent to park a task can't be
+ * derived from plans/actions, so it is stored here.
  */
 export const tasks = pgTable(
   "tasks",
@@ -203,6 +205,10 @@ export const tasks = pgTable(
     title: text("title").notNull(),
     notes: text("notes"),
     category: text("category"),
+    // ADR-026: when the user shelves this task (intentionally parks it). null =
+    // active. A shelved task is skipped by the carry-over sweep and hidden from
+    // the calendar; its plan/action history is kept intact.
+    shelvedAt: timestamp("shelved_at", { withTimezone: true }),
     createdOn: timestamp("created_on", { withTimezone: true })
       .notNull()
       .defaultNow(),

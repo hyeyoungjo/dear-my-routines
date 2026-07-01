@@ -2,10 +2,16 @@
 
 import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faMaximize, faXmark, faCircleArrowRight } from "@fortawesome/free-solid-svg-icons";
+import {
+  faMaximize,
+  faXmark,
+  faCircleArrowRight,
+  faBoxArchive,
+} from "@fortawesome/free-solid-svg-icons";
 import type { Span } from "@/core/time/calendar";
 import { useProjects } from "@/hooks/projects";
 import { useUpdateTask } from "@/hooks/tasks";
+import { useShelf } from "@/hooks/shelf";
 import { useRemovePlanBlock } from "@/hooks/planBlocks";
 import { useRemoveActionBlock } from "@/hooks/actionBlocks";
 import { useTranslations } from "next-intl";
@@ -116,6 +122,7 @@ export function CalendarBlock({
   // A double-click flips it on, turning the title into a focused textarea.
   const [editing, setEditing] = useState(false);
   const updateTask = useUpdateTask();
+  const { shelve } = useShelf();
   const removePlanBlock = useRemovePlanBlock();
   const removeActionBlock = useRemoveActionBlock();
 
@@ -244,7 +251,7 @@ export function CalendarBlock({
             control row and starts a move, so the whole title is a drag surface.
             Double-click flips `editing` on and swaps in a focused textarea. */}
         {isGhost ? (
-          <span className="min-h-0 flex-1 break-words text-xs font-medium leading-tight text-foreground">
+          <span className="min-h-0 min-w-0 flex-1 break-words text-xs font-medium leading-tight text-foreground">
             {title || <span className="font-normal text-muted">{t("newTask")}</span>}
           </span>
         ) : editing ? (
@@ -283,11 +290,11 @@ export function CalendarBlock({
             // overflow-hidden crops it once it exceeds the box. overflow-hidden
             // here also kills the textarea's own scrollbar, which otherwise
             // appears when a font's line metrics overflow the box by a hair.
-            className="min-h-0 flex-1 resize-none overflow-hidden break-words [field-sizing:content] bg-transparent text-xs font-medium leading-tight text-foreground placeholder:font-normal placeholder:text-muted focus:outline-none"
+            className="min-h-0 min-w-0 flex-1 resize-none overflow-hidden break-words [field-sizing:content] bg-transparent text-xs font-medium leading-tight text-foreground placeholder:font-normal placeholder:text-muted focus:outline-none"
           />
         ) : (
           <div
-            className={`min-h-0 flex-1 whitespace-pre-line break-words text-xs font-medium leading-tight text-foreground ${isMissed ? "line-through" : ""}`}
+            className={`min-h-0 min-w-0 flex-1 whitespace-pre-line break-words text-xs font-medium leading-tight text-foreground ${isMissed ? "line-through" : ""}`}
           >
             {title || <span className="font-normal text-muted">{t("newTask")}</span>}
           </div>
@@ -366,13 +373,33 @@ export function CalendarBlock({
           onPointerDown={(e) => e.stopPropagation()}
           aria-label={t("continueTomorrow")}
           title={t("continueTomorrow")}
-          className={`absolute bottom-2 right-1 text-[10px] transition-opacity ${
+          className={`absolute bottom-2 right-1 z-10 rounded text-[10px] transition-opacity ${
             isPartial
               ? "text-accent opacity-100"
               : "text-muted opacity-0 group-hover:opacity-100 hover:text-accent"
           }`}
         >
           <FontAwesomeIcon icon={faCircleArrowRight} />
+        </button>
+      )}
+
+      {/* Shelve — bottom-left corner (real blocks only). Parks this task off the
+          daily carry-over (ADR-026): it leaves the calendar and waits in the
+          Shelf column. z-10 keeps it clickable above a long wrapped title. */}
+      {!isGhost && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            shelve(taskId);
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onDoubleClick={(e) => e.stopPropagation()}
+          aria-label={t("shelf")}
+          title={t("shelf")}
+          className="absolute bottom-2 left-1 z-10 rounded text-[10px] text-muted opacity-0 transition-opacity group-hover:opacity-100 hover:text-accent"
+        >
+          <FontAwesomeIcon icon={faBoxArchive} />
         </button>
       )}
 

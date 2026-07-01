@@ -105,6 +105,7 @@ function optimisticTask(input: AddTaskInput): Task {
     title: input.title,
     notes: input.notes ?? null,
     category: input.category ?? null,
+    shelvedAt: null, // a freshly created task is always active (ADR-026)
     createdOn: now,
     updatedOn: now,
   };

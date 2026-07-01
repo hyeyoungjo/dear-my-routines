@@ -67,8 +67,15 @@ function Group({
   );
 }
 
-/** Gear button (top-right) that opens a centered settings modal. */
-export function ThemeMenu({ isAdmin = false }: { isAdmin?: boolean }) {
+/** Gear button (top-right) that opens a centered settings modal.
+ *  `variant="menu"` renders it as an icon+label row for the mobile hamburger. */
+export function ThemeMenu({
+  isAdmin = false,
+  variant = "icon",
+}: {
+  isAdmin?: boolean;
+  variant?: "icon" | "menu";
+}) {
   const t = useTranslations("settings");
   const { theme, setTheme } = useTheme();
   const { max, setMax } = useUndo();
@@ -147,15 +154,26 @@ export function ThemeMenu({ isAdmin = false }: { isAdmin?: boolean }) {
 
   return (
     <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label={t("buttonLabel")}
-        title={t("buttonLabel")}
-        className="rounded-md p-1 text-xl leading-none text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
-      >
-        <FontAwesomeIcon icon={faGear} fixedWidth />
-      </button>
+      {variant === "menu" ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent-soft"
+        >
+          <FontAwesomeIcon icon={faGear} fixedWidth />
+          {t("buttonLabel")}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label={t("buttonLabel")}
+          title={t("buttonLabel")}
+          className="rounded-md p-1 text-xl leading-none text-muted transition-colors hover:bg-accent-soft hover:text-foreground"
+        >
+          <FontAwesomeIcon icon={faGear} fixedWidth />
+        </button>
+      )}
 
       {open && (
         <>

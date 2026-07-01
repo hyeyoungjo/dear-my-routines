@@ -1,0 +1,13 @@
+{
+  "project": "Dear My Routines",
+  "phase": "12-shelf",
+  "steps": [
+    { "step": 0, "name": "schema-migration", "status": "completed", "summary": "tasks.shelvedAt (nullable timestamptz) 추가; drizzle/0017_married_bucky.sql (shelved_at 한 줄로 트리밍 — 나머지는 기존 push 드리프트); hooks/tasks.ts optimisticTask에 shelvedAt:null. build+124 tests green." },
+    { "step": 1, "name": "core-shelf", "status": "completed", "summary": "src/core/time/shelf.ts: isShelved, shelvedTaskIds, freshPlanToday(최근 plan clock+duration 보존, 없으면 07:00 1h 기본); shelf.test.ts 9 tests. 전체 133 green." },
+    { "step": 2, "name": "api-task-patch", "status": "completed", "summary": "PATCH /api/tasks/[id] parseTaskPatchInput이 shelvedAt(string→Date / null) 받게. GET은 select() 전체라 자동 포함. build+133 green." },
+    { "step": 3, "name": "task-hooks-sweep", "status": "completed", "summary": "useCarryOverSweep: useTasks 추가+3리스트 로드가드, skipTaskIds=done∪shelvedTaskIds(tasks)를 findOverduePlans에 전달. shelf 토글은 기존 useUpdateTask 재사용(별도 훅X). un-shelve는 step6에서 useUpdateTask(shelvedAt:null)+useAddPlanBlock(freshPlanToday). build+133 green." },
+    { "step": 4, "name": "calendar-filter", "status": "completed", "summary": "CalendarGrid decorate()가 shelved task에 null 반환 → plan/action/ghost 세 빌더 모두 if(!d)continue로 자동 스킵(단일 필터 지점). 렌더만 숨김, row 불변. build+133 green." },
+    { "step": 5, "name": "shelf-trigger", "status": "completed", "summary": "공용 훅 src/hooks/shelf.ts(useShelf: shelve/unshelve, 낙관적, unshelve=shelvedAt:null+freshPlanToday). TaskDetailModal 하단에 Shelf/Bring-back 섹션+shelvedNote. i18n en/ko에 shelf/unshelve/shelvedNote 추가(키 일치). build+133 green." },
+    { "step": 6, "name": "shelf-tray", "status": "completed", "summary": "src/components/calendar/ShelfTray.tsx: 오른쪽 고정 접히는 트레이(spine 핸들+개수 배지, 빈+닫힘이면 렌더 안 함), 목록에서 useShelf.unshelve(task plans 전달)로 오늘 복귀. page.tsx에 마운트. i18n shelf 네임스페이스 en/ko. build+test+lint green." }
+  ]
+}

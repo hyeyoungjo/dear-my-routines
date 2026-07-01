@@ -423,3 +423,31 @@ night-owl 사용자에게도 올바르게 동작한다.
 자체는 변경 없음). 그리드 윈도우 설정을 0시 이전부터 시작하거나 24시 이후까지 늘리면 해당 블록이
 원래 의도한 날의 그리드에 다시 보인다.
 **비고**: `core/time/day.ts`·`plan.ts`·`action.ts`·`carry.ts` 수정, 테스트 106개 전부 통과.
+
+### ADR-026: Shelf — 비긴급 task를 의도적으로 내려놓는 선반 (2026-06-30)
+**맥락**: 데이 바운더리 sweep(`useCarryOverSweep`, ADR-009/015)은 못 끝낸 `planned` 블록을 매일
+자동으로 오늘로 끌어온다. 급한 일에는 좋은 압박이지만, **안 급한 일까지 똑같이 매일 끌려와** `missed`
+블록과 `carryCount`만 쌓이며 사용자에게 스트레스를 준다. "지금은 안 할래, 잠깐 내려놓되 잃어버리진
+않게" 하는 *능동적* 보관 행위가 없었다. 이는 자동 누적되는 *수동적* delay와 근본적으로 다르다.
+**결정**:
+- **`tasks.shelvedAt`(nullable timestamp) 한 컬럼 추가.** `null`=활성, 값 있으면=내려놓음(시각도 기록).
+  task의 현재 상태는 plan/action에서 derive하는 게 이 프로젝트 원칙(ADR-016)이지만, **"내가 일부러
+  내려놨다"는 의도는 plan/action만으로 derive 불가** — shelf가 저장 컬럼을 두는 유일한 예외다.
+- **올리기**: `shelvedAt=now`. sweep이 그 task를 건너뛰고(`findOverduePlans`의 제외 집합에 합류),
+  캘린더에서 해당 task의 plan/action/ghost 블록을 **숨긴다(필터, 삭제 아님)**. `missed` 히스토리는
+  그대로 보존한다(ADR-018 — missed는 데이터). 완전히 되돌릴 수 있다.
+- **보기**: 캘린더 옆 **접히는 사이드 트레이**(`ShelfTray`) — 평소 접힘 + 개수 배지, 펼치면 내려둔
+  task 목록. 이 앱에 task 목록 UI가 없으므로(블록으로만 task가 보임) 보관함을 새로 만든다.
+- **꺼내기(un-shelf)**: `shelvedAt=null` + **오늘 날짜에 새 `planned` 블록 하나 생성**(`freshPlanToday`,
+  옛 시각이 있으면 그 clock 보존). 옛 `missed`들은 부활시키지 않는다(깨끗한 재시작 — bar model 일관).
+**이유**: shelf는 carry-over 컨베이어벨트에서 task를 빼내는 의도적 행위다. "rows가 진실, view는 조립"
+(ADR-013) 원칙 위에서, shelf는 *의도*라는 새 차원이라 1개 컬럼으로 저장하되 나머지는 전부 기존 derive
+로직(sweep skip + 렌더 필터)을 재사용한다. 데이터 모델을 최소로 건드리고 UX는 분리한다.
+**트레이드오프**: 활성/내려놓음을 가르는 저장 플래그가 하나 생겨, "상태는 derive" 순수성에 작은 예외를
+둔다. 단 carry-over·캘린더 표시·통계는 여전히 plan/action에서 계산되므로 예외 범위는 의도 플래그 하나로
+국한된다.
+**비고**: phase `12-shelf`(step0~6)로 구현. 손대는 곳 — `db/schema.ts`(컬럼+마이그레이션),
+`core/time/plan.ts`(`freshPlanToday`·테스트), `api/tasks/[id]`(PATCH 화이트리스트에 `shelvedAt`),
+`hooks/useCarryOverSweep.ts`(skip), `components/calendar/CalendarGrid.tsx`(필터),
+`TaskDetailModal.tsx`(Shelf 버튼), 신규 `ShelfTray.tsx` + i18n(en/ko). `useUpdateTask`는 이미
+`Partial<Task>` 낙관적 PATCH라 컬럼만 추가되면 그대로 흐른다.

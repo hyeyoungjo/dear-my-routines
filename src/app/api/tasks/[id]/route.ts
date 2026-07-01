@@ -7,6 +7,8 @@ import { createClient } from "@/services/supabase/server";
 /**
  * Pick only the fields a client may patch on a task. `taskId`/`userId` are never
  * accepted. `projectId` may be set or cleared to null (assign / unassign).
+ * `shelvedAt` (ADR-026) is set to an ISO string when shelving, or null when
+ * un-shelving; it arrives over the wire as a string or null.
  */
 function parseTaskPatchInput(body: Record<string, unknown>): Partial<NewTask> {
   const values: Partial<NewTask> = {};
@@ -20,6 +22,11 @@ function parseTaskPatchInput(body: Record<string, unknown>): Partial<NewTask> {
   else if (body.notes === null) values.notes = null;
   if (typeof body.category === "string") values.category = body.category;
   else if (body.category === null) values.category = null;
+  if (typeof body.shelvedAt === "string") {
+    values.shelvedAt = new Date(body.shelvedAt);
+  } else if (body.shelvedAt === null) {
+    values.shelvedAt = null;
+  }
   return values;
 }
 
