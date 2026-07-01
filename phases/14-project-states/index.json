@@ -48,7 +48,7 @@
       "status": "completed",
       "started_at": "2026-07-02T04:51:47+0900",
       "summary": "ShelfColumn에 비활성 프로젝트 섹션 + 재활성(deactivatedAt=null)·삭제, task 무영향, i18n",
-      "completed_at": "2026-07-02T04:55:00+0900"
+      "completed_at": "2026-07-02T04:53:54+0900"
     }
   ],
   "created_at": "2026-07-02T04:41:33+0900"
