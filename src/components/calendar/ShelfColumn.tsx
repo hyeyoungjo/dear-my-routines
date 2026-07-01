@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRotateLeft, faBoxArchive } from "@fortawesome/free-solid-svg-icons";
+import { faArrowRotateLeft, faBoxArchive, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { useTranslations } from "next-intl";
 import { isShelved } from "@/core/time/shelf";
 import { projectColor } from "@/lib/projectColor";
 import { TaskDetailModal } from "@/components/calendar/TaskDetailModal";
 import { useProjects } from "@/hooks/projects";
 import { useShelf } from "@/hooks/shelf";
-import { useTasks } from "@/hooks/tasks";
+import { useTasks, useRemoveTask } from "@/hooks/tasks";
 
 /**
  * The Shelf (ADR-026): a visible bucket where intentionally-parked tasks wait.
@@ -29,6 +29,7 @@ export function ShelfColumn({ className }: { className?: string }) {
   const { data: taskData } = useTasks();
   const { data: projectData } = useProjects();
   const { unshelve } = useShelf();
+  const removeTask = useRemoveTask();
 
   const projectById = new Map((projectData ?? []).map((p) => [p.projectId, p]));
   const shelved = (taskData ?? [])
@@ -84,6 +85,15 @@ export function ShelfColumn({ className }: { className?: string }) {
                 className="shrink-0 text-[10px] text-muted opacity-0 transition-opacity hover:text-accent group-hover/chip:opacity-100"
               >
                 <FontAwesomeIcon icon={faArrowRotateLeft} />
+              </button>
+              <button
+                type="button"
+                onClick={() => removeTask.mutate(task.taskId)}
+                aria-label={t("delete")}
+                title={t("delete")}
+                className="shrink-0 text-[10px] text-muted opacity-0 transition-opacity hover:text-red-500 group-hover/chip:opacity-100"
+              >
+                <FontAwesomeIcon icon={faXmark} />
               </button>
             </li>
           ))}

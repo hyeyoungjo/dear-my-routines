@@ -12,10 +12,14 @@ import { AiPanel } from "@/components/calendar/AiPanel";
  * without lifting the whole page into one client tree.
  *
  * One button per side, every size: on desktop each rail is an inline column; on
- * mobile it opens as an overlay drawer. Both start closed — the calendar is the
- * focus, and the rails are opened on demand from their toggles. Drawers only
- * render after mount to avoid a hydration flash.
+ * mobile it opens as an overlay drawer. Each side's open/closed state is
+ * remembered in localStorage (written on every toggle), so it restores across
+ * sessions — no explicit save. Both default closed until a stored preference
+ * says otherwise; drawers only render after mount to avoid a hydration flash.
  */
+const LEFT_KEY = "dmr-shelf-open";
+const RIGHT_KEY = "dmr-ai-open";
+
 const SidebarContext = createContext<{
   leftOpen: boolean;
   rightOpen: boolean;
@@ -31,17 +35,27 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
+    // Restore the last-used open state (default closed if never set).
+    if (localStorage.getItem(LEFT_KEY) === "true") setLeftOpen(true);
+    if (localStorage.getItem(RIGHT_KEY) === "true") setRightOpen(true);
   }, []);
+
+  const toggleLeft = () =>
+    setLeftOpen((o) => {
+      const next = !o;
+      localStorage.setItem(LEFT_KEY, String(next));
+      return next;
+    });
+  const toggleRight = () =>
+    setRightOpen((o) => {
+      const next = !o;
+      localStorage.setItem(RIGHT_KEY, String(next));
+      return next;
+    });
 
   return (
     <SidebarContext.Provider
-      value={{
-        leftOpen,
-        rightOpen,
-        mounted,
-        toggleLeft: () => setLeftOpen((o) => !o),
-        toggleRight: () => setRightOpen((o) => !o),
-      }}
+      value={{ leftOpen, rightOpen, mounted, toggleLeft, toggleRight }}
     >
       {children}
     </SidebarContext.Provider>

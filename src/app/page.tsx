@@ -69,29 +69,31 @@ export default async function Home() {
           />
         </div>
       </header>
-      {/* App shell body: left (Shelf) · middle (calendar) · right (reserved).
-          Rails are desktop-only; on mobile the Shelf is the 4th tab in the
-          calendar and the body is a single column. */}
-      <div className="flex flex-1 gap-4 p-4">
-        {/* Left rail — Shelf (ADR-026): inline on desktop, drawer on mobile,
-            toggled by the header button. */}
-        <LeftRail />
-
-        {/* Middle — the calendar (Plan / Act / Reflect). */}
-        <main className="min-w-0 flex-1">
-          <div id="snapshot-area" className="overflow-hidden rounded-xl p-4">
+      {/* App shell body. Date + Projects are a full-width top bar spanning the
+          whole layout; below it, the Shelf (left) · calendar (middle) · AI
+          (right) rails all start at the same height. */}
+      <div id="snapshot-area" className="flex flex-1 flex-col p-4">
+        {/* Top bar — date nav + projects. Flanked by spacers the width of the
+            rails so it lines up with the centre calendar, not the screen edge. */}
+        <div className="flex gap-4">
+          <div className="hidden w-52 shrink-0 sm:block" aria-hidden />
+          <div className="min-w-0 flex-1">
             <DateBar />
             <div className="no-scrollbar mt-3 overflow-x-auto">
               <ProjectLegend />
             </div>
-            <div className="mt-3">
-              <CalendarGrid />
-            </div>
           </div>
-        </main>
+          <div className="hidden w-52 shrink-0 sm:block" aria-hidden />
+        </div>
 
-        {/* Right rail — AI panel (ADR-020), inline on desktop / drawer on mobile. */}
-        <RightRail />
+        {/* Aligned rails: Shelf · calendar · AI. */}
+        <div className="mt-3 flex gap-4">
+          <LeftRail />
+          <main className="min-w-0 flex-1">
+            <CalendarGrid />
+          </main>
+          <RightRail />
+        </div>
       </div>
     </div>
     </SidebarProvider>
