@@ -55,7 +55,7 @@ export function ProjectLegend() {
             // readability (a faint tint + dark text reads on any hue). Dimmed
             // when hidden from the calendar so the state is visible (ADR-028).
             style={{ backgroundColor: `${c}22`, borderColor: `${c}66` }}
-            className={`flex shrink-0 items-center gap-1.5 rounded-full border py-1 pl-1.5 pr-1 text-xs text-foreground${
+            className={`group flex shrink-0 items-center gap-1.5 rounded-full border py-1 pl-1.5 pr-1 text-xs text-foreground${
               hidden ? " opacity-50" : ""
             }`}
           >
@@ -87,51 +87,55 @@ export function ProjectLegend() {
               aria-label={t("nameLabel")}
               className="w-16 bg-transparent text-foreground placeholder:text-muted focus:outline-none"
             />
-            {/* Deactivate: park the project in the Shelf (same box-archive
-                metaphor as shelving a task, ADR-026/028). Optimistic. */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                updateProject.mutate({
-                  projectId: p.projectId,
-                  patch: { deactivatedAt: new Date() },
-                });
-              }}
-              aria-label={t("deactivate")}
-              title={t("deactivate")}
-              className="rounded px-1 text-muted/70 hover:text-foreground"
-            >
-              <FontAwesomeIcon icon={faBoxArchive} />
-            </button>
-            {/* Toggle calendar visibility of this project's blocks. Optimistic. */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                updateProject.mutate({
-                  projectId: p.projectId,
-                  patch: { hiddenAt: hidden ? null : new Date() },
-                });
-              }}
-              aria-label={hidden ? t("show") : t("hide")}
-              title={hidden ? t("show") : t("hide")}
-              className="rounded px-1 text-muted/70 hover:text-foreground"
-            >
-              <FontAwesomeIcon icon={hidden ? faEyeSlash : faEye} />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                removeProject.mutate(p.projectId);
-              }}
-              aria-label={t("delete")}
-              title={t("delete")}
-              className="rounded px-1 text-muted/70 hover:text-red-500"
-            >
-              <FontAwesomeIcon icon={faTrashCan} />
-            </button>
+            {/* Action icons — tight group, revealed on chip hover (like a task
+                block's controls). Reserved by opacity so the chip width is stable. */}
+            <div className="flex items-center gap-0.5">
+              {/* Deactivate: park the project in the Shelf (same box-archive
+                  metaphor as shelving a task, ADR-026/028). Optimistic. */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  updateProject.mutate({
+                    projectId: p.projectId,
+                    patch: { deactivatedAt: new Date() },
+                  });
+                }}
+                aria-label={t("deactivate")}
+                title={t("deactivate")}
+                className="shrink-0 rounded px-0.5 text-[10px] text-muted opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+              >
+                <FontAwesomeIcon icon={faBoxArchive} />
+              </button>
+              {/* Toggle calendar visibility of this project's blocks. Optimistic. */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  updateProject.mutate({
+                    projectId: p.projectId,
+                    patch: { hiddenAt: hidden ? null : new Date() },
+                  });
+                }}
+                aria-label={hidden ? t("show") : t("hide")}
+                title={hidden ? t("show") : t("hide")}
+                className="shrink-0 rounded px-0.5 text-[10px] text-muted opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+              >
+                <FontAwesomeIcon icon={hidden ? faEyeSlash : faEye} />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeProject.mutate(p.projectId);
+                }}
+                aria-label={t("delete")}
+                title={t("delete")}
+                className="shrink-0 rounded px-0.5 text-[10px] text-muted opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
+              >
+                <FontAwesomeIcon icon={faTrashCan} />
+              </button>
+            </div>
           </div>
         );
       })}
