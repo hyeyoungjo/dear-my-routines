@@ -444,6 +444,24 @@ export const categoryStats = pgTable(
   (t) => ownerPolicies("category_stats", t.userId),
 );
 
+// --- email_unsubscribes: email opt-out list (ADR-029) ---------------------
+
+/**
+ * Emails that have opted out of app emails. Keyed by email (no `user_id`):
+ * an unsubscribe link can be followed without being logged in, so access is
+ * by email, not by uid — `ownerPolicies` does not apply here.
+ *
+ * RLS is ON with *no policies*: this fully blocks anon/authenticated client
+ * access. Only the server (the Drizzle `db` connection, which bypasses RLS
+ * like other server routes) reads and writes it, via /api/unsubscribe.
+ */
+export const emailUnsubscribes = pgTable("email_unsubscribes", {
+  email: text("email").primaryKey(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+}).enableRLS();
+
 // --- Inferred types -------------------------------------------------------
 
 export type Node = InferSelectModel<typeof nodes>;
@@ -477,5 +495,7 @@ export type UserSettings = InferSelectModel<typeof userSettings>;
 export type NewUserSettings = InferInsertModel<typeof userSettings>;
 
 export type AllowedEmail = InferSelectModel<typeof allowedEmails>;
+
+export type EmailUnsubscribe = InferSelectModel<typeof emailUnsubscribes>;
 
 export type UserRoleValue = "admin" | "tester" | "user";

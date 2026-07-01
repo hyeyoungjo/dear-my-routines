@@ -13,7 +13,10 @@
     {
       "step": 1,
       "name": "schema-migration",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-07-02T05:58:14+0900",
+      "summary": "email_unsubscribes(email PK, created_at) + RLS on/정책없음 + 트리밍 마이그레이션. prod 적용은 유저 수동",
+      "completed_at": "2026-07-02T17:00:00+0900"
     },
     {
       "step": 2,
