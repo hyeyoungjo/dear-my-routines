@@ -173,6 +173,13 @@ export const projects = pgTable(
     // Optional explicit colour (hex); falls back to a deterministic id-based
     // colour when unset (see lib/projectColor).
     projectColor: text("project_color"),
+    // ADR-028: deactivated (parked). null = active. When set the project moves
+    // to the Shelf and is excluded from the legend/picker; its tasks are
+    // unaffected. Mirrors the tasks.shelvedAt shelf pattern (ADR-026).
+    deactivatedAt: timestamp("deactivated_at", { withTimezone: true }),
+    // ADR-028: calendar visibility. null = shown. When set, this project's task
+    // blocks are hidden from the calendar (project stays active elsewhere).
+    hiddenAt: timestamp("hidden_at", { withTimezone: true }),
     createdOn: timestamp("created_on", { withTimezone: true })
       .notNull()
       .defaultNow(),

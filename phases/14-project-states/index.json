@@ -13,7 +13,9 @@
     {
       "step": 1,
       "name": "schema-migration",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-07-02T04:42:54+0900",
+      "summary": "projects.deactivatedAt·hiddenAt(nullable ts) 추가 + 트리밍 마이그레이션 SQL + PATCH route가 두 필드 허용(ISO→Date). prod 적용은 유저 수동(마이그레이션 함정)"
     },
     {
       "step": 2,

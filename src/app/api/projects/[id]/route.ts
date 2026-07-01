@@ -18,6 +18,18 @@ function parseProjectPatchInput(
   } else if (body.projectColor === null) {
     values.projectColor = null;
   }
+  // ADR-028: deactivate/reactivate (Shelf) and hide/show (calendar). Client
+  // sends `new Date()` as JSON, so it arrives as an ISO string; null reverts.
+  if (typeof body.deactivatedAt === "string") {
+    values.deactivatedAt = new Date(body.deactivatedAt);
+  } else if (body.deactivatedAt === null) {
+    values.deactivatedAt = null;
+  }
+  if (typeof body.hiddenAt === "string") {
+    values.hiddenAt = new Date(body.hiddenAt);
+  } else if (body.hiddenAt === null) {
+    values.hiddenAt = null;
+  }
   return values;
 }
 

@@ -100,6 +100,8 @@ function optimisticProject(input: AddProjectInput): Project {
     userId: "", // unknown on the client; the server is the source of truth.
     title: input.title,
     projectColor: input.projectColor ?? null,
+    deactivatedAt: null, // ADR-028: a fresh project is active and shown.
+    hiddenAt: null,
     createdOn: now,
     updatedOn: now,
   };
