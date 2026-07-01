@@ -59,6 +59,10 @@
     "resizeBlock": "Resize block end",
     "resizeBlockStart": "Resize block start",
     "continueTomorrow": "Continue tomorrow",
+    "continueLater": "Continue later",
+    "continueToday": "Later today",
+    "continuePickDate": "Pick a date…",
+    "close": "Close",
     "shelf": "Shelve"
   },
   "review": {

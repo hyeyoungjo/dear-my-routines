@@ -59,6 +59,10 @@
     "resizeBlock": "블록 끝 시간 조절",
     "resizeBlockStart": "블록 시작 시간 조절",
     "continueTomorrow": "내일 이어서",
+    "continueLater": "이어서 하기",
+    "continueToday": "오늘 이따가",
+    "continuePickDate": "날짜 선택…",
+    "close": "닫기",
     "shelf": "선반에 두기"
   },
   "review": {

@@ -16,7 +16,13 @@ import {
   snapToSlot,
   type Span,
 } from "@/core/time/calendar";
-import { carryCountUpTo, carryOverPlan, planSpan, plansForDay } from "@/core/time/plan";
+import {
+  carryCountUpTo,
+  carryOverPlan,
+  continueLaterSpan,
+  planSpan,
+  plansForDay,
+} from "@/core/time/plan";
 import { actionSpan, actionsForDay, isOngoing } from "@/core/time/action";
 import { isShelved } from "@/core/time/shelf";
 import { addDays, dayKey } from "@/core/time/day";
@@ -25,6 +31,7 @@ import {
   CalendarBlock,
   type CalBlock,
   type ColumnKind,
+  type ContinueDest,
   type DragMode,
 } from "@/components/calendar/CalendarBlock";
 import { TaskDetailModal } from "@/components/calendar/TaskDetailModal";
@@ -195,41 +202,57 @@ export function CalendarGrid() {
   };
 
   /**
-   * Carry a ghost's plan to the next day (manual carry-over, ADR-017): "I won't
-   * get to this today". Mark THIS plan `missed` (kept as review evidence, bumps
-   * carryCount) and birth a fresh `planned` plan tomorrow with the clock +
-   * duration kept (`carryOverPlan`) — the same mechanism the day-boundary sweep
-   * uses, just triggered by hand. Both writes are optimistic.
+   * The → button's single handler (ADR-027 matrix). Three destinations:
+   *  - `today`: same-day continuation — a fresh `planned` plan one gap after this
+   *    block's END (`continueLaterSpan`, block-relative so it works from plan AND
+   *    action columns). The original is left untouched: same-day "continue" is
+   *    additive, not a miss (no partial/missed tag).
+   *  - `tomorrow` / `date`: the classic carry to a later day, only the target
+   *    generalized. An ACTION becomes `partial` + gets a plan on the target day at
+   *    the same clock time. A PLAN block / ghost carries its underlying plan
+   *    (`carryOverPlan`): the original → `missed`, a new `planned` on the target.
+   * All writes go through the optimistic hooks — the screen never waits (ADR-007).
    */
-  /**
-   * Mark an action as `partial` (user will continue tomorrow) and create a fresh
-   * `planned` plan on the next day at the same time slot.
-   */
-  const continueTomorrow = (block: CalBlock) => {
-    updateActionBlock.mutate({
-      actionBlockId: block.blockId,
-      patch: { status: "partial" },
-    });
-    const tomorrow = addDays(selectedDate, 1);
-    const tomorrowStart = new Date(tomorrow);
-    tomorrowStart.setHours(block.span.start.getHours(), block.span.start.getMinutes(), 0, 0);
-    const tomorrowEnd = new Date(tomorrow);
-    tomorrowEnd.setHours(block.span.end.getHours(), block.span.end.getMinutes(), 0, 0);
-    addPlanBlock.mutate({
-      taskId: block.taskId,
-      date: dayKey(tomorrow),
-      startAt: tomorrowStart.toISOString(),
-      endAt: tomorrowEnd.toISOString(),
-    });
-  };
+  const continueBlock = (block: CalBlock, dest: ContinueDest) => {
+    if (dest.when === "today") {
+      const { start, end } = continueLaterSpan(
+        block.span.end,
+        selectedDate,
+        gridEndHour,
+      );
+      addPlanBlock.mutate({
+        taskId: block.taskId,
+        date: dayKey(selectedDate),
+        startAt: start.toISOString(),
+        endAt: end.toISOString(),
+      });
+      return;
+    }
 
-  const carryGhost = (block: CalBlock) => {
+    const target = dest.when === "date" ? dest.date : addDays(selectedDate, 1);
+
+    if (block.kind === "action" && !block.isGhost) {
+      updateActionBlock.mutate({
+        actionBlockId: block.blockId,
+        patch: { status: "partial" },
+      });
+      const start = new Date(target);
+      start.setHours(block.span.start.getHours(), block.span.start.getMinutes(), 0, 0);
+      const end = new Date(target);
+      end.setHours(block.span.end.getHours(), block.span.end.getMinutes(), 0, 0);
+      addPlanBlock.mutate({
+        taskId: block.taskId,
+        date: dayKey(target),
+        startAt: start.toISOString(),
+        endAt: end.toISOString(),
+      });
+      return;
+    }
+
+    // Plan block / ghost: carry the underlying plan to the target day.
     const plan = allPlans.find((p) => p.planBlockId === block.blockId);
     if (!plan) return;
-    const { missedPatch, nextPlan } = carryOverPlan(
-      plan,
-      addDays(selectedDate, 1),
-    );
+    const { missedPatch, nextPlan } = carryOverPlan(plan, target);
     updatePlanBlock.mutate({ planBlockId: plan.planBlockId, patch: missedPatch });
     addPlanBlock.mutate(nextPlan);
   };
@@ -483,13 +506,8 @@ export function CalendarGrid() {
               key={`${block.isGhost ? "g" : ""}${block.blockId}`}
               block={block}
               onConfirm={block.isGhost ? () => confirmGhost(block) : undefined}
-              onCarryOver={block.isGhost ? () => carryGhost(block) : undefined}
               onOpenDetail={() => setDetailTaskId(block.taskId)}
-              onContinueTomorrow={
-                kind === "action" && !block.isGhost
-                  ? () => continueTomorrow(block)
-                  : undefined
-              }
+              onContinue={(dest) => continueBlock(block, dest)}
               onDragStart={handleDragStart}
               isDragging={isDragging}
               style={{
