@@ -1,9 +1,15 @@
 "use client";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTrashCan } from "@fortawesome/free-solid-svg-icons";
+import {
+  faBoxArchive,
+  faEye,
+  faEyeSlash,
+  faTrashCan,
+} from "@fortawesome/free-solid-svg-icons";
 import { projectColor, PROJECT_COLORS } from "@/lib/projectColor";
 import { ColorPicker } from "@/components/ColorPicker";
+import { activeProjects, isProjectHidden } from "@/core/project";
 import {
   useAddProject,
   useProjects,
@@ -26,8 +32,9 @@ export function ProjectLegend() {
   const updateProject = useUpdateProject();
   const removeProject = useRemoveProject();
 
-  // Stable order (creation time) so chips don't jump on update/refetch.
-  const projects = (data ?? [])
+  // Only active projects appear in the legend; deactivated ones move to the
+  // Shelf (ADR-028). Stable order (creation time) so chips don't jump on refetch.
+  const projects = activeProjects(data ?? [])
     .slice()
     .sort(
       (a, b) =>
@@ -40,13 +47,17 @@ export function ProjectLegend() {
 
       {projects.map((p) => {
         const c = p.projectColor ?? projectColor(p.projectId) ?? "#94a3b8";
+        const hidden = isProjectHidden(p);
         return (
           <div
             key={p.projectId}
             // Capsule tinted with the project colour; text stays foreground for
-            // readability (a faint tint + dark text reads on any hue).
+            // readability (a faint tint + dark text reads on any hue). Dimmed
+            // when hidden from the calendar so the state is visible (ADR-028).
             style={{ backgroundColor: `${c}22`, borderColor: `${c}66` }}
-            className="flex shrink-0 items-center gap-1.5 rounded-full border py-1 pl-1.5 pr-1 text-xs text-foreground"
+            className={`flex shrink-0 items-center gap-1.5 rounded-full border py-1 pl-1.5 pr-1 text-xs text-foreground${
+              hidden ? " opacity-50" : ""
+            }`}
           >
             {/* Custom colour picker (preset palette + hex) — matches the app UI. */}
             <ColorPicker
@@ -76,9 +87,45 @@ export function ProjectLegend() {
               aria-label={t("nameLabel")}
               className="w-24 bg-transparent text-foreground placeholder:text-muted focus:outline-none"
             />
+            {/* Deactivate: park the project in the Shelf (same box-archive
+                metaphor as shelving a task, ADR-026/028). Optimistic. */}
             <button
               type="button"
-              onClick={() => removeProject.mutate(p.projectId)}
+              onClick={(e) => {
+                e.stopPropagation();
+                updateProject.mutate({
+                  projectId: p.projectId,
+                  patch: { deactivatedAt: new Date() },
+                });
+              }}
+              aria-label={t("deactivate")}
+              title={t("deactivate")}
+              className="rounded px-1 text-muted/70 hover:text-foreground"
+            >
+              <FontAwesomeIcon icon={faBoxArchive} />
+            </button>
+            {/* Toggle calendar visibility of this project's blocks. Optimistic. */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                updateProject.mutate({
+                  projectId: p.projectId,
+                  patch: { hiddenAt: hidden ? null : new Date() },
+                });
+              }}
+              aria-label={hidden ? t("show") : t("hide")}
+              title={hidden ? t("show") : t("hide")}
+              className="rounded px-1 text-muted/70 hover:text-foreground"
+            >
+              <FontAwesomeIcon icon={hidden ? faEyeSlash : faEye} />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                removeProject.mutate(p.projectId);
+              }}
               aria-label={t("delete")}
               title={t("delete")}
               className="rounded px-1 text-muted/70 hover:text-red-500"

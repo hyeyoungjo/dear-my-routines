@@ -83,6 +83,9 @@
     "namePlaceholder": "프로젝트",
     "nameLabel": "프로젝트 이름",
     "delete": "프로젝트 삭제",
+    "deactivate": "비활성",
+    "hide": "캘린더에서 숨기기",
+    "show": "캘린더에 표시",
     "add": "+ 프로젝트"
   },
   "taskDetail": {

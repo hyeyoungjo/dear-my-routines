@@ -83,6 +83,9 @@
     "namePlaceholder": "Project",
     "nameLabel": "Project name",
     "delete": "Delete project",
+    "deactivate": "Deactivate",
+    "hide": "Hide on calendar",
+    "show": "Show on calendar",
     "add": "+ Project"
   },
   "taskDetail": {
