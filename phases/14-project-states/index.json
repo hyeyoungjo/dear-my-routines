@@ -21,7 +21,10 @@
     {
       "step": 2,
       "name": "core-project",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-07-02T04:46:50+0900",
+      "summary": "core/project.ts 순수 술어(isProjectActive/Hidden, activeProjects/deactivatedProjects, hiddenProjectIds, isBlockProjectHidden) + project.test.ts",
+      "completed_at": "2026-07-02T15:47:40+0900"
     },
     {
       "step": 3,
