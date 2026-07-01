@@ -64,6 +64,10 @@
     {
       "dir": "12-shelf",
       "status": "completed"
+    },
+    {
+      "dir": "13-continue-later",
+      "status": "pending"
     }
   ]
 }

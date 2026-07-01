@@ -455,3 +455,42 @@ plan과 겹쳐 **블록이 중복 생성되는 버그**가 있었다. → **"pla
 `api/tasks/[id]`(PATCH `shelvedAt`), `hooks/useCarryOverSweep.ts`(skip)·`hooks/shelf.ts`(shelve/un-shelve),
 `CalendarGrid.tsx`(필터)·`CalendarBlock.tsx`(shelf 버튼)·`TaskDetailModal.tsx`, 신규 `ShelfColumn.tsx`·
 앱셸(`AppSidebar.tsx`/`HeaderMenu.tsx`) + i18n(en/ko).
+
+### ADR-027: Continue Later — → 버튼을 목적지 선택으로 일반화, 이벤트 블록 기각 (2026-07-01)
+**맥락**: "task를 하다가 중간에 쉬었다가 이어서 하기"를 원했다. 처음엔 휴식·미팅·출근·퇴근 같은
+"끼워넣는 이벤트 블록"을 새 개념으로 만들자는 논의였으나, 다음 결론에 도달했다 — ① 미팅·출근 등은
+성격상 그냥 **task로 만들면 된다**(이 앱은 모든 블록이 task다). 별도 이벤트 개념이 불필요. ② 휴식은
+기록 대상이 아니라 **두 작업 조각 사이의 빈틈**일 뿐이다. ③ 진짜 필요한 건 하나 — **task를 하루 안에서
+멈췄다가 이어서 하기**. 그런데 지금은 → 버튼이 항상 내일로 carry라, "이어하기"가 사실상 다음날로만
+가능하다.
+**결정**:
+- **"이벤트/휴식 블록" 개념 기각.** 미팅·출근은 task로, 휴식은 두 조각 사이의 빈틈으로 남긴다.
+  새 테이블·새 컬럼을 만들지 않는다.
+- **→ 버튼 = 목적지 선택 팝오버**(`오늘 이따가` / `내일` / `특정 날짜`). 지금은 action에만 있는 → 를
+  **plan·action 실블록 양쪽**에 단다. ghost의 carry도 이 팝오버로 흡수한다.
+- **동작 매트릭스**:
+
+  | 목적지 | ACTION 블록 | PLAN 블록 |
+  |---|---|---|
+  | 오늘 이따가 | 같은 task 새 **plan 블록**(위치=블록끝+1h, 60분). 원본 그대로(partial/missed 안 붙임) | 같은 task 새 **plan 블록**(블록끝+1h, 60분). 원본 `planned` 그대로 |
+  | 내일 | action `partial` + 내일 plan(같은 시각) | `carryOverPlan(plan, 내일)`: 원본→`missed` + 내일 새 `planned` |
+  | 특정 날짜 | action `partial` + 그날 plan(같은 시각) | `carryOverPlan(plan, 그날)`: 원본→`missed` + 그날 새 `planned` |
+
+- **"오늘 이따가"의 기준점은 now가 아니라 "그 블록 자신의 끝 시각 + 1시간"** 이다. 이유: 이 액션이 plan
+  칼럼에서도 호출되는데, plan 블록은 벽시계상 now와 무관하기 때문. 블록-상대라야 plan/act 양쪽에서
+  일관된다. 그리드 끝을 넘으면 clamp한다.
+- **"오늘 이따가"는 miss가 아니다** — 같은 날 이어하기는 "놓침"이 아니라 additive다. 그래서 원본에
+  missed/partial 딱지를 붙이지 않고, 같은 task의 새 plan 조각을 하나 더 만든다. task는 하루에 blocks
+  여러 개(1:N)이므로 구조 변경이 필요 없다.
+- **아이콘 언어 정리**: 삭제 버튼을 `✕`(faXmark)에서 **쓰레기통**(faTrashCan)으로 교체한다. `✕`는
+  "닫기" 전용(팝오버·모달)으로 남긴다. 결과적으로 블록의 아이콘 뜻이 갈린다 — **→ = 이어하기/미루기,
+  🗑 = 삭제**.
+**이유**: 새 개념·스키마를 만들지 않고 UX 문제(하루 안 pause/resume)를 기존 배관 위에서 푼다.
+`carryOverPlan(plan, toDate)`가 이미 임의 날짜를 받으므로 "내일/특정 날짜"는 core 변경이 없다.
+"데이터는 사실, 화면은 해석"(ADR-025)·"파생값 저장 안 함"(ADR-013/018) 원칙과 정합 — 남은 분량을
+계산해 옮기지 않고 그냥 새 조각을 추가한다.
+**트레이드오프**: "오늘 이따가"가 남은 분량을 자동 계산하지 않으므로(기본 60분 새 블록), 정확한 잔여
+시간은 사용자가 리사이즈로 맞춘다. 이는 파생값을 저장/계산하지 않는 원칙을 지키기 위한 선택이다.
+**비고**: 손대는 코드는 `core/time/plan.ts`(신규 `continueLaterSpan`)·`CalendarBlock.tsx`·
+`CalendarGrid.tsx`·i18n(en/ko). phase `13-continue-later`(step 0~2). **스키마 변경 없음** →
+`DATA-STRUCTURE.md`는 수정하지 않는다.
