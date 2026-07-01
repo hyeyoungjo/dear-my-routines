@@ -25,6 +25,10 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-07-01",
     text: { en: "Shelf feature added", ko: "선반 기능 추가" },
   },
+  {
+    date: "2026-06-24",
+    text: { en: "Dear My Routines launched 🎉", ko: "Dear My Routines 출시 🎉" },
+  },
 ];
 
 /** The most recent entry's date — the guide button's "new" comparison key. */
