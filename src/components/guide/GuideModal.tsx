@@ -114,7 +114,7 @@ export function GuideModal({ onClose }: { onClose: () => void }) {
                   details: t("taskbox.details"),
                   detailWindow: t("taskbox.detailWindow"),
                   shelve: t("taskbox.shelve"),
-                  continueTomorrow: t("taskbox.continueTomorrow"),
+                  continueLater: t("taskbox.continueLater"),
                 }}
               />
             </div>

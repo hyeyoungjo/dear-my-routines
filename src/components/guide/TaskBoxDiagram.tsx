@@ -1,6 +1,7 @@
 import {
   faMaximize,
   faXmark,
+  faTrashCan,
   faBoxArchive,
   faCircleArrowRight,
   faUpDownLeftRight,
@@ -10,7 +11,8 @@ import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 /**
  * Panel 3 of the guide: a task box (a wide block) with callouts for what you can
  * do to it — drag to move (a move glyph on the block), open its details (⤢),
- * shelve it (box), continue it tomorrow (arrow) — and the detail window the ⤢
+ * shelve it (box), continue it later (arrow → today/tomorrow/a date) — and the
+ * detail window the ⤢
  * opens (dashed link). Each label sits next to its control with a short
  * connector (top for the top-row buttons, bottom for the bottom ones) so the
  * lines don't cross. Pure SVG, themed with CSS vars; text is i18n'd by the caller.
@@ -20,7 +22,7 @@ type Labels = {
   details: string;
   detailWindow: string;
   shelve: string;
-  continueTomorrow: string;
+  continueLater: string;
 };
 
 /** A FontAwesome glyph centred at (cx, cy) at the given pixel size. */
@@ -110,7 +112,7 @@ export function TaskBoxDiagram({ labels }: { labels: Labels }) {
       {/* Drag affordance: a move glyph in the middle of the block */}
       <Glyph icon={faUpDownLeftRight} cx={240} cy={152} size={30} fill="var(--accent)" opacity={0.4} />
       <Glyph icon={faMaximize} cx={352} cy={90} size={13} fill="var(--muted)" />
-      <Glyph icon={faXmark} cx={372} cy={90} size={13} fill="var(--muted)" />
+      <Glyph icon={faTrashCan} cx={372} cy={90} size={13} fill="var(--muted)" />
       <Glyph icon={faBoxArchive} cx={110} cy={202} size={14} fill="var(--muted)" />
       <Glyph icon={faCircleArrowRight} cx={372} cy={202} size={15} fill="var(--muted)" />
 
@@ -119,7 +121,7 @@ export function TaskBoxDiagram({ labels }: { labels: Labels }) {
       <Callout label={labels.detailWindow} x={452} y={16} w={130} tx={500} ty={96} />
       <Callout label={labels.drag} x={16} y={140} w={110} tx={240} ty={152} />
       <Callout label={labels.shelve} x={64} y={256} w={90} tx={110} ty={202} />
-      <Callout label={labels.continueTomorrow} x={300} y={256} w={150} tx={372} ty={202} />
+      <Callout label={labels.continueLater} x={300} y={256} w={150} tx={372} ty={202} />
     </svg>
   );
 }
