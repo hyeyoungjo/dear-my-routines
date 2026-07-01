@@ -7,7 +7,8 @@
       "name": "docs-adr",
       "status": "completed",
       "started_at": "2026-07-02T04:41:33+0900",
-      "summary": "ADR-028 — projects.deactivatedAt(→shelf)·hiddenAt(캘린더 필터) 두 상태, shelf 패턴 미러, DB 저장. localStorage 이전은 phase15로 분리"
+      "summary": "ADR-028 — projects.deactivatedAt(→shelf)·hiddenAt(캘린더 필터) 두 상태, shelf 패턴 미러, DB 저장. localStorage 이전은 phase15로 분리",
+      "completed_at": "2026-07-02T04:42:54+0900"
     },
     {
       "step": 1,
