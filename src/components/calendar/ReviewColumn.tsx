@@ -3,14 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSelectedDate } from "@/components/date";
 import { dayKey } from "@/core/time/day";
-import { isDailyAnalysis, type DailyAnalysis, type TaskRatio } from "@/core/ai/schema";
 import {
   useDailyReview,
   useUpsertDailyReview,
   type UpsertReviewInput,
 } from "@/hooks/dailyReviews";
-import { AnalyzeButton } from "@/components/AnalyzeButton";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 
 /** Idle time after the last keystroke before the journal is auto-saved. */
 const DEBOUNCE_MS = 600;
@@ -22,11 +20,9 @@ const DEBOUNCE_MS = 600;
  * Input is debounced (~600ms) into the optimistic upsert hook (ADR-007).
  * Pending saves are flushed on blur and on day change.
  *
- * AI analysis is triggered from the Analyze button at the foot of this panel
- * (ADR-020), so the trigger sits beside its result. When ai_analysis exists on
- * the review row, it is shown below the journal in a visually distinct area
- * (accent-tinted background). The textarea is never disabled — analysis loading
- * is fully decoupled (ADR-007).
+ * Just the journal now: the AI analysis trigger + read-out moved to its own
+ * toggleable side panel (AiPanel, the mirror of the Shelf), so Plan/Act/Reflect
+ * stay purely what the user does (ADR-020).
  */
 export function ReviewColumn({ className }: { className?: string }) {
   const t = useTranslations("review");
@@ -78,11 +74,6 @@ export function ReviewColumn({ className }: { className?: string }) {
     timerRef.current = setTimeout(flush, DEBOUNCE_MS);
   };
 
-  // Safely narrow the jsonb blob — unknown shape must never crash the render.
-  const analysis: DailyAnalysis | null = isDailyAnalysis(data?.aiAnalysis)
-    ? (data!.aiAnalysis as DailyAnalysis)
-    : null;
-
   return (
     <div className={`flex flex-1 flex-col border-l border-grid${className ? ` ${className}` : ""}`}>
       <textarea
@@ -92,95 +83,6 @@ export function ReviewColumn({ className }: { className?: string }) {
         placeholder={t("placeholder")}
         className="min-h-0 flex-1 w-full resize-none bg-transparent p-3 text-sm leading-relaxed text-foreground placeholder:text-muted focus:outline-none"
       />
-
-      {analysis && <AnalysisResult analysis={analysis} />}
-
-      <AnalyzeButton />
-    </div>
-  );
-}
-
-function AnalysisResult({ analysis }: { analysis: DailyAnalysis }) {
-  const locale = useLocale();
-  const t = useTranslations("review");
-  return (
-    <div className="mx-2 mb-2 rounded-lg border border-accent/20 bg-accent-soft/50 p-3 space-y-3">
-      {/* Header */}
-      <div className="flex items-center gap-1.5">
-        <span className="text-xs font-semibold uppercase tracking-wider text-accent">
-          ✦ {t("aiHeader")}
-        </span>
-        {analysis.generatedAt && (
-          <span className="ml-auto text-[10px] text-muted tabular-nums">
-            {new Date(analysis.generatedAt).toLocaleTimeString(locale, {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </span>
-        )}
-      </div>
-
-      {/* Today's Pattern */}
-      <div className="space-y-1">
-        <p className="text-xs font-semibold text-foreground">{t("todaysPattern")}</p>
-        <p className="text-xs leading-relaxed text-foreground/80">{analysis.summary}</p>
-      </div>
-
-      {/* Est → Actual chips */}
-      {analysis.taskRatios && analysis.taskRatios.length > 0 && (
-        <div className="space-y-1.5">
-          <p className="text-xs font-semibold text-foreground">{t("estVsActual")}</p>
-          <div className="flex flex-wrap gap-1.5">
-            {analysis.taskRatios.map((r: TaskRatio, i: number) => (
-              <div
-                key={i}
-                className="flex items-center gap-1 rounded bg-accent/10 px-2 py-0.5 text-[11px] tabular-nums"
-              >
-                <span className="text-muted">{r.name}</span>
-                {(r.isDeferred || r.actual === "—") ? (
-                  <>
-                    <span className="font-medium text-accent">{r.estimated}</span>
-                    <span className="rounded bg-muted/20 px-1 py-px text-[10px] font-medium text-muted">
-                      {t("deferred")}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span className="font-medium text-accent">
-                      {r.estimated} → {r.actual}
-                    </span>
-                    {r.isPartial && (
-                      <span className="rounded bg-accent/20 px-1 py-px text-[10px] font-medium text-accent">
-                        {t("continuesTomorrow")}
-                      </span>
-                    )}
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Suggestions */}
-      {analysis.observations.length > 0 && (
-        <div className="space-y-1">
-          <p className="text-xs font-semibold text-foreground">{t("suggestions")}</p>
-          <ul className="space-y-1">
-            {analysis.observations.map((obs: string, i: number) => (
-              <li key={i} className="flex gap-1.5 text-xs leading-relaxed text-foreground/80">
-                <span className="mt-0.5 shrink-0 text-accent">•</span>
-                <span>{obs}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Encouragement */}
-      {analysis.encouragement && (
-        <p className="text-xs italic text-foreground/60">{analysis.encouragement}</p>
-      )}
     </div>
   );
 }

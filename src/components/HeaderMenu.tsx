@@ -9,7 +9,7 @@ import { GuideButton } from "@/components/GuideButton";
 import { KofiButton } from "@/components/KofiButton";
 import { ThemeMenu } from "@/components/ThemeMenu";
 import { SignOutButton } from "@/components/SignOutButton";
-import { LeftPanelToggle } from "@/components/AppSidebar";
+import { LeftPanelToggle, RightPanelToggle } from "@/components/AppSidebar";
 
 /**
  * Mobile-only hamburger that collapses the header actions into one menu, each
@@ -58,6 +58,7 @@ export function HeaderMenu({
             <FeedbackButton userEmail={userEmail} variant="menu" />
             <KofiButton variant="menu" />
             <LeftPanelToggle variant="menu" />
+            <RightPanelToggle variant="menu" />
             <ThemeMenu isAdmin={isAdmin} variant="menu" />
             <SignOutButton action={signOut} variant="menu" />
           </div>

@@ -71,7 +71,9 @@
     "reanalyze": "Re-analyze",
     "analyzing": "Analyzing…",
     "continuesTomorrow": "continues tomorrow",
-    "deferred": "deferred"
+    "deferred": "deferred",
+    "aiEmpty": "No analysis yet. Analyze the day to see your plan-vs-actual.",
+    "aiToggle": "Toggle AI panel"
   },
   "projects": {
     "label": "Projects",
@@ -195,15 +197,44 @@
       "plan": "Plan",
       "act": "Act",
       "reflect": "Reflect",
+      "ai": "AI",
       "timeline": "Shared timeline"
     },
     "flow": {
       "heading": "Workflow",
       "optional": "optional",
-      "project": { "label": "Project", "desc": "Group related tasks" },
-      "plan": { "label": "Plan", "desc": "Block out when" },
-      "act": { "label": "Act", "desc": "Track real time" },
-      "reflect": { "label": "Reflect", "desc": "Journal + AI review" }
+      "project": {
+        "label": "Project",
+        "desc": "Group related tasks"
+      },
+      "plan": {
+        "label": "Plan",
+        "desc": "Block out when"
+      },
+      "act": {
+        "label": "Act",
+        "desc": "Track real time"
+      },
+      "reflect": {
+        "label": "Reflect",
+        "desc": "Journal + AI review"
+      }
+    },
+    "taskbox": {
+      "heading": "The task box",
+      "drag": "Drag to move",
+      "details": "Details",
+      "detailWindow": "Detail window",
+      "shelve": "Shelve",
+      "continueTomorrow": "Continue tomorrow"
+    },
+    "ai": {
+      "heading": "AI review",
+      "caption": "The daily review runs on a built-in prompt — the app computes the exact numbers, the AI writes the words. Tune it in Settings → AI.",
+      "enable": "Turn it on",
+      "model": "Pick a model",
+      "customPrompt": "Custom prompt (your tone)",
+      "history": "Look-back window"
     }
   }
 }

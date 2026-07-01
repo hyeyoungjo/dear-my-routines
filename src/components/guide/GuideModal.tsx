@@ -7,6 +7,8 @@ import { useLocale, useTranslations } from "next-intl";
 import { CHANGELOG } from "@/lib/changelog";
 import { InterfaceDiagram } from "@/components/guide/InterfaceDiagram";
 import { FlowDiagram } from "@/components/guide/FlowDiagram";
+import { TaskBoxDiagram } from "@/components/guide/TaskBoxDiagram";
+import { AiSettingsDiagram } from "@/components/guide/AiSettingsDiagram";
 import type { LanguageId } from "@/lib/languages";
 
 /**
@@ -69,6 +71,7 @@ export function GuideModal({ onClose }: { onClose: () => void }) {
                   plan: t("interface.plan"),
                   act: t("interface.act"),
                   reflect: t("interface.reflect"),
+                  ai: t("interface.ai"),
                   timeline: t("interface.timeline"),
                 }}
               />
@@ -99,7 +102,43 @@ export function GuideModal({ onClose }: { onClose: () => void }) {
             </div>
           </section>
 
-          {/* 3. What's new */}
+          {/* 3. The task box */}
+          <section>
+            <h3 className="mb-4 text-lg font-semibold tracking-tight">
+              {t("taskbox.heading")}
+            </h3>
+            <div className="rounded-xl border border-border p-3">
+              <TaskBoxDiagram
+                labels={{
+                  drag: t("taskbox.drag"),
+                  details: t("taskbox.details"),
+                  detailWindow: t("taskbox.detailWindow"),
+                  shelve: t("taskbox.shelve"),
+                  continueTomorrow: t("taskbox.continueTomorrow"),
+                }}
+              />
+            </div>
+          </section>
+
+          {/* 4. AI review */}
+          <section>
+            <h3 className="mb-1 text-lg font-semibold tracking-tight">
+              {t("ai.heading")}
+            </h3>
+            <p className="mb-4 text-sm text-muted">{t("ai.caption")}</p>
+            <div className="rounded-xl border border-border p-3">
+              <AiSettingsDiagram
+                labels={{
+                  enable: t("ai.enable"),
+                  model: t("ai.model"),
+                  customPrompt: t("ai.customPrompt"),
+                  history: t("ai.history"),
+                }}
+              />
+            </div>
+          </section>
+
+          {/* 5. What's new */}
           <section>
             <h3 className="mb-3 text-lg font-semibold tracking-tight">
               {t("whatsNew")}

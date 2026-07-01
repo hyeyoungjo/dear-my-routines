@@ -5,7 +5,9 @@ import { ProjectLegend } from "@/components/calendar/ProjectLegend";
 import {
   SidebarProvider,
   LeftPanelToggle,
+  RightPanelToggle,
   LeftRail,
+  RightRail,
 } from "@/components/AppSidebar";
 import { DateBar } from "@/components/DateBar";
 import { ThemeMenu } from "@/components/ThemeMenu";
@@ -52,6 +54,7 @@ export default async function Home() {
             <FeedbackButton userEmail={user?.email ?? ""} />
             <KofiButton />
             <LeftPanelToggle />
+            <RightPanelToggle />
             <ThemeMenu isAdmin={isAdmin} />
             <SignOutButton
               action={signOut}
@@ -87,8 +90,8 @@ export default async function Home() {
           </div>
         </main>
 
-        {/* Right rail — reserved for future panels. */}
-        <aside className="hidden w-52 shrink-0 lg:block" aria-hidden />
+        {/* Right rail — AI panel (ADR-020), inline on desktop / drawer on mobile. */}
+        <RightRail />
       </div>
     </div>
     </SidebarProvider>
