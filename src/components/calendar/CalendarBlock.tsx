@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faMaximize,
@@ -135,7 +136,12 @@ export function CalendarBlock({
   // MiniCalendar for a specific date. Closes on outside pointer-down / Escape.
   const [continueOpen, setContinueOpen] = useState(false);
   const [pickingDate, setPickingDate] = useState(false);
-  const continueRef = useRef<HTMLDivElement>(null);
+  // The popover renders in a portal on <body> (fixed), NOT nested in the block —
+  // otherwise the calendar column's overflow clips it (ADR-027). `pos` is the
+  // measured viewport position; anchored to the right of the → button.
+  const continueBtnRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
   useEffect(() => {
     if (!continueOpen) return;
     const close = () => {
@@ -143,7 +149,10 @@ export function CalendarBlock({
       setPickingDate(false);
     };
     const onDown = (e: PointerEvent) => {
-      if (!continueRef.current?.contains(e.target as Node)) close();
+      const tgt = e.target as Node;
+      if (continueBtnRef.current?.contains(tgt)) return;
+      if (panelRef.current?.contains(tgt)) return;
+      close();
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") close();
@@ -155,6 +164,27 @@ export function CalendarBlock({
       document.removeEventListener("keydown", onKey);
     };
   }, [continueOpen]);
+  // Place the floating panel to the right of the → button, clamped to the
+  // viewport (flip left if it would overflow the right edge; nudge up/down to
+  // stay on-screen). Runs before paint so there's no visible jump.
+  useLayoutEffect(() => {
+    if (!continueOpen || !continueBtnRef.current || !panelRef.current) return;
+    const btn = continueBtnRef.current.getBoundingClientRect();
+    const panel = panelRef.current.getBoundingClientRect();
+    const gap = 8;
+    const margin = 8;
+    let left = btn.right + gap;
+    if (left + panel.width > window.innerWidth - margin) {
+      left = btn.left - gap - panel.width;
+    }
+    left = Math.max(margin, left);
+    let top = btn.top;
+    if (top + panel.height > window.innerHeight - margin) {
+      top = window.innerHeight - margin - panel.height;
+    }
+    top = Math.max(margin, top);
+    setPos({ left, top });
+  }, [continueOpen, pickingDate]);
 
   const pick = (dest: ContinueDest) => {
     onContinue?.(dest);
@@ -396,8 +426,9 @@ export function CalendarBlock({
       {/* Continue (→) — destination popover for plan/action blocks and ghosts
           (ADR-027). Dashed-bottom partial actions keep it always visible. */}
       {onContinue && (
-        <div ref={continueRef} className="absolute bottom-2 right-1 z-20">
+        <div className="absolute bottom-2 right-1 z-20">
           <button
+            ref={continueBtnRef}
             type="button"
             onClick={(e) => {
               e.stopPropagation();
@@ -414,63 +445,75 @@ export function CalendarBlock({
           >
             <FontAwesomeIcon icon={faCircleArrowRight} />
           </button>
-
-          {continueOpen && (
-            <div
-              onClick={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
-              className="absolute bottom-full right-0 z-30 mb-1 w-max rounded-lg border border-border bg-panel p-1 text-left shadow-md"
-            >
-              {pickingDate ? (
-                <div className="p-1">
-                  <div className="mb-1 flex items-center justify-between">
-                    <span className="px-1 text-xs font-medium text-foreground">
-                      {t("continuePickDate")}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setPickingDate(false)}
-                      aria-label={t("close")}
-                      title={t("close")}
-                      className="rounded px-1 text-[10px] text-muted hover:text-foreground"
-                    >
-                      <FontAwesomeIcon icon={faXmark} />
-                    </button>
-                  </div>
-                  <MiniCalendar
-                    selected={block.span.start}
-                    onSelect={(date) => pick({ when: "date", date })}
-                  />
-                </div>
-              ) : (
-                <div className="flex flex-col">
-                  <button
-                    type="button"
-                    onClick={() => pick({ when: "today" })}
-                    className="rounded px-2 py-1 text-left text-xs text-foreground hover:bg-accent-soft"
-                  >
-                    {t("continueToday")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => pick({ when: "tomorrow" })}
-                    className="rounded px-2 py-1 text-left text-xs text-foreground hover:bg-accent-soft"
-                  >
-                    {t("continueTomorrow")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPickingDate(true)}
-                    className="rounded px-2 py-1 text-left text-xs text-foreground hover:bg-accent-soft"
-                  >
-                    {t("continuePickDate")}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       )}
+
+      {/* Popover panel — portaled to <body> and fixed-positioned so no ancestor
+          overflow can clip it (floats like a notification, ADR-027). */}
+      {onContinue &&
+        continueOpen &&
+        createPortal(
+          <div
+            ref={panelRef}
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            style={{
+              position: "fixed",
+              left: pos?.left ?? -9999,
+              top: pos?.top ?? -9999,
+              visibility: pos ? "visible" : "hidden",
+            }}
+            className="z-50 w-max rounded-lg border border-border bg-panel p-1 text-left shadow-md"
+          >
+            {pickingDate ? (
+              <div className="p-1">
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="px-1 text-xs font-medium text-foreground">
+                    {t("continuePickDate")}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPickingDate(false)}
+                    aria-label={t("close")}
+                    title={t("close")}
+                    className="rounded px-1 text-[10px] text-muted hover:text-foreground"
+                  >
+                    <FontAwesomeIcon icon={faXmark} />
+                  </button>
+                </div>
+                <MiniCalendar
+                  selected={block.span.start}
+                  onSelect={(date) => pick({ when: "date", date })}
+                />
+              </div>
+            ) : (
+              <div className="flex flex-col">
+                <button
+                  type="button"
+                  onClick={() => pick({ when: "today" })}
+                  className="rounded px-2 py-1 text-left text-xs text-foreground hover:bg-accent-soft"
+                >
+                  {t("continueToday")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => pick({ when: "tomorrow" })}
+                  className="rounded px-2 py-1 text-left text-xs text-foreground hover:bg-accent-soft"
+                >
+                  {t("continueTomorrow")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPickingDate(true)}
+                  className="rounded px-2 py-1 text-left text-xs text-foreground hover:bg-accent-soft"
+                >
+                  {t("continuePickDate")}
+                </button>
+              </div>
+            )}
+          </div>,
+          document.body,
+        )}
 
       {/* Shelve — bottom-left corner (real blocks only). Parks this task off the
           daily carry-over (ADR-026): it leaves the calendar and waits in the
