@@ -44,7 +44,11 @@ export async function updateSession(request: NextRequest) {
   const isPublicRoute =
     pathname === "/login" ||
     pathname === "/unauthorized" ||
-    pathname.startsWith("/auth");
+    pathname.startsWith("/auth") ||
+    // One-click email unsubscribe must work while logged out (ADR-029): the
+    // recipient clicking the link may not be signed in. It's protected by its
+    // own HMAC token, not the session.
+    pathname === "/api/unsubscribe";
 
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
