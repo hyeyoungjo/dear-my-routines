@@ -201,7 +201,7 @@ export function TaskDetailModal({
         aria-modal="true"
         aria-label={t("modalLabel")}
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-xl border border-border bg-panel shadow-lg"
+        className="flex max-h-[85vh] w-full max-w-xl flex-col overflow-hidden rounded-xl border border-border bg-panel shadow-lg"
       >
         {/* Header: title + close */}
         <div className="flex items-start justify-between gap-2 p-4 pb-3">
