@@ -207,10 +207,12 @@ export function CalendarGrid() {
 
   /**
    * The → button's single handler (ADR-027 matrix). Three destinations:
-   *  - `today`: same-day continuation — a fresh `planned` plan one gap after this
-   *    block's END (`continueLaterSpan`, block-relative so it works from plan AND
-   *    action columns). The original is left untouched: same-day "continue" is
-   *    additive, not a miss (no partial/missed tag).
+   *  - `today`: same-day continuation — a fresh block one gap after this block's
+   *    END (`continueLaterSpan`, block-relative so it works from plan AND action
+   *    columns). It lands in the SAME column as the source: an action continues
+   *    as a new action, a plan / ghost as a new `planned` plan. The original is
+   *    left untouched: same-day "continue" is additive, not a miss (no
+   *    partial/missed tag).
    *  - `tomorrow` / `date`: the classic carry to a later day, only the target
    *    generalized. An ACTION becomes `partial` + gets a plan on the target day at
    *    the same clock time. A PLAN block / ghost carries its underlying plan
@@ -224,12 +226,20 @@ export function CalendarGrid() {
         selectedDate,
         gridEndHour,
       );
-      addPlanBlock.mutate({
+      const payload = {
         taskId: block.taskId,
         date: dayKey(selectedDate),
         startAt: start.toISOString(),
         endAt: end.toISOString(),
-      });
+      };
+      // Continue in the SAME column as the source: an action block continues as
+      // an action, a plan block / ghost continues as a plan. (A ghost is a
+      // plan-side stand-in, so it stays on the plan side.)
+      if (block.kind === "action" && !block.isGhost) {
+        addActionBlock.mutate(payload);
+      } else {
+        addPlanBlock.mutate(payload);
+      }
       return;
     }
 
