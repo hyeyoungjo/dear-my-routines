@@ -79,8 +79,17 @@ export function planSpan(plan: PlanBlock): Span {
  * duration — only the calendar date (and the `date` that tracks it) move.
  * Status is untouched: dragging a date is not a carry-over (ADR-009).
  */
-export function shiftPlan(plan: PlanBlock, toDate: Date): Partial<PlanBlock> {
-  const { start, end } = shiftSpanOntoGridDay(plan.startAt, plan.endAt, toDate);
+export function shiftPlan(
+  plan: PlanBlock,
+  toDate: Date,
+  gridEndHour = DEFAULT_GRID_END_HOUR,
+): Partial<PlanBlock> {
+  const { start, end } = shiftSpanOntoGridDay(
+    plan.startAt,
+    plan.endAt,
+    toDate,
+    gridEndHour,
+  );
   return {
     startAt: start.toISOString(),
     endAt: end!.toISOString(),
@@ -98,8 +107,14 @@ export function shiftPlan(plan: PlanBlock, toDate: Date): Partial<PlanBlock> {
 export function carryOverPlan(
   plan: PlanBlock,
   toDate: Date,
+  gridEndHour = DEFAULT_GRID_END_HOUR,
 ): { missedPatch: Partial<PlanBlock>; nextPlan: Omit<PlanBlock, "planBlockId"> } {
-  const { start, end } = shiftSpanOntoGridDay(plan.startAt, plan.endAt, toDate);
+  const { start, end } = shiftSpanOntoGridDay(
+    plan.startAt,
+    plan.endAt,
+    toDate,
+    gridEndHour,
+  );
   return {
     missedPatch: { status: "missed" },
     nextPlan: {

@@ -24,6 +24,7 @@ import {
   plansForDay,
 } from "@/core/time/plan";
 import { actionSpan, actionsForDay, isOngoing } from "@/core/time/action";
+import { shiftSpanOntoGridDay } from "@/core/time/carry";
 import { isShelved } from "@/core/time/shelf";
 import { hiddenProjectIds, isBlockProjectHidden } from "@/core/project";
 import { addDays, dayKey } from "@/core/time/day";
@@ -250,15 +251,21 @@ export function CalendarGrid() {
         actionBlockId: block.blockId,
         patch: { status: "partial" },
       });
-      const start = new Date(target);
-      start.setHours(block.span.start.getHours(), block.span.start.getMinutes(), 0, 0);
-      const end = new Date(target);
-      end.setHours(block.span.end.getHours(), block.span.end.getMinutes(), 0, 0);
+      // Shift the span onto the target *grid day* (not just its calendar date):
+      // on a cross-midnight grid a post-midnight block must land on the next
+      // calendar date to stay in the target day's window, else it reappears on
+      // the source day. This also preserves the exact duration across the shift.
+      const { start, end } = shiftSpanOntoGridDay(
+        block.span.start,
+        block.span.end,
+        target,
+        gridEndHour,
+      );
       addPlanBlock.mutate({
         taskId: block.taskId,
         date: dayKey(target),
         startAt: start.toISOString(),
-        endAt: end.toISOString(),
+        endAt: end!.toISOString(),
       });
       return;
     }
@@ -266,7 +273,7 @@ export function CalendarGrid() {
     // Plan block / ghost: carry the underlying plan to the target day.
     const plan = allPlans.find((p) => p.planBlockId === block.blockId);
     if (!plan) return;
-    const { missedPatch, nextPlan } = carryOverPlan(plan, target);
+    const { missedPatch, nextPlan } = carryOverPlan(plan, target, gridEndHour);
     updatePlanBlock.mutate({ planBlockId: plan.planBlockId, patch: missedPatch });
     addPlanBlock.mutate(nextPlan);
   };

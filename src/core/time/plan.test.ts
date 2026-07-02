@@ -88,7 +88,7 @@ describe("shiftPlan", () => {
     expect(patch.status).toBeUndefined(); // a reschedule is not a carry
   });
 
-  it("places a 1 AM plan on the target's calendar date", () => {
+  it("places a 1 AM plan on the target's calendar date (non-crossing grid)", () => {
     const p = plan({
       startAt: new Date(2026, 5, 21, 1, 0).toISOString(),
       endAt: new Date(2026, 5, 21, 2, 0).toISOString(),
@@ -96,8 +96,24 @@ describe("shiftPlan", () => {
     const patch = shiftPlan(p, new Date(2026, 5, 22));
     const start = new Date(patch.startAt as string);
     expect([start.getHours(), start.getMinutes()]).toEqual([1, 0]);
-    // Calendar date = toDate (no post-midnight wrap).
+    // Default 24h grid has no overhang → calendar date = toDate, no wrap.
     expect(dayKey(start)).toBe("2026-06-22");
+  });
+
+  it("wraps a 1 AM plan to the next calendar date on a cross-midnight grid", () => {
+    // With a 07:00→02:00 grid (end = 26), 01:00 is the overhang: to land in
+    // Jun 22's grid window [Jun 22 07:00, Jun 23 02:00) the timestamp must be
+    // Jun 23 01:00 — otherwise Jun 22 01:00 falls back into Jun 21's window.
+    const p = plan({
+      startAt: new Date(2026, 5, 21, 1, 0).toISOString(),
+      endAt: new Date(2026, 5, 21, 2, 0).toISOString(),
+    });
+    const patch = shiftPlan(p, new Date(2026, 5, 22), 26);
+    const start = new Date(patch.startAt as string);
+    expect([start.getHours(), start.getMinutes()]).toEqual([1, 0]);
+    expect(dayKey(start)).toBe("2026-06-23"); // calendar date wrapped +1
+    // The `date` key still names the grid day, not the calendar date.
+    expect(patch.date).toBe("2026-06-22");
   });
 });
 
@@ -125,6 +141,28 @@ describe("carryOverPlan", () => {
     expect(durationMinutes(start, end)).toBe(90);
     // `nextPlan` has no id — the caller's insert assigns it.
     expect("planBlockId" in nextPlan).toBe(false);
+  });
+
+  it("carries a post-midnight plan onto the target grid day (cross-midnight grid)", () => {
+    // The reported bug: "continue tomorrow" on a 1 AM block (visible on a
+    // 07:00→02:00 grid) landed back on today. The carried plan must fall inside
+    // the TARGET day's window and NOT the source day's.
+    const gridStart = 7;
+    const gridEnd = 26;
+    const p = plan({
+      date: "2026-06-21",
+      startAt: new Date(2026, 5, 22, 1, 0).toISOString(), // shown on Jun 21's grid
+      endAt: new Date(2026, 5, 22, 1, 30).toISOString(),
+    });
+    const { nextPlan } = carryOverPlan(p, new Date(2026, 5, 22), gridEnd);
+
+    expect(nextPlan.date).toBe("2026-06-22"); // grid-day key
+    const start = new Date(nextPlan.startAt);
+    expect([start.getHours(), start.getMinutes()]).toEqual([1, 0]);
+    expect(durationMinutes(new Date(nextPlan.startAt), new Date(nextPlan.endAt))).toBe(30);
+    // Lands in Jun 22's window, not back in Jun 21's (the bug).
+    expect(planBelongsToDay(nextPlan as PlanBlock, new Date(2026, 5, 22), gridStart, gridEnd)).toBe(true);
+    expect(planBelongsToDay(nextPlan as PlanBlock, new Date(2026, 5, 21), gridStart, gridEnd)).toBe(false);
   });
 });
 

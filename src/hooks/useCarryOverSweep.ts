@@ -3,9 +3,11 @@
 import { useEffect, useRef } from "react";
 import { carryOverPlan, findOverduePlans } from "@/core/time/plan";
 import { startOfDay } from "@/core/time/day";
+import { DEFAULT_GRID_END_HOUR } from "@/core/time/calendar";
 import { shelvedTaskIds } from "@/core/time/shelf";
 import { useActionBlocks } from "@/hooks/actionBlocks";
 import { useTasks } from "@/hooks/tasks";
+import { useUserSettings } from "@/hooks/userSettings";
 import {
   useAddPlanBlock,
   usePlanBlocks,
@@ -37,6 +39,8 @@ export function useCarryOverSweep(): void {
   const { data: plans, isSuccess: plansReady } = usePlanBlocks();
   const { data: actions, isSuccess: actionsReady } = useActionBlocks();
   const { data: tasks, isSuccess: tasksReady } = useTasks();
+  const { data: userSettings } = useUserSettings();
+  const gridEndHour = userSettings?.gridEndTime ?? DEFAULT_GRID_END_HOUR;
   const updatePlanBlock = useUpdatePlanBlock();
   const addPlanBlock = useAddPlanBlock();
   const sweptRef = useRef(false);
@@ -60,7 +64,7 @@ export function useCarryOverSweep(): void {
 
     const today = startOfDay(new Date());
     for (const plan of findOverduePlans(plans, today, skipTaskIds)) {
-      const { missedPatch, nextPlan } = carryOverPlan(plan, today);
+      const { missedPatch, nextPlan } = carryOverPlan(plan, today, gridEndHour);
       updatePlanBlock.mutate({ planBlockId: plan.planBlockId, patch: missedPatch });
       addPlanBlock.mutate(nextPlan);
     }
@@ -71,6 +75,7 @@ export function useCarryOverSweep(): void {
     actions,
     tasksReady,
     tasks,
+    gridEndHour,
     updatePlanBlock,
     addPlanBlock,
   ]);
