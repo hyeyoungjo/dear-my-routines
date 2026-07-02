@@ -444,10 +444,15 @@ export function CalendarGrid() {
 
     const selectedDateKey = dayKey(selectedDate);
     const dayActions = actionsForDay(allActions, selectedDate, gridStartHour, gridEndHour);
-    const actedTaskIds = new Set(dayActions.map((a) => a.taskId));
+    // taskId → the day's action spans, used to decide whether a given plan slot
+    // was actually acted (time overlap) rather than "the task was acted somewhere".
+    const actedSpansByTask = new Map<string, Span[]>();
     for (const action of dayActions) {
       const base = actionSpan(action);
       if (!base) continue; // running (no end) — nothing to draw yet
+      const spans = actedSpansByTask.get(action.taskId);
+      if (spans) spans.push(base);
+      else actedSpansByTask.set(action.taskId, [base]);
       const d = decorate(action.taskId, selectedDateKey);
       if (!d) continue;
       result.push({
@@ -460,20 +465,26 @@ export function CalendarGrid() {
         ...d,
       });
     }
-    // Ghosts: an unacted plan (its task has no action that day) projected faintly.
+    // Ghosts: a planned slot with no action *in that slot yet*, projected faintly.
     // Ghosts project only `planned` plans (no action yet). A `missed` plan was
     // carried away — it leaves the ACT view and lives on as a dashed PLAN record,
     // so a ghost ✕ (carry-over → missed) makes the ghost disappear here at once.
     for (const plan of plansForDay(allPlans, selectedDate, gridStartHour, gridEndHour)) {
       if (plan.status !== "planned") continue;
-      if (actedTaskIds.has(plan.taskId)) continue;
+      const span = planSpan(plan);
+      // Skip the ghost only when an action overlaps THIS plan's slot — not merely
+      // because the task was acted elsewhere that day. Keying on the whole task
+      // erased a task's other unacted plan segments the instant one ghost was
+      // confirmed (or a continue-later plan was added beside an already-done one).
+      const acted = actedSpansByTask.get(plan.taskId);
+      if (acted?.some((a) => span.start < a.end && a.start < span.end)) continue;
       const d = decorate(plan.taskId, plan.date);
       if (!d) continue;
       result.push({
         kind: "action",
         blockId: plan.planBlockId,
         taskId: plan.taskId,
-        span: planSpan(plan),
+        span,
         isGhost: true,
         ...d,
       });
