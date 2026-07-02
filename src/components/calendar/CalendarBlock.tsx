@@ -366,11 +366,11 @@ export function CalendarBlock({
             onPointerDown={(e) => e.stopPropagation()}
             aria-label={t("titleLabel")}
             rows={1}
-            // field-sizing:content grows to fit wrapped lines; the block's own
-            // overflow-hidden crops it once it exceeds the box. overflow-hidden
-            // here also kills the textarea's own scrollbar, which otherwise
-            // appears when a font's line metrics overflow the box by a hair.
-            className="min-h-0 min-w-0 flex-1 resize-none overflow-hidden break-words [field-sizing:content] bg-transparent text-xs font-medium leading-tight text-foreground placeholder:font-normal placeholder:text-muted focus:outline-none"
+            // Fill the whole block while editing (h-full stretches to the control
+            // row's resolved height) so the click/edit target is the entire block,
+            // not just the first line — much easier to hit on a tall block. A
+            // title longer than the box scrolls inside the textarea (overflow-auto).
+            className="min-h-0 min-w-0 h-full flex-1 resize-none overflow-auto break-words bg-transparent text-xs font-medium leading-tight text-foreground placeholder:font-normal placeholder:text-muted focus:outline-none"
           />
         ) : (
           <div
@@ -552,7 +552,7 @@ export function CalendarBlock({
             onDragStart(blockId, kind, "resize-start", e.clientY);
           }}
           aria-label={t("resizeBlockStart")}
-          className="absolute inset-x-0 top-0 h-2 cursor-ns-resize"
+          className="absolute inset-x-0 top-0 h-3 cursor-ns-resize"
         />
       )}
 
@@ -566,7 +566,7 @@ export function CalendarBlock({
             onDragStart(blockId, kind, "resize", e.clientY);
           }}
           aria-label={t("resizeBlock")}
-          className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize"
+          className="absolute inset-x-0 bottom-0 h-3 cursor-ns-resize"
         />
       )}
     </div>
