@@ -60,3 +60,72 @@ order by created_on desc;
   이메일/비밀번호 가입은 가입 시 입력한 주소.
 - **대소문자·오타** — 저장된 값과 다르면 불일치로 처리된다. 소문자로 통일해 넣는 것을
   권장한다.
+
+---
+
+# 단체 공지 이메일 (announcement)
+
+> 스크립트 `scripts/send-announcement.mjs`, 수신거부 설계는 ADR-029, 발신 인프라는
+> Resend(도메인 `hyeyoungjo.com`, DKIM/SPF/DMARC 설정 완료).
+
+전체 가입자에게 업데이트 공지를 보낸다. **수신자는 DB에서 자동 조회**하므로 이메일 주소를
+repo에 넣지 않는다:
+
+- 대상 = `auth.users` 중 **이메일 인증 완료(email_confirmed_at)** 한 전원.
+- 각자 **자기 언어**(`user_settings.language`, 없으면 `en`)로 발송.
+- **제외**: `email_unsubscribes`(수신거부자) + `ADMIN_EMAIL`(env, 본인) + 캠페인의 `exclude` 배열.
+- 각 메일에 **서명된 원클릭 수신거부 링크 + List-Unsubscribe 헤더** 자동 포함. 수신자가 누르면
+  `/api/unsubscribe`가 `email_unsubscribes`에 기록하고, 다음 발송부터 자동 제외된다.
+
+## 사전 준비 (env)
+
+`.env`에 다음이 있어야 한다: `NEXT_PUBLIC_SUPABASE_URL`, `DB_PASSWORD`, `RESEND_API_KEY`,
+`UNSUBSCRIBE_SECRET`(운영 Railway와 **같은 값**), `ADMIN_EMAIL`(선택, 본인 주소 제외용).
+
+> `UNSUBSCRIBE_SECRET`은 링크 서명·검증에 쓰이므로 **스크립트를 돌리는 곳과 배포 서버(Railway)의
+> 값이 반드시 일치**해야 한다. 다르면 수신거부 링크가 무효 처리된다.
+
+## 1) 캠페인 파일 작성
+
+`campaigns/` 아래에 JSON 파일을 만든다(`campaigns/example.json` 복사해서 시작). 구조:
+
+```
+{
+  "from":    "Dear My Routines <noreply@hyeyoungjo.com>",   // 선택(기본값 있음)
+  "replyTo": "jhy.vfx@gmail.com",                            // 선택 — 답장 받을 주소
+  "baseUrl": "https://dearmyroutines.hyeyoungjo.com",       // 선택
+  "exclude": [],                                             // 선택 — 추가로 뺄 이메일
+  "langs": {
+    "en": { "subject": "...", "html": "...{{unsubscribe_url}}...", "text": "...{{unsubscribe_url}}..." },
+    "ko": { "subject": "...", "html": "...", "text": "..." }
+  }
+}
+```
+
+- `langs.en`은 **필수**(다른 언어가 없을 때의 fallback). `ko` 등은 선택.
+- `html`/`text`에 **`{{unsubscribe_url}}`** 를 한 번 넣으면 수신자별 서명 링크로 치환된다. 빼먹으면
+  본문 안 링크는 없지만 헤더 수신거부(Gmail 버튼)는 여전히 동작한다.
+
+## 2) 미리보기(dry-run) → 발송
+
+macOS/Linux는 `node`, Windows도 `node`. 반드시 **dry-run으로 대상·인원 먼저 확인**한 뒤 보낸다.
+
+```
+node --env-file=.env scripts/send-announcement.mjs campaigns/example.json
+```
+
+- 대상 인원·언어 분포·제외 수를 출력하고 **아무것도 보내지 않는다**.
+
+이상 없으면 `SEND=1`로 실제 발송:
+
+```
+SEND=1 node --env-file=.env scripts/send-announcement.mjs campaigns/example.json
+```
+
+- Resend `batch.send`로 100통씩 나눠 발송하고, 발송 수를 출력한다. **즉시 발송, 되돌릴 수 없다.**
+
+## 참고
+
+- 배달·열람 상태는 **Resend 대시보드**에서 확인.
+- 인증 메일(매직링크·비번 재설정)은 이 스크립트와 무관 — Supabase Auth가 같은 Resend SMTP로 보낸다.
+- 수신거부 현황: `select email, created_at from email_unsubscribes order by created_at desc;`

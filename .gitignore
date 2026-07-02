@@ -34,3 +34,7 @@ transcript/*.wav
 
 # OS / editor
 .DS_Store
+
+# Announcement campaign files may hold excluded addresses (PII); keep only the template
+/campaigns/*
+!/campaigns/example.json
