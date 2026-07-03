@@ -65,9 +65,14 @@ action_blocks  (Task의 날짜별 *실제 실행* — 1:N from tasks)
 └─ PK  action_block_id: uuid
    ├─     user_id      : uuid   NOT NULL          — 소유자(RLS)
    ├─ FK→ task_id      : uuid   NOT NULL  → tasks.task_id (onDelete: cascade)
+   ├─ FK→ plan_block_id: uuid   ?  → plan_blocks.plan_block_id (onDelete: set null)
+   │                                  고스트 확정 출생 링크(ADR-030). null = 직접 생성.
+   │                                  링크된 plan의 고스트는 action 위치와 무관하게 숨김
    ├─     date         : date   NOT NULL          — 속한 grid day
    ├─     start_at     : timestamptz NOT NULL
    ├─     end_at       : timestamptz ?            — 진행 중(타이머)이면 아직 끝 없음 → null
+   ├─     status       : action_block_status NOT NULL = 'done'   — done | partial
+   │                                  partial = 내일 이어서 하기로 한 세션
    ├─     created_on   : timestamptz NOT NULL = now()
    └─     updated_on   : timestamptz NOT NULL = now()
 ```

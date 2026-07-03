@@ -53,6 +53,7 @@ function mkActionBlock(overrides: Partial<ExportInput["actionBlocks"][0]> = {}):
     actionBlockId: "ab-1",
     userId: "user-1",
     taskId: "task-1",
+    planBlockId: null,
     date: "2026-06-21",
     startAt: new Date("2026-06-21T09:00:00Z"),
     endAt: new Date("2026-06-21T10:00:00Z"),   // 60 min

@@ -24,7 +24,7 @@ async function fetchActionBlocks(): Promise<ActionBlock[]> {
 
 /** Fields a client may supply when creating an action (server injects userId). */
 export type AddActionInput = Pick<ActionBlock, "taskId" | "date" | "startAt"> &
-  Partial<Pick<ActionBlock, "endAt">>;
+  Partial<Pick<ActionBlock, "endAt" | "planBlockId">>;
 
 async function createActionBlock(input: AddActionInput): Promise<ActionBlock> {
   const res = await fetch("/api/action-blocks", {
@@ -110,6 +110,9 @@ function optimisticAction(input: AddActionInput): ActionBlock {
   return {
     actionBlockId: crypto.randomUUID(),
     taskId: input.taskId,
+    // Carried into the placeholder so a confirmed ghost disappears in the same
+    // frame (the grid suppresses a linked plan's ghost) — not on server settle.
+    planBlockId: input.planBlockId ?? null,
     date: input.date,
     startAt: input.startAt,
     endAt: input.endAt ?? null,

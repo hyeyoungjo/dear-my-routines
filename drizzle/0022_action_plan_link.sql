@@ -1,0 +1,2 @@
+ALTER TABLE "action_blocks" ADD COLUMN "plan_block_id" uuid;--> statement-breakpoint
+ALTER TABLE "action_blocks" ADD CONSTRAINT "action_blocks_plan_block_id_plan_blocks_plan_block_id_fk" FOREIGN KEY ("plan_block_id") REFERENCES "public"."plan_blocks"("plan_block_id") ON DELETE set null ON UPDATE no action;

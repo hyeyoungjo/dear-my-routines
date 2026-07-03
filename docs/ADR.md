@@ -564,3 +564,25 @@ visibility를 DB에 둬서 순수 뷰 상태가 데이터 레이어에 섞인다
 `app/api/unsubscribe/route.ts`(GET+POST), `.env.example`. 실제 **발송 스크립트는 리포지토리 밖 one-off**라
 이 phase 범위 밖이다. 단 **엔드포인트가 배포돼 있어야 링크가 동작**하므로, 메일 발송 전에 (1) 배포 +
 (2) `UNSUBSCRIBE_SECRET` 설정 + (3) 마이그레이션 적용이 선행돼야 한다. phase `15-email-unsubscribe`(step 0~3)로 구현.
+
+
+### ADR-030: action_blocks.plan_block_id — 고스트 확정의 출생 링크 저장 (2026-07-03)
+**맥락**: 고스트(ACT 칸의 미실행 plan 투영)를 클릭해 확정하면 plan과 같은 시간에 action이 생기는데,
+그 action을 드래그로 옮기면 원래 자리에 고스트가 되살아났다. 원인: action에는 "어느 plan에서
+태어났는가"가 어디에도 없어서, 고스트 숨김을 **시간 겹침으로 추측**하기 때문(733e125에서 task 단위
+→ slot 단위로 좁힌 트레이드오프). action이 plan 시간대를 벗어나는 순간 추측의 근거가 사라진다.
+**결정**: `action_blocks`에 **nullable `plan_block_id` FK**(→ plan_blocks, onDelete: set null)를
+추가한다. 고스트 확정 시에만 채우고, 직접 생성(빈 칸 클릭·continue-later)은 null로 남긴다. 고스트
+판정은 2단계 — ① 링크된 plan이면 숨김(action 위치 무관), ② 링크 없는 action에 한해 기존 slot 겹침
+fallback(구 데이터·직접 생성분 호환).
+**이유**: "이 action이 저 plan에서 태어났다"는 파생값이 아니라 그 순간의 **사실**이라 "데이터는 사실"
+(ADR-025)에 맞고, 추측이 사실이 되면서 고스트 부활류 버그가 구조적으로 끝난다. 링크는 앱의 존재
+이유인 블록 단위 예상 vs 실제 짝짓기의 재료도 된다(현재 통계는 여전히 task 단위 join — 향후 옵션).
+휴리스틱 강화(개수·근접 매칭)안은 직접 생성 action이 남의 고스트를 잡아먹는 오판이 남아 기각.
+**트레이드오프**: 링크된 action을 삭제하면 링크도 행과 함께 사라져 고스트가 복귀한다(의도된 동작 —
+"잘못 확정" 취소 경로). plan 삭제 시 set null로 action은 직접 생성분과 같아진다. fallback이 남는 한
+링크 없는 action의 오판 가능성은 이전과 동일하게 존재한다.
+**비고**: 마이그레이션 `0022_action_plan_link.sql`(ADD COLUMN + FK 2줄, 트리밍 불필요했음 — 추적
+테이블이 정리된 상태라 `drizzle-kit migrate` 정상 적용). 손댄 코드: `db/schema.ts`·
+`core/time/action.ts`(wire 타입)·`api/action-blocks`(create 허용)·`hooks/actionBlocks.ts`(낙관적
+placeholder에도 링크 포함 — 확정 즉시 고스트 소멸)·`CalendarGrid.tsx`(confirmGhost + 고스트 판정).

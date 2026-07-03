@@ -287,6 +287,16 @@ export const actionBlocks = pgTable(
     taskId: uuid("task_id")
       .notNull()
       .references(() => tasks.taskId, { onDelete: "cascade" }),
+    // The plan piece this action was confirmed from (ghost click), if any
+    // (ADR-030). A recorded fact, not a derived value: it keeps the plan's
+    // ghost suppressed no matter where the action is later dragged — slot
+    // overlap is only the fallback guess for unlinked actions. Null for
+    // actions created directly (empty-slot click, continue-later). Set-null
+    // on plan delete: the action (reality) outlives its plan (intention).
+    planBlockId: uuid("plan_block_id").references(
+      () => planBlocks.planBlockId,
+      { onDelete: "set null" },
+    ),
     date: date("date").notNull(),
     startAt: timestamp("start_at", { withTimezone: true }).notNull(),
     // Nullable: a still-running span has no end time yet (future timer).
@@ -451,7 +461,7 @@ export const categoryStats = pgTable(
   (t) => ownerPolicies("category_stats", t.userId),
 );
 
-// --- email_unsubscribes: email opt-out list (ADR-029) ---------------------
+// --- email_unsubscribes: email opt-out list (ADR-030) ---------------------
 
 /**
  * Emails that have opted out of app emails. Keyed by email (no `user_id`):

@@ -28,6 +28,11 @@ function parseActionCreateInput(
     startAt: new Date(startAt),
   };
   if (typeof body.endAt === "string") values.endAt = new Date(body.endAt);
+  // The plan this action was confirmed from (ghost click, ADR-030) — optional,
+  // absent for directly-created actions.
+  if (typeof body.planBlockId === "string") {
+    values.planBlockId = body.planBlockId;
+  }
 
   return values;
 }

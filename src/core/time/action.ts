@@ -20,6 +20,12 @@ import type { PlanBlock } from "./plan";
 export type ActionBlock = {
   actionBlockId: string;
   taskId: string;
+  /**
+   * The plan piece this action was confirmed from (ghost click), if any
+   * (ADR-030). Optional/null for directly-created actions — their relation to
+   * a plan stays derived (time overlap), never stored.
+   */
+  planBlockId?: string | null;
   date: string;
   startAt: string;
   /** Null while still running — the span has not finished yet. */

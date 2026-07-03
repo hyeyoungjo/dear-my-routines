@@ -207,6 +207,9 @@ export function CalendarGrid() {
   const confirmGhost = (block: CalBlock) => {
     addActionBlock.mutate({
       taskId: block.taskId,
+      // A ghost's blockId IS its plan's id — store the birth link (ADR-030) so
+      // the ghost stays gone wherever this action is dragged afterwards.
+      planBlockId: block.blockId,
       date: dayKey(selectedDate),
       startAt: block.span.start.toISOString(),
       endAt: block.span.end.toISOString(),
@@ -452,15 +455,26 @@ export function CalendarGrid() {
 
     const selectedDateKey = dayKey(selectedDate);
     const dayActions = actionsForDay(allActions, selectedDate, gridStartHour, gridEndHour);
-    // taskId → the day's action spans, used to decide whether a given plan slot
-    // was actually acted (time overlap) rather than "the task was acted somewhere".
+    // Two ways a plan counts as "acted" for ghost suppression (ADR-030):
+    //  - linkedPlanIds: an action stores the plan it was confirmed from — an
+    //    exact fact, immune to the action being dragged elsewhere afterwards.
+    //  - actedSpansByTask: time-overlap fallback for UNLINKED actions only
+    //    (created directly on the grid, or rows predating the link column).
+    //    Linked actions are excluded so an action dragged onto another plan's
+    //    slot doesn't swallow that plan's ghost — it already accounts for its
+    //    own plan.
+    const linkedPlanIds = new Set<string>();
     const actedSpansByTask = new Map<string, Span[]>();
     for (const action of dayActions) {
       const base = actionSpan(action);
       if (!base) continue; // running (no end) — nothing to draw yet
-      const spans = actedSpansByTask.get(action.taskId);
-      if (spans) spans.push(base);
-      else actedSpansByTask.set(action.taskId, [base]);
+      if (action.planBlockId) {
+        linkedPlanIds.add(action.planBlockId);
+      } else {
+        const spans = actedSpansByTask.get(action.taskId);
+        if (spans) spans.push(base);
+        else actedSpansByTask.set(action.taskId, [base]);
+      }
       const d = decorate(action.taskId, selectedDateKey);
       if (!d) continue;
       result.push({
@@ -480,10 +494,13 @@ export function CalendarGrid() {
     for (const plan of plansForDay(allPlans, selectedDate, gridStartHour, gridEndHour)) {
       if (plan.status !== "planned") continue;
       const span = planSpan(plan);
-      // Skip the ghost only when an action overlaps THIS plan's slot — not merely
-      // because the task was acted elsewhere that day. Keying on the whole task
-      // erased a task's other unacted plan segments the instant one ghost was
-      // confirmed (or a continue-later plan was added beside an already-done one).
+      // Confirmed from this plan? The stored link wins, wherever the action is.
+      if (linkedPlanIds.has(plan.planBlockId)) continue;
+      // Fallback for unlinked actions: skip the ghost only when one overlaps
+      // THIS plan's slot — not merely because the task was acted elsewhere that
+      // day. Keying on the whole task erased a task's other unacted plan
+      // segments the instant one ghost was confirmed (or a continue-later plan
+      // was added beside an already-done one).
       const acted = actedSpansByTask.get(plan.taskId);
       if (acted?.some((a) => span.start < a.end && a.start < span.end)) continue;
       const d = decorate(plan.taskId, plan.date);
