@@ -11,6 +11,7 @@ import {
   setDoneDay,
   setOriginalDay,
 } from "@/core/time/span";
+import { DEFAULT_SNAP_MINUTES, editSpanEnd, editSpanStart } from "@/core/time/calendar";
 import {
   useActionBlocks,
   useAddActionBlock,
@@ -26,6 +27,7 @@ import { useProjects } from "@/hooks/projects";
 import { useTasks, useUpdateTask } from "@/hooks/tasks";
 import { useShelf } from "@/hooks/shelf";
 import { isShelved } from "@/core/time/shelf";
+import { useUserSettings } from "@/hooks/userSettings";
 import { useTranslations } from "next-intl";
 
 /**
@@ -44,11 +46,65 @@ import { useTranslations } from "next-intl";
  * on close. All date math lives in `core/time`.
  */
 
-/** HH:MM from an ISO timestamp (local time). */
-const fmtTime = (iso: string) => {
-  const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-};
+const timeNumInput =
+  "w-11 rounded-md border border-border bg-transparent px-1 py-0.5 text-center text-sm tabular-nums text-foreground focus:outline-none focus:ring-1 focus:ring-accent/40";
+
+/**
+ * Plain hour/minute number inputs for one clock time (no native time picker —
+ * its per-browser styling and scrubbing behavior were more friction than
+ * help). Uncontrolled, committing both fields together on blur so editing the
+ * hour doesn't need the minute re-typed. `key`d by the caller on the source
+ * value so an external change (including our own snap-adjustment) resyncs the
+ * displayed digits.
+ */
+function TimeFields({
+  hour,
+  minute,
+  minuteStep,
+  onCommit,
+  label,
+}: {
+  hour: number;
+  minute: number;
+  minuteStep: number;
+  onCommit: (hour: number, minute: number) => void;
+  label: string;
+}) {
+  const hourRef = useRef<HTMLInputElement>(null);
+  const minuteRef = useRef<HTMLInputElement>(null);
+  const commit = () => {
+    const h = Number(hourRef.current?.value);
+    const m = Number(minuteRef.current?.value);
+    if (!Number.isInteger(h) || !Number.isInteger(m)) return;
+    onCommit(h, m);
+  };
+  return (
+    <span className="flex items-center gap-0.5">
+      <input
+        ref={hourRef}
+        type="number"
+        min={0}
+        max={23}
+        defaultValue={hour}
+        onBlur={commit}
+        aria-label={`${label} — hour`}
+        className={timeNumInput}
+      />
+      <span className="text-sm text-muted">:</span>
+      <input
+        ref={minuteRef}
+        type="number"
+        min={0}
+        max={59}
+        step={minuteStep}
+        defaultValue={minute}
+        onBlur={commit}
+        aria-label={`${label} — minute`}
+        className={timeNumInput}
+      />
+    </span>
+  );
+}
 
 /** Display-only date formatting — locale-independent (OS-agnostic). */
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -71,6 +127,8 @@ export function TaskDetailModal({
   const { data: allPlans } = usePlanBlocks();
   const { data: allActions } = useActionBlocks();
   const { data: projectData } = useProjects();
+  const { data: userSettingsData } = useUserSettings();
+  const blockSnapMinutes = userSettingsData?.blockSnapMinutes ?? DEFAULT_SNAP_MINUTES;
 
   const t = useTranslations("taskDetail");
   const updateTask = useUpdateTask();
@@ -184,6 +242,71 @@ export function TaskDetailModal({
     (p) => p.date === viewDateKey && p.status !== "missed",
   ) ?? null;
   const viewAction = taskActions.find((a) => a.date === viewDateKey) ?? null;
+
+  // Commit a typed hour/minute edit (plain number inputs — no native time
+  // picker), snapped to the user's block time unit (core/time/calendar
+  // editSpanStart/editSpanEnd — the same delta-based math the drag handles use).
+  const commitPlanStart = (hour: number, minute: number) => {
+    if (!viewPlan) return;
+    // plan_blocks.endAt is NOT NULL (a plan is always placed as a box), so the
+    // edit always resolves both ends.
+    const edited = editSpanStart(
+      new Date(viewPlan.startAt),
+      new Date(viewPlan.endAt),
+      hour,
+      minute,
+      blockSnapMinutes,
+    );
+    if (!edited) return;
+    updatePlan.mutate({
+      planBlockId: viewPlan.planBlockId,
+      patch: { startAt: edited.start.toISOString(), endAt: edited.end!.toISOString() },
+    });
+  };
+  const commitPlanEnd = (hour: number, minute: number) => {
+    if (!viewPlan) return;
+    const edited = editSpanEnd(
+      new Date(viewPlan.startAt),
+      new Date(viewPlan.endAt),
+      hour,
+      minute,
+      blockSnapMinutes,
+    );
+    if (!edited) return;
+    updatePlan.mutate({
+      planBlockId: viewPlan.planBlockId,
+      patch: { endAt: edited.end.toISOString() },
+    });
+  };
+  const commitActionStart = (hour: number, minute: number) => {
+    if (!viewAction) return;
+    // action_blocks.endAt is nullable (a still-running action has no end yet).
+    const end = viewAction.endAt ? new Date(viewAction.endAt) : null;
+    const edited = editSpanStart(new Date(viewAction.startAt), end, hour, minute, blockSnapMinutes);
+    if (!edited) return;
+    updateAction.mutate({
+      actionBlockId: viewAction.actionBlockId,
+      patch: {
+        startAt: edited.start.toISOString(),
+        ...(edited.end ? { endAt: edited.end.toISOString() } : {}),
+      },
+    });
+  };
+  const commitActionEnd = (hour: number, minute: number) => {
+    if (!viewAction || !viewAction.endAt) return;
+    const edited = editSpanEnd(
+      new Date(viewAction.startAt),
+      new Date(viewAction.endAt),
+      hour,
+      minute,
+      blockSnapMinutes,
+    );
+    if (!edited) return;
+    updateAction.mutate({
+      actionBlockId: viewAction.actionBlockId,
+      patch: { endAt: edited.end.toISOString() },
+    });
+  };
 
   const rowLabel = "w-24 shrink-0 text-sm text-muted";
   const dateBtn =
@@ -353,26 +476,57 @@ export function TaskDetailModal({
               </div>
             )}
 
-            {/* Plan / Action times for the currently viewed date */}
+            {/* Plan / Action times for the currently viewed date — editable,
+                snapped to the block time unit (settings). */}
             {(viewPlan || viewAction) && (
               <>
                 <div className="my-1 border-t border-border" />
                 {viewPlan && (
-                  <div className="flex items-center">
+                  <div className="flex items-center gap-1.5">
                     <span className={rowLabel}>{t("planTime")}</span>
-                    <span className="text-sm tabular-nums text-foreground">
-                      {fmtTime(viewPlan.startAt)}
-                      {viewPlan.endAt ? ` – ${fmtTime(viewPlan.endAt)}` : ""}
-                    </span>
+                    <TimeFields
+                      key={`plan-start-${viewPlan.planBlockId}-${viewPlan.startAt}`}
+                      hour={new Date(viewPlan.startAt).getHours()}
+                      minute={new Date(viewPlan.startAt).getMinutes()}
+                      minuteStep={blockSnapMinutes}
+                      onCommit={commitPlanStart}
+                      label={t("planStartLabel")}
+                    />
+                    <span className="text-sm text-muted">–</span>
+                    <TimeFields
+                      key={`plan-end-${viewPlan.planBlockId}-${viewPlan.endAt}`}
+                      hour={new Date(viewPlan.endAt).getHours()}
+                      minute={new Date(viewPlan.endAt).getMinutes()}
+                      minuteStep={blockSnapMinutes}
+                      onCommit={commitPlanEnd}
+                      label={t("planEndLabel")}
+                    />
                   </div>
                 )}
                 {viewAction && (
-                  <div className="flex items-center">
+                  <div className="flex items-center gap-1.5">
                     <span className={rowLabel}>{t("actionTime")}</span>
-                    <span className="text-sm tabular-nums text-foreground">
-                      {fmtTime(viewAction.startAt)}
-                      {viewAction.endAt ? ` – ${fmtTime(viewAction.endAt)}` : ""}
-                    </span>
+                    <TimeFields
+                      key={`action-start-${viewAction.actionBlockId}-${viewAction.startAt}`}
+                      hour={new Date(viewAction.startAt).getHours()}
+                      minute={new Date(viewAction.startAt).getMinutes()}
+                      minuteStep={blockSnapMinutes}
+                      onCommit={commitActionStart}
+                      label={t("actionStartLabel")}
+                    />
+                    <span className="text-sm text-muted">–</span>
+                    {viewAction.endAt ? (
+                      <TimeFields
+                        key={`action-end-${viewAction.actionBlockId}-${viewAction.endAt}`}
+                        hour={new Date(viewAction.endAt).getHours()}
+                        minute={new Date(viewAction.endAt).getMinutes()}
+                        minuteStep={blockSnapMinutes}
+                        onCommit={commitActionEnd}
+                        label={t("actionEndLabel")}
+                      />
+                    ) : (
+                      <span className="text-sm text-muted">{t("ongoing")}</span>
+                    )}
                   </div>
                 )}
               </>

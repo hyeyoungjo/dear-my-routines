@@ -7,7 +7,12 @@ import { AI_MODELS, DEFAULT_MODEL_ID } from "@/services/ai/models";
 import { LANGUAGES, DEFAULT_LANGUAGE_ID } from "@/lib/languages";
 import { FONTS, DEFAULT_FONT_ID } from "@/lib/fonts";
 import { useUserSettings, useUpdateUserSettings } from "@/hooks/userSettings";
-import { DEFAULT_GRID_START_HOUR, DEFAULT_GRID_END_HOUR } from "@/core/time/calendar";
+import {
+  DEFAULT_GRID_START_HOUR,
+  DEFAULT_GRID_END_HOUR,
+  DEFAULT_SNAP_MINUTES,
+  BLOCK_SNAP_OPTIONS,
+} from "@/core/time/calendar";
 import {
   REVIEW_HISTORY_DAYS_DEFAULT,
   REVIEW_HISTORY_DAYS_MIN,
@@ -24,6 +29,11 @@ function hourLabel(h: number): string {
   const period = actual < 12 ? "AM" : "PM";
   const h12 = actual === 0 ? 12 : actual > 12 ? actual - 12 : actual;
   return `${h12} ${period}`;
+}
+
+/** Display label for a block snap unit, e.g. 60 → "1 hour", 15 → "15 min". */
+function snapLabel(minutes: number): string {
+  return minutes >= 60 ? `${minutes / 60} hour` : `${minutes} min`;
 }
 
 /** A labelled section inside the settings modal. */
@@ -104,6 +114,7 @@ export function ThemeMenu({
   const apiKeyRef = useRef<HTMLInputElement>(null);
   const currentLanguageId = settings?.language ?? DEFAULT_LANGUAGE_ID;
   const currentFontId = settings?.font ?? DEFAULT_FONT_ID;
+  const currentBlockSnap = settings?.blockSnapMinutes ?? DEFAULT_SNAP_MINUTES;
 
   // Sync theme from DB on load — overrides localStorage so it stays consistent across devices.
   useEffect(() => {
@@ -246,6 +257,22 @@ export function ThemeMenu({
                         ))}
                       </select>
                     </label>
+                  </div>
+                </Section>
+                <Section title={t("blockSnap")}>
+                  <div className="px-2">
+                    <select
+                      value={currentBlockSnap}
+                      onChange={(e) =>
+                        updateSettings.mutate({ blockSnapMinutes: Number(e.target.value) })
+                      }
+                      aria-label={t("blockSnap")}
+                      className="w-full rounded border border-border bg-transparent py-0.5 pl-1 text-sm text-foreground focus:border-accent focus:outline-none"
+                    >
+                      {BLOCK_SNAP_OPTIONS.map((m) => (
+                        <option key={m} value={m}>{snapLabel(m)}</option>
+                      ))}
+                    </select>
                   </div>
                 </Section>
               </Group>

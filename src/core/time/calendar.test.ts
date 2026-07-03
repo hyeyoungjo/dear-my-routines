@@ -1,13 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  DEFAULT_SNAP_MINUTES,
   GRID_TOTAL_MINUTES,
-  MIN_BLOCK_MINUTES,
   addMinutes,
   blockPixelHeight,
   blockTopMinutes,
   childOffsetPx,
   clampChildToParent,
   durationMinutes,
+  editSpanEnd,
+  editSpanStart,
   fitParentToChildren,
   formatHours,
   gridSlots,
@@ -15,6 +17,7 @@ import {
   moveBlock,
   resizeBlockEnd,
   resizeBlockStart,
+  setTimeOfDay,
   slotDate,
   snapMinutes,
   snapToSlot,
@@ -77,19 +80,48 @@ describe("slotDate", () => {
 });
 
 describe("snapToSlot", () => {
-  it("floors to the hour and clamps inside the grid", () => {
+  it("floors to the hour (default step) and clamps inside the grid", () => {
     expect(snapToSlot(75)).toBe(60);
     expect(snapToSlot(-30)).toBe(0);
     expect(snapToSlot(GRID_TOTAL_MINUTES)).toBe(GRID_TOTAL_MINUTES - 60);
   });
+
+  it("floors to a custom step when the user's block unit is finer", () => {
+    expect(snapToSlot(75, GRID_TOTAL_MINUTES, 15)).toBe(75);
+    expect(snapToSlot(82, GRID_TOTAL_MINUTES, 15)).toBe(75);
+    expect(snapToSlot(37, GRID_TOTAL_MINUTES, 5)).toBe(35);
+  });
 });
 
 describe("snapMinutes", () => {
-  it("rounds a raw delta to the nearest 15-minute step", () => {
-    expect(snapMinutes(7)).toBe(0);
-    expect(snapMinutes(8)).toBe(15);
-    expect(snapMinutes(-22)).toBe(-15);
-    expect(snapMinutes(38)).toBe(45);
+  it("rounds a raw delta to the nearest step", () => {
+    expect(snapMinutes(7, 15)).toBe(0);
+    expect(snapMinutes(8, 15)).toBe(15);
+    expect(snapMinutes(-22, 15)).toBe(-15);
+    expect(snapMinutes(38, 15)).toBe(45);
+  });
+
+  it("defaults to the app's block time unit (1 hour)", () => {
+    expect(snapMinutes(29)).toBe(0);
+    expect(snapMinutes(31)).toBe(DEFAULT_SNAP_MINUTES);
+  });
+});
+
+describe("setTimeOfDay", () => {
+  it("replaces only the hour/minute, keeping the calendar day", () => {
+    const base = new Date(2026, 5, 21, 9, 0);
+    const changed = setTimeOfDay(base, 14, 30);
+    expect(changed.getFullYear()).toBe(2026);
+    expect(changed.getMonth()).toBe(5);
+    expect(changed.getDate()).toBe(21);
+    expect(changed.getHours()).toBe(14);
+    expect(changed.getMinutes()).toBe(30);
+  });
+
+  it("does not mutate the input", () => {
+    const base = new Date(2026, 5, 21, 9, 0);
+    setTimeOfDay(base, 14, 30);
+    expect(base.getHours()).toBe(9);
   });
 });
 
@@ -135,7 +167,14 @@ describe("resizeBlockEnd", () => {
     const start = new Date(2026, 5, 21, 9, 0);
     const end = new Date(2026, 5, 21, 10, 0);
     const resized = resizeBlockEnd(start, end, -120); // would invert
-    expect(durationMinutes(start, resized.end)).toBe(MIN_BLOCK_MINUTES);
+    expect(durationMinutes(start, resized.end)).toBe(DEFAULT_SNAP_MINUTES);
+  });
+
+  it("honors a custom minimum (synced to the user's block snap unit)", () => {
+    const start = new Date(2026, 5, 21, 9, 0);
+    const end = new Date(2026, 5, 21, 9, 20);
+    const resized = resizeBlockEnd(start, end, -100, 5); // would invert past 5m
+    expect(durationMinutes(start, resized.end)).toBe(5);
   });
 });
 
@@ -151,7 +190,7 @@ describe("resizeBlockStart", () => {
   it("moves the start later by the delta, keeping the end fixed", () => {
     const start = new Date(2026, 5, 21, 9, 0);
     const end = new Date(2026, 5, 21, 10, 0);
-    const resized = resizeBlockStart(start, end, 30); // drag down 30 min
+    const resized = resizeBlockStart(start, end, 30, 15); // drag down 30 min
     expect(resized.end).toBe(end);
     expect(durationMinutes(resized.start, end)).toBe(30);
   });
@@ -160,7 +199,73 @@ describe("resizeBlockStart", () => {
     const start = new Date(2026, 5, 21, 9, 0);
     const end = new Date(2026, 5, 21, 10, 0);
     const resized = resizeBlockStart(start, end, 120); // would invert
-    expect(durationMinutes(resized.start, end)).toBe(MIN_BLOCK_MINUTES);
+    expect(durationMinutes(resized.start, end)).toBe(DEFAULT_SNAP_MINUTES);
+  });
+
+  it("honors a custom minimum (synced to the user's block snap unit)", () => {
+    const start = new Date(2026, 5, 21, 9, 0);
+    const end = new Date(2026, 5, 21, 9, 20);
+    const resized = resizeBlockStart(start, end, 100, 5); // would invert past 5m
+    expect(durationMinutes(resized.start, end)).toBe(5);
+  });
+});
+
+describe("editSpanStart", () => {
+  it("shifts the start to the typed time, snapped to the block unit", () => {
+    const start = new Date(2026, 5, 21, 9, 0);
+    const end = new Date(2026, 5, 21, 10, 0);
+    const edited = editSpanStart(start, end, 9, 22, 15); // 9:22 snaps to +15
+    expect(edited).not.toBeNull();
+    expect(edited!.start.getHours()).toBe(9);
+    expect(edited!.start.getMinutes()).toBe(15);
+    expect(edited!.end!.getTime()).toBe(end.getTime());
+  });
+
+  it("returns null when the typed time snaps back to the current start (no-op)", () => {
+    const start = new Date(2026, 5, 21, 9, 0);
+    const end = new Date(2026, 5, 21, 10, 0);
+    expect(editSpanStart(start, end, 9, 5, 15)).toBeNull(); // 9:05 snaps to 9:00
+  });
+
+  it("clamps to the minimum length instead of inverting", () => {
+    const start = new Date(2026, 5, 21, 9, 0);
+    const end = new Date(2026, 5, 21, 10, 0);
+    const edited = editSpanStart(start, end, 11, 0, 15); // past the end
+    expect(edited).not.toBeNull();
+    expect(durationMinutes(edited!.start, end)).toBe(15);
+  });
+
+  it("shifts a still-running action's start with no end to clamp against", () => {
+    const start = new Date(2026, 5, 21, 9, 0);
+    const edited = editSpanStart(start, null, 9, 22, 15);
+    expect(edited).not.toBeNull();
+    expect(edited!.start.getMinutes()).toBe(15);
+    expect(edited!.end).toBeNull();
+  });
+});
+
+describe("editSpanEnd", () => {
+  it("shifts the end to the typed time, snapped to the block unit", () => {
+    const start = new Date(2026, 5, 21, 9, 0);
+    const end = new Date(2026, 5, 21, 10, 0);
+    const edited = editSpanEnd(start, end, 10, 22, 15); // 10:22 snaps to +15
+    expect(edited).not.toBeNull();
+    expect(edited!.start.getTime()).toBe(start.getTime());
+    expect(edited!.end.getMinutes()).toBe(15);
+  });
+
+  it("returns null when the typed time snaps back to the current end (no-op)", () => {
+    const start = new Date(2026, 5, 21, 9, 0);
+    const end = new Date(2026, 5, 21, 10, 0);
+    expect(editSpanEnd(start, end, 10, 5, 15)).toBeNull(); // 10:05 snaps to 10:00
+  });
+
+  it("clamps to the minimum length instead of inverting", () => {
+    const start = new Date(2026, 5, 21, 9, 0);
+    const end = new Date(2026, 5, 21, 10, 0);
+    const edited = editSpanEnd(start, end, 8, 0, 15); // before the start
+    expect(edited).not.toBeNull();
+    expect(durationMinutes(start, edited!.end)).toBe(15);
   });
 });
 

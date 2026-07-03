@@ -368,6 +368,10 @@ export const userSettings = pgTable(
     // null = fall back to defaults (7 AM start, midnight end).
     gridStartTime: integer("grid_start_time"),
     gridEndTime: integer("grid_end_time"),
+    // Block time unit in minutes — how finely blocks snap when dragged, resized,
+    // or created, and (synced) the shortest a block may be. One of
+    // BLOCK_SNAP_OPTIONS (60/30/15/5). null = fall back to DEFAULT_SNAP_MINUTES (60).
+    blockSnapMinutes: integer("block_snap_minutes"),
     // Extra free-text style guidance the user can add for the daily AI review
     // (tone/wording only — never the output structure). null = none.
     reviewStylePrompt: text("review_style_prompt"),

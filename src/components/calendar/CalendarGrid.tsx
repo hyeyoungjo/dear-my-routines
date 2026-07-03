@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   DEFAULT_GRID_END_HOUR,
   DEFAULT_GRID_START_HOUR,
+  DEFAULT_SNAP_MINUTES,
   blockPixelHeight,
   blockTopMinutes,
   gridSlots,
@@ -116,6 +117,11 @@ export function CalendarGrid() {
   const gridStartHour = userSettingsData?.gridStartTime ?? DEFAULT_GRID_START_HOUR;
   const gridEndHour = userSettingsData?.gridEndTime ?? DEFAULT_GRID_END_HOUR;
   const gridTotalMinutes = (gridEndHour - gridStartHour) * 60;
+  // Block time unit (settings, ADR pending): how finely blocks snap when
+  // dragged/resized/created, and (synced) their minimum length. The hourly
+  // grid lines (`gridSlots` above) are drawn independently and always stay
+  // hourly regardless of this setting.
+  const blockSnapMinutes = userSettingsData?.blockSnapMinutes ?? DEFAULT_SNAP_MINUTES;
   const createTaskWithBlock = useCreateTaskWithBlock();
   const addPlanBlock = useAddPlanBlock();
   const addActionBlock = useAddActionBlock();
@@ -294,7 +300,7 @@ export function CalendarGrid() {
     // the full page-offset of the body (scroll-dependent), placing new blocks
     // hours below the click. currentTarget is always the visible body clicked.
     const y = e.clientY - e.currentTarget.getBoundingClientRect().top;
-    createAt(snapToSlot(y / PX_PER_MINUTE, gridTotalMinutes), kind);
+    createAt(snapToSlot(y / PX_PER_MINUTE, gridTotalMinutes, blockSnapMinutes), kind);
   };
 
   /** A block was pressed — begin tracking a vertical move/resize. */
@@ -316,8 +322,8 @@ export function CalendarGrid() {
       d.mode === "move"
         ? moveBlock(base.start, base.end, d.deltaMinutes)
         : d.mode === "resize-start"
-          ? resizeBlockStart(base.start, base.end, d.deltaMinutes)
-          : resizeBlockEnd(base.start, base.end, d.deltaMinutes);
+          ? resizeBlockStart(base.start, base.end, d.deltaMinutes, blockSnapMinutes)
+          : resizeBlockEnd(base.start, base.end, d.deltaMinutes, blockSnapMinutes);
     const patch =
       d.mode === "move"
         ? { startAt: span.start.toISOString(), endAt: span.end.toISOString() }
@@ -352,6 +358,7 @@ export function CalendarGrid() {
         if (!prev) return prev;
         const deltaMinutes = snapMinutes(
           (e.clientY - prev.startY) / PX_PER_MINUTE,
+          blockSnapMinutes,
         );
         if (prev.deltaMinutes === deltaMinutes) return prev;
         return { ...prev, deltaMinutes };
@@ -382,8 +389,8 @@ export function CalendarGrid() {
     return drag.mode === "move"
       ? moveBlock(base.start, base.end, drag.deltaMinutes)
       : drag.mode === "resize-start"
-        ? resizeBlockStart(base.start, base.end, drag.deltaMinutes)
-        : resizeBlockEnd(base.start, base.end, drag.deltaMinutes);
+        ? resizeBlockStart(base.start, base.end, drag.deltaMinutes, blockSnapMinutes)
+        : resizeBlockEnd(base.start, base.end, drag.deltaMinutes, blockSnapMinutes);
   };
 
   /** Title/colour/carryCount join for a task, or null for an orphan block.

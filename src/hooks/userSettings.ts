@@ -33,6 +33,8 @@ export type UpdateSettingsInput = {
   theme?: string | null;
   gridStartTime?: number | null;
   gridEndTime?: number | null;
+  // Block time unit in minutes (one of BLOCK_SNAP_OPTIONS); null resets to default.
+  blockSnapMinutes?: number | null;
   // Free-text style guidance for the AI review; null clears, undefined leaves unchanged.
   reviewStylePrompt?: string | null;
   // Trailing history window in days (1–30); null resets to default.
@@ -98,6 +100,7 @@ export function useUpdateUserSettings() {
           theme: input.theme ?? null,
           gridStartTime: input.gridStartTime ?? null,
           gridEndTime: input.gridEndTime ?? null,
+          blockSnapMinutes: input.blockSnapMinutes ?? null,
           reviewStylePrompt: input.reviewStylePrompt ?? null,
           reviewHistoryDays: input.reviewHistoryDays ?? null,
           hasApiKey,

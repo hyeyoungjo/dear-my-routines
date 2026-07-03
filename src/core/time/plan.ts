@@ -2,7 +2,6 @@ import type { Span } from "./calendar";
 import {
   DEFAULT_GRID_END_HOUR,
   DEFAULT_GRID_START_HOUR,
-  SNAP_MINUTES,
   snapMinutes,
 } from "./calendar";
 import { shiftSpanOntoGridDay } from "./carry";
@@ -127,11 +126,16 @@ export function carryOverPlan(
   };
 }
 
-/** Snap a Date to the nearest SNAP_MINUTES boundary of its own calendar day. */
+// Fixed 15-minute placement grid for "continue later today" — independent of
+// the user's configurable block snap unit (that setting governs drag/resize/
+// create, not this button's auto-placement).
+const CONTINUE_LATER_SNAP_MINUTES = 15;
+
+/** Snap a Date to the nearest CONTINUE_LATER_SNAP_MINUTES boundary of its own calendar day. */
 function snapToNearest(date: Date): Date {
   const mins = date.getHours() * 60 + date.getMinutes();
   const result = new Date(date);
-  result.setHours(0, snapMinutes(mins, SNAP_MINUTES), 0, 0);
+  result.setHours(0, snapMinutes(mins, CONTINUE_LATER_SNAP_MINUTES), 0, 0);
   return result;
 }
 

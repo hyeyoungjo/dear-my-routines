@@ -80,30 +80,47 @@ export function slotDate(
 }
 
 /**
- * Snap a raw minute offset down to its containing hour slot, clamped to the grid
- * (used when turning a click position into a new block's start).
+ * Snap a raw minute offset down to its containing `step` slot, clamped to the
+ * grid (used when turning a click position into a new block's start). `step`
+ * defaults to the app's block time unit (`DEFAULT_SNAP_MINUTES`).
  */
 export function snapToSlot(
   offsetMinutes: number,
   totalMinutes = GRID_TOTAL_MINUTES,
+  step: number = DEFAULT_SNAP_MINUTES,
 ): number {
   const clamped = Math.max(0, Math.min(offsetMinutes, totalMinutes - 60));
-  return Math.floor(clamped / 60) * 60;
+  return Math.floor(clamped / step) * step;
 }
 
 // --- Drag / resize geometry (step 2) --------------------------------------
 
-/** Snap step for dragging and resizing — 15-minute grid (Google-Calendar feel). */
-export const SNAP_MINUTES = 15;
-/** A block may never be resized shorter than this (prevents zero/negative spans). */
-export const MIN_BLOCK_MINUTES = 15;
+/**
+ * Default block time unit: how finely a block snaps when dragged, resized, or
+ * created, and (synced 1:1) the shortest a block may ever be. User-configurable
+ * in settings (`user_settings.blockSnapMinutes`, one of `BLOCK_SNAP_OPTIONS`) —
+ * this is the fallback when unset.
+ */
+export const DEFAULT_SNAP_MINUTES = 60;
+/** Selectable block time units, surfaced in the settings UI (minutes). */
+export const BLOCK_SNAP_OPTIONS = [60, 30, 15] as const;
 
 /** A scheduled span as concrete start/end Dates. */
 export type Span = { start: Date; end: Date };
 
 /** Round a raw minute delta to the nearest snap step. */
-export function snapMinutes(delta: number, step: number = SNAP_MINUTES): number {
+export function snapMinutes(
+  delta: number,
+  step: number = DEFAULT_SNAP_MINUTES,
+): number {
   return Math.round(delta / step) * step;
+}
+
+/** A Date with only its hour/minute replaced, same calendar day. Pure. */
+export function setTimeOfDay(date: Date, hour: number, minute: number): Date {
+  const next = new Date(date);
+  next.setHours(hour, minute, 0, 0);
+  return next;
 }
 
 /** A new Date `minutes` after `date` (immutable — never mutates the input). */
@@ -124,24 +141,78 @@ export function moveBlock(start: Date, end: Date, deltaMinutes: number): Span {
 
 /**
  * Resize a block's bottom edge by a minute delta. The end is clamped so the
- * block never becomes shorter than MIN_BLOCK_MINUTES — this prevents a zero or
- * inverted (end before start) span when the user drags the edge upward.
+ * block never becomes shorter than `minMinutes` (synced to the block snap
+ * unit) — this prevents a zero or inverted (end before start) span when the
+ * user drags the edge upward.
  */
-export function resizeBlockEnd(start: Date, end: Date, deltaMinutes: number): Span {
+export function resizeBlockEnd(
+  start: Date,
+  end: Date,
+  deltaMinutes: number,
+  minMinutes: number = DEFAULT_SNAP_MINUTES,
+): Span {
   const proposed = durationMinutes(start, end) + deltaMinutes;
-  const duration = Math.max(MIN_BLOCK_MINUTES, proposed);
+  const duration = Math.max(minMinutes, proposed);
   return { start, end: addMinutes(start, duration) };
 }
 
 /**
  * Resize a block's top edge by a minute delta. The start is clamped so the
- * block never becomes shorter than MIN_BLOCK_MINUTES — dragging the top edge
- * down too far can't push start past (end - minimum).
+ * block never becomes shorter than `minMinutes` (synced to the block snap
+ * unit) — dragging the top edge down too far can't push start past (end -
+ * minimum).
  */
-export function resizeBlockStart(start: Date, end: Date, deltaMinutes: number): Span {
+export function resizeBlockStart(
+  start: Date,
+  end: Date,
+  deltaMinutes: number,
+  minMinutes: number = DEFAULT_SNAP_MINUTES,
+): Span {
   const proposed = durationMinutes(start, end) - deltaMinutes;
-  const duration = Math.max(MIN_BLOCK_MINUTES, proposed);
+  const duration = Math.max(minMinutes, proposed);
   return { start: addMinutes(end, -duration), end };
+}
+
+/**
+ * Apply a typed "set start time to hour:minute" edit (TaskDetailModal), snapped
+ * to the user's block time unit — same delta-based math the drag handle uses
+ * (`resizeBlockStart`), so a typed edit and a drag land on the same values.
+ * `end` is null for a still-running action: the start then just shifts, with no
+ * minimum-length clamp (there's no end to clamp against). Returns null when the
+ * typed time snaps back to the span's current start (no-op).
+ */
+export function editSpanStart(
+  start: Date,
+  end: Date | null,
+  hour: number,
+  minute: number,
+  snapUnit: number = DEFAULT_SNAP_MINUTES,
+): { start: Date; end: Date | null } | null {
+  const raw = setTimeOfDay(start, hour, minute);
+  const deltaMinutes = snapMinutes(durationMinutes(start, raw), snapUnit);
+  if (deltaMinutes === 0) return null;
+  if (!end) return { start: addMinutes(start, deltaMinutes), end: null };
+  const resized = resizeBlockStart(start, end, deltaMinutes, snapUnit);
+  return { start: resized.start, end: resized.end };
+}
+
+/**
+ * Apply a typed "set end time to hour:minute" edit (TaskDetailModal), snapped
+ * to the user's block time unit — same delta-based math the drag handle uses
+ * (`resizeBlockEnd`). Returns null when the typed time snaps back to the
+ * span's current end (no-op).
+ */
+export function editSpanEnd(
+  start: Date,
+  end: Date,
+  hour: number,
+  minute: number,
+  snapUnit: number = DEFAULT_SNAP_MINUTES,
+): Span | null {
+  const raw = setTimeOfDay(end, hour, minute);
+  const deltaMinutes = snapMinutes(durationMinutes(end, raw), snapUnit);
+  if (deltaMinutes === 0) return null;
+  return resizeBlockEnd(start, end, deltaMinutes, snapUnit);
 }
 
 // --- Parent / child nesting (phase 3) -------------------------------------
