@@ -370,8 +370,11 @@ export const userSettings = pgTable(
     gridEndTime: integer("grid_end_time"),
     // Block time unit in minutes — how finely blocks snap when dragged, resized,
     // or created, and (synced) the shortest a block may be. One of
-    // BLOCK_SNAP_OPTIONS (60/30/15/5). null = fall back to DEFAULT_SNAP_MINUTES (60).
+    // BLOCK_SNAP_OPTIONS (60/30/15). null = fall back to DEFAULT_SNAP_MINUTES (60).
     blockSnapMinutes: integer("block_snap_minutes"),
+    // Calendar row height in px per grid hour. One of SLOT_HEIGHT_OPTIONS
+    // (48/72/96, i.e. 1x/1.5x/2x). null = fall back to DEFAULT_SLOT_HEIGHT (72).
+    slotHeight: integer("slot_height"),
     // Extra free-text style guidance the user can add for the daily AI review
     // (tone/wording only — never the output structure). null = none.
     reviewStylePrompt: text("review_style_prompt"),

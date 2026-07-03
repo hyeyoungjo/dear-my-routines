@@ -19,6 +19,7 @@
     "font": "Font",
     "gridHours": "Grid hours",
     "blockSnap": "Block snap",
+    "blockHeight": "Block height",
     "geminiApiKey": "Gemini API Key",
     "saveKey": "Save",
     "removeKey": "Remove",

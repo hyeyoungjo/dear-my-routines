@@ -148,6 +148,13 @@
       "when": 1783034660871,
       "tag": "0020_user_settings_block_snap",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1783045065073,
+      "tag": "0021_user_settings_slot_height",
+      "breakpoints": true
     }
   ]
 }

@@ -49,6 +49,7 @@ import {
 import { useTasks, useCreateTaskWithBlock } from "@/hooks/tasks";
 import { useProjects } from "@/hooks/projects";
 import { useUserSettings } from "@/hooks/userSettings";
+import { DEFAULT_SLOT_HEIGHT } from "@/lib/calendarLayout";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCalendarDay,
@@ -57,15 +58,11 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { useTranslations } from "next-intl";
 
-/** Pixel height of one hour row; the whole grid scales off this. */
-const SLOT_HEIGHT = 48;
-
 const TAB_COLOR: Record<"plan" | "action" | "review", string> = {
   plan:   "var(--tab-plan-fg)",
   action: "var(--tab-act-fg)",
   review: "var(--tab-reflect-fg)",
 };
-const PX_PER_MINUTE = SLOT_HEIGHT / 60;
 /** Default length of a freshly-created block (one hour). */
 const DEFAULT_BLOCK_MINUTES = 60;
 
@@ -122,6 +119,10 @@ export function CalendarGrid() {
   // grid lines (`gridSlots` above) are drawn independently and always stay
   // hourly regardless of this setting.
   const blockSnapMinutes = userSettingsData?.blockSnapMinutes ?? DEFAULT_SNAP_MINUTES;
+  // Row height (settings): pixel height of one grid hour — the whole grid
+  // scales off this. User-configurable (1x/1.5x/2x); 1.5x is the default.
+  const slotHeight = userSettingsData?.slotHeight ?? DEFAULT_SLOT_HEIGHT;
+  const pxPerMinute = slotHeight / 60;
   const createTaskWithBlock = useCreateTaskWithBlock();
   const addPlanBlock = useAddPlanBlock();
   const addActionBlock = useAddActionBlock();
@@ -143,7 +144,7 @@ export function CalendarGrid() {
   const justDraggedRef = useRef(false);
 
   const slots = gridSlots(gridStartHour, gridEndHour);
-  const bodyHeight = gridTotalMinutes * PX_PER_MINUTE;
+  const bodyHeight = gridTotalMinutes * pxPerMinute;
   const [now, setNow] = useState(() => new Date());
   // Tick once per minute so the now-line stays accurate without a re-render storm.
   useEffect(() => {
@@ -300,7 +301,7 @@ export function CalendarGrid() {
     // the full page-offset of the body (scroll-dependent), placing new blocks
     // hours below the click. currentTarget is always the visible body clicked.
     const y = e.clientY - e.currentTarget.getBoundingClientRect().top;
-    createAt(snapToSlot(y / PX_PER_MINUTE, gridTotalMinutes, blockSnapMinutes), kind);
+    createAt(snapToSlot(y / pxPerMinute, gridTotalMinutes, blockSnapMinutes), kind);
   };
 
   /** A block was pressed — begin tracking a vertical move/resize. */
@@ -357,7 +358,7 @@ export function CalendarGrid() {
       setDrag((prev) => {
         if (!prev) return prev;
         const deltaMinutes = snapMinutes(
-          (e.clientY - prev.startY) / PX_PER_MINUTE,
+          (e.clientY - prev.startY) / pxPerMinute,
           blockSnapMinutes,
         );
         if (prev.deltaMinutes === deltaMinutes) return prev;
@@ -503,7 +504,7 @@ export function CalendarGrid() {
   // as one continuous line across Plan / axis / Act. null when now is off-grid.
   const nowLineTop = (() => {
     const mins = (now.getHours() - gridStartHour) * 60 + now.getMinutes();
-    return mins < 0 || mins > gridTotalMinutes ? null : mins * PX_PER_MINUTE;
+    return mins < 0 || mins > gridTotalMinutes ? null : mins * pxPerMinute;
   })();
   const nowLine =
     nowLineTop === null ? null : (
@@ -524,7 +525,7 @@ export function CalendarGrid() {
         <div
           key={slot.offsetMinutes}
           className="absolute inset-x-0 border-t border-grid"
-          style={{ top: slot.offsetMinutes * PX_PER_MINUTE }}
+          style={{ top: slot.offsetMinutes * pxPerMinute }}
         />
       ))}
 
@@ -553,8 +554,8 @@ export function CalendarGrid() {
               onDragStart={handleDragStart}
               isDragging={isDragging}
               style={{
-                top: blockTopMinutes(block.span.start, gridStartHour) * PX_PER_MINUTE,
-                height: blockPixelHeight(block, PX_PER_MINUTE),
+                top: blockTopMinutes(block.span.start, gridStartHour) * pxPerMinute,
+                height: blockPixelHeight(block, pxPerMinute),
                 left: `calc(${slot.col * widthPct}% + 2px)`,
                 width: `calc(${widthPct}% - 4px)`,
               }}
@@ -574,7 +575,7 @@ export function CalendarGrid() {
         <span
           key={slot.offsetMinutes}
           className="absolute inset-x-0 -translate-y-1/2 text-center text-[10px] tabular-nums text-muted"
-          style={{ top: slot.offsetMinutes * PX_PER_MINUTE }}
+          style={{ top: slot.offsetMinutes * pxPerMinute }}
         >
           {slot.label}
         </span>

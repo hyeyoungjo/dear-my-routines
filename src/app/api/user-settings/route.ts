@@ -7,6 +7,7 @@ import { isAllowedLanguage } from "@/lib/languages";
 import { isAllowedFont } from "@/lib/fonts";
 import { THEMES } from "@/components/theme";
 import { BLOCK_SNAP_OPTIONS } from "@/core/time/calendar";
+import { isAllowedSlotHeight, SLOT_HEIGHT_OPTIONS } from "@/lib/calendarLayout";
 import { encryptApiKey } from "@/lib/apiKeyEncryption";
 import { createClient } from "@/services/supabase/server";
 
@@ -70,6 +71,7 @@ export async function PUT(request: NextRequest) {
     gridStartTime,
     gridEndTime,
     blockSnapMinutes,
+    slotHeight,
     apiKey,
     reviewStylePrompt,
     reviewHistoryDays,
@@ -174,6 +176,13 @@ export async function PUT(request: NextRequest) {
     }
   }
 
+  if (slotHeight !== undefined && slotHeight !== null && !isAllowedSlotHeight(slotHeight)) {
+    return NextResponse.json(
+      { error: `slotHeight must be one of ${SLOT_HEIGHT_OPTIONS.join(", ")} or null` },
+      { status: 400 },
+    );
+  }
+
   // apiKey: string → encrypt and store; null → clear stored key; undefined → leave unchanged
   let encryptedApiKey: string | null | undefined = undefined;
   if (apiKey !== undefined) {
@@ -202,6 +211,7 @@ export async function PUT(request: NextRequest) {
       gridStartTime: (gridStartTime as number | null | undefined) ?? null,
       gridEndTime: (gridEndTime as number | null | undefined) ?? null,
       blockSnapMinutes: (blockSnapMinutes as number | null | undefined) ?? null,
+      slotHeight: (slotHeight as number | null | undefined) ?? null,
       reviewStylePrompt: (reviewStylePrompt as string | null | undefined) ?? null,
       reviewHistoryDays: (reviewHistoryDays as number | null | undefined) ?? null,
       encryptedApiKey: encryptedApiKey ?? null,
@@ -217,6 +227,7 @@ export async function PUT(request: NextRequest) {
         ...(gridStartTime !== undefined && { gridStartTime: gridStartTime as number | null }),
         ...(gridEndTime !== undefined && { gridEndTime: gridEndTime as number | null }),
         ...(blockSnapMinutes !== undefined && { blockSnapMinutes: blockSnapMinutes as number | null }),
+        ...(slotHeight !== undefined && { slotHeight: slotHeight as number | null }),
         ...(reviewStylePrompt !== undefined && { reviewStylePrompt: reviewStylePrompt as string | null }),
         ...(reviewHistoryDays !== undefined && { reviewHistoryDays: reviewHistoryDays as number | null }),
         ...(encryptedApiKey !== undefined && { encryptedApiKey }),

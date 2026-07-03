@@ -35,6 +35,8 @@ export type UpdateSettingsInput = {
   gridEndTime?: number | null;
   // Block time unit in minutes (one of BLOCK_SNAP_OPTIONS); null resets to default.
   blockSnapMinutes?: number | null;
+  // Calendar row height in px/hour (one of SLOT_HEIGHT_OPTIONS); null resets to default.
+  slotHeight?: number | null;
   // Free-text style guidance for the AI review; null clears, undefined leaves unchanged.
   reviewStylePrompt?: string | null;
   // Trailing history window in days (1–30); null resets to default.
@@ -101,6 +103,7 @@ export function useUpdateUserSettings() {
           gridStartTime: input.gridStartTime ?? null,
           gridEndTime: input.gridEndTime ?? null,
           blockSnapMinutes: input.blockSnapMinutes ?? null,
+          slotHeight: input.slotHeight ?? null,
           reviewStylePrompt: input.reviewStylePrompt ?? null,
           reviewHistoryDays: input.reviewHistoryDays ?? null,
           hasApiKey,

@@ -19,6 +19,7 @@
     "font": "글꼴",
     "gridHours": "그리드 시간대",
     "blockSnap": "블록 시간 단위",
+    "blockHeight": "블록 높이",
     "geminiApiKey": "Gemini API 키",
     "saveKey": "저장",
     "removeKey": "삭제",
