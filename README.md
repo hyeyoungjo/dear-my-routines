@@ -4,6 +4,8 @@ A personal time-tracking web app for measuring **estimated vs. actual** time —
 
 Plan your day in the morning → record what actually happened → get a daily AI review that spots your patterns over time.
 
+> **Status:** the hosted version has been shut down. The code is open source (MIT), so you can run your own copy with a free Supabase project. See [Run it yourself](#run-it-yourself).
+
 ---
 
 ## Screenshots
@@ -63,17 +65,34 @@ The day is divided into three moments:
 
 ---
 
-## Dev setup
+## Run it yourself
 
-```bash
-npm install
-npm run dev     # development server  →  http://localhost:3000
-npm run build   # production build
-npm run test    # Vitest unit tests
-npm run lint    # ESLint
-```
+1. Create a [Supabase](https://supabase.com) project and enable email auth (Google OAuth is optional).
+2. Copy `.env.example` to `.env` and fill in the Supabase URL, publishable key, database password, and a Gemini API key. `RESEND_API_KEY` is only needed for feedback and announcement emails.
+3. Apply the database schema (tables and RLS policies):
 
-Copy `.env.example` → `.env.local` and fill in your Supabase and AI API keys.
+   ```bash
+   npm install
+   npx drizzle-kit migrate
+   ```
+
+   `drizzle.config.ts` points at the Supabase `us-west-2` session pooler. Change `host` if your project is in another region.
+4. Sign-up is invite-only. Add your email to the allowlist in the Supabase SQL editor:
+
+   ```sql
+   insert into allowed_emails (email, role) values ('you@example.com', 'admin');
+   ```
+
+5. Run it:
+
+   ```bash
+   npm run dev     # development server  →  http://localhost:3000
+   npm run build   # production build
+   npm run test    # Vitest unit tests
+   npm run lint    # ESLint
+   ```
+
+`railway.toml` is kept for reference if you want to deploy to Railway.
 
 ---
 
@@ -85,6 +104,12 @@ Copy `.env.example` → `.env.local` and fill in your Supabase and AI API keys.
 - Server Components by default; `'use client'` only where interaction is needed.
 
 See [`docs/ADR.md`](docs/ADR.md) for architectural decisions and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full structure.
+
+---
+
+## License
+
+[MIT](LICENSE)
 
 ---
 

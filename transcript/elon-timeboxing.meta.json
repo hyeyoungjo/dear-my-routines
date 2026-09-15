@@ -1,9 +1,0 @@
-{
-  "source_url": "https://www.youtube.com/watch?v=KVNYJoIbS-c",
-  "title": "To do list 쓰면 오히려 망합니다. 일론 머스크가 사용하는 시간 관리법",
-  "duration": "10:50",
-  "language": "ko",
-  "method": "whisper",
-  "model": "small",
-  "note": "small model; meaning captured well, some proper nouns garbled (e.g. '시몰 다이어리' = product name, '아이엔가' = Iyengar, '자이가르닉' = Zeigarnik, '아이젠하워' = Eisenhower)."
-}

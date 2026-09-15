@@ -5,6 +5,8 @@
 
 아침에 하루를 계획하고 → 실제로 어떻게 됐는지 기록하고 → 저녁에 AI 리뷰로 내 패턴을 파악합니다.
 
+> **상태:** 호스팅 버전은 종료했습니다. 코드는 오픈소스(MIT)라서 무료 Supabase 프로젝트로 직접 띄워 쓸 수 있어요. [직접 실행하기](#직접-실행하기) 참고.
+
 ---
 
 ## 스크린샷
@@ -61,17 +63,34 @@
 
 ---
 
-## 개발 환경 설정
+## 직접 실행하기
 
-```bash
-npm install
-npm run dev     # 개발 서버  →  http://localhost:3000
-npm run build   # 프로덕션 빌드
-npm run test    # Vitest 유닛 테스트
-npm run lint    # ESLint
-```
+1. [Supabase](https://supabase.com) 프로젝트를 만들고 이메일 인증을 켭니다 (Google OAuth는 선택).
+2. `.env.example`을 `.env`로 복사하고 Supabase URL, publishable key, DB 비밀번호, Gemini API 키를 채웁니다. `RESEND_API_KEY`는 피드백·공지 메일에만 필요해요.
+3. DB 스키마(테이블 + RLS 정책)를 적용합니다:
 
-`.env.example`을 `.env.local`로 복사한 뒤 Supabase와 AI API 키를 채워 주세요.
+   ```bash
+   npm install
+   npx drizzle-kit migrate
+   ```
+
+   `drizzle.config.ts`는 Supabase `us-west-2` session pooler를 가리킵니다. 리전이 다르면 `host`를 바꿔 주세요.
+4. 가입은 초대제입니다. Supabase SQL 에디터에서 내 이메일을 허용 목록에 넣어요:
+
+   ```sql
+   insert into allowed_emails (email, role) values ('you@example.com', 'admin');
+   ```
+
+5. 실행:
+
+   ```bash
+   npm run dev     # 개발 서버  →  http://localhost:3000
+   npm run build   # 프로덕션 빌드
+   npm run test    # Vitest 유닛 테스트
+   npm run lint    # ESLint
+   ```
+
+Railway에 배포하고 싶다면 참고용으로 `railway.toml`을 남겨 뒀습니다.
 
 ---
 
@@ -83,6 +102,12 @@ npm run lint    # ESLint
 - Server Component 기본, 인터랙션이 필요한 곳만 `'use client'`.
 
 아키텍처 결정 기록은 [`docs/ADR.md`](docs/ADR.md), 전체 구조는 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) 참고.
+
+---
+
+## 라이선스
+
+[MIT](LICENSE)
 
 ---
 
